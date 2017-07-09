@@ -11,23 +11,31 @@ class Grid(object):
 
 	def __init__(self, num_rows, num_cols):
 		self._grid = np.zeros((num_rows, num_cols), np.int32)
-		self.__num_rows = num_rows
-		self.__num_cols = num_cols
+		self._num_rows = num_rows
+		self._num_cols = num_cols
 
 	def is_inside(self, x, y):
-		return x >= 0 and y >= 0 and x < self.__num_rows and y < self.__num_cols
+		return x >= 0 and y >= 0 and x < self._num_rows and y < self._num_cols
 
 	def get(self, x, y):
 		return self._grid[x, y]
 
-	def set(self, x, y, value):
-		self._grid[x, y] = value 
+	# def set(self, x, y, value):
+	# 	self._grid[x, y] = value 
 
 	def __str__(self):
-		for i in range(self.__num_rows):
-			for j in range(self.__num_cols):
-				print(str(self._grid[i, j]) + ', '),
-			print()
+		grid_string = '* '
+
+		for i in range(self._num_cols):
+			grid_string += str(i) + '| '
+		grid_string += '\n'
+
+		for i in range(self._num_rows):
+			grid_string += str(i) + '|'
+			for j in range(self._num_cols):
+				grid_string += str(self._grid[i, j]) + ', '
+			grid_string += '\n'
+		return grid_string
 
 
 class Map(Grid):
@@ -73,15 +81,19 @@ class Map(Grid):
 		# super(Map, self).__str__()
 
 	def is_free(self, x, y):
-		assert(is_inside(self, x, y))
+		assert(self.is_inside(x, y))
 		return self._grid[x, y] == hscodes.FREE
 
+	def is_obstacle(self, x, y):
+		assert(self.is_inside(x, y))
+		return self._grid[x, y] == hscodes.OBSTACLE
+
 	def is_hider(self, x, y):
-		assert(is_inside(self, x, y))
+		assert(self.is_inside(x, y))
 		return self._grid[x, y] == hscodes.HIDER
 
 	def is_seeker(self, x, y):
-		assert(is_inside(self, x, y))
+		assert(self.is_inside(x, y))
 		return self._grid[x, y] == hscodes.SEEKER
 
 	def set_hider(self, x, y):
@@ -99,7 +111,88 @@ class Map(Grid):
 	def set_free(self, x, y):
 		self._grid[x, y] = hscodes.FREE
 
+	def clear(self):
+		'''
+			Sets all the non-obstacle cells to free i.e. clears the presence
+			of any hiders, seekers and their visibility
+		'''
+		for i in range(self._num_rows):
+			for j in range(self._num_cols):
+				if not self.is_obstacle(i, j):
+					self._grid[i, j] = hscodes.FREE
 
+	def __get_visibility(self, i, j, multiplier, orientation):
+		assert(self.is_free(i, j))
+		assert(multiplier == -1 or multiplier == 1)
+		assert(orientation == -1 or orientation == 1)
+		visible_cells = []
+		blocked = []
+		lower_stop = None
+		upper_stop = None
+		x_limit = None
 
+		if orientation == 1:
+			x_limit = self._num_rows
+		elif orientation == -1:
+			x_limit = self._num_cols
 
+		print('x_limit:', x_limit)
 
+		for x in range(self._num_rows):
+			if lower_stop == None:
+				lower_limit = -1*x
+			else:
+				lower_limit = lower_stop
+			if upper_stop == None:
+				upper_limit = x
+			else:
+				upper_limit = upper_stop 
+			for y in range(lower_limit, upper_limit+1):
+				if orientation == 1:
+					a = i + (multiplier * x)
+					b = j + y
+				elif orientation == -1:
+					a = i + y
+					b = j + (multiplier * x)
+
+				if not self.is_inside(a, b):
+					continue
+
+				print(i-x,':',j+y)
+				if self._grid[a, b] == hscodes.OBSTACLE:
+					print('grid cell', a,',',b, 'is an obstacle')
+
+					if y == -1*x:
+						lower_stop = y + 1
+					elif y == x:
+						upper_stop = y - 1
+					else:
+						if orientation == 1:
+							blocked.append(b)
+						elif orientation == -1:
+							blocked.append(a)
+					continue
+				if orientation == 1:
+					if b in blocked:
+						continue
+				elif orientation == -1:
+					if a in blocked:
+						continue
+
+				self._grid[a, b] = 9
+				visible_cells.append((a, b))
+		return visible_cells
+
+	def get_visibility_north(self, i, j):
+		return self.__get_visibility(i, j, -1, 1)
+
+	def get_visibility_south(self, i, j):
+		return self.__get_visibility(i, j, 1, 1)
+
+	def get_visibility_east(self, i, j):
+		# right
+		return self.__get_visibility(i, j, 1, -1)
+
+	def get_visibility_west(self, i, j):
+		# left
+		return self.__get_visibility(i, j, -1, -1)
