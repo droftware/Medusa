@@ -20,6 +20,16 @@ class Grid(object):
 	def get(self, x, y):
 		return self._grid[x, y]
 
+	def set(self, x, y, value):
+		self._grid[x, y] = value
+
+	def get_num_rows(self):
+		return self._num_rows
+
+	def get_num_cols(self):
+		return self._num_cols
+
+
 	# def set(self, x, y, value):
 	# 	self._grid[x, y] = value 
 
@@ -42,6 +52,8 @@ class Map(Grid):
 	"""
 		Map used during the simulation of hide and seek
 	"""
+
+	map_list = []
 	def __init__(self, map_id):
 		map_name = 'id_' + str(map_id) + '.grid'
 		print('Path:', map_name)
@@ -77,6 +89,7 @@ class Map(Grid):
 					elif numcode == 1:
 						self._grid[row, j] = hscodes.OBSTACLE
 			row += 1
+		Map.map_list.append(self)
 
 		# super(Map, self).__str__()
 
