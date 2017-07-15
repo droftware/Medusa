@@ -1,5 +1,8 @@
 import math
 
+import numpy as np
+import matplotlib.path as mplPath
+
 import coord
 
 class Line(object):
@@ -81,22 +84,38 @@ class Line(object):
 		return intersect_point, t1
 
 
-
 class Polygon(object):
 
-	def __init__(self, points_tuple):
+	def __init__(self, points_tuple, line_analysis=False, point_analysis=False):
 		assert(len(points_tuple)%2 == 0)
 		self.__num_vertices = len(points_tuple)//2
 		self.__vertices = []
 		self.__points_tuple = points_tuple
+
+		self.__line_analysis = line_analysis
+		self.__lines = []
+
+		self.__point_analysis = point_analysis
+		self.__mpl_path = None
 
 		i = 0
 		while i < self.__num_vertices * 2:
 			vertex = coord.Coord(points_tuple[i], points_tuple[i+1])
 			self.__vertices.append(vertex)
 			i += 2
+		
 
-		self.__lines = []
+	def __str__(self):
+		polygon_string = ''
+		for i in range(self.__num_lines):
+			polygon_string += str(self.__lines[i]) + ', '
+		return polygon_string
+
+	def create_line_representation(self):
+		'''
+			Creates a list of lines which make the outer boundary of the polygon.
+			Helps in finding visibility regions.
+		'''
 		i = 0
 		while i < self.__num_vertices - 1:
 			line = Line(self.__vertices[i], self.__vertices[i+1])
@@ -108,12 +127,25 @@ class Polygon(object):
 			self.__lines.append(line)
 
 		self.__num_lines = len(self.__lines)
+		self.__line_analysis = True
 
-	def __str__(self):
-		polygon_string = ''
-		for i in range(self.__num_lines):
-			polygon_string += str(self.__lines[i]) + ', '
-		return polygon_string
+	def create_path_representation(self):
+		'''
+			Creates a matplotlib path representation of the polygon.
+			Helps in finding fast 'point within the polygon' queries
+		'''
+		mpl_vertices = []
+		for vertex in self.__vertices:
+			mpl_vertices.append([vertex.get_x(), vertex.get_y()])
+
+		self.__mpl_path = mplPath.Path(np.array(mpl_vertices))
+		self.__point_analysis = True
+
+	def is_point_inside(self, point):
+		assert(isinstance(point, coord.Coord))
+		if not self.__point_analysis:
+			self.create_path_representation()
+		return self.__mpl_path.contains_point((point.get_x(), point.get_y()))
 
 	def get_vertex(self, i):
 		assert(i < self.__num_vertices)
@@ -121,6 +153,8 @@ class Polygon(object):
 
 	def get_line(self, i):
 		assert(i < self.__num_lines)
+		if not self.__line_analysis:
+			self.create_line_representation()
 		return self.__lines[i]
 
 	def get_points_tuple(self):
@@ -130,4 +164,6 @@ class Polygon(object):
 		return self.__num_vertices
 
 	def get_num_lines(self):
+		if not self.__line_analysis:
+			self.create_line_representation()
 		return self.__num_lines
