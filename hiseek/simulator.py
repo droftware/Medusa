@@ -41,14 +41,19 @@ class Simulator(object):
 	def __update_simulation(self, dt):
 		available_actions = list(action.Action)
 
+		# extract percept from graphics and send to ai
+		# update the states in ai layer 
+		# extract action from ai layer
+		# execute the above extracted action using graphics layer
+
+
 		for i in range(self.__num_hiders):
 			act = random.choice(available_actions)
 			self.__window.set_hider_action(i, act)
 
-		for i in range(self.__num_seekers):
+		for i in range(1, self.__num_seekers):
 			act = random.choice(available_actions)
 			self.__window.set_seeker_action(i, act)
-		print('Updated')
 		self.__window.update(dt)
 
 	def simulate(self):
