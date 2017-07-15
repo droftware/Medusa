@@ -21,6 +21,5 @@ class Experiment(object):
 
 	def run(self):
 		sim = simulator.Simulator(self.__display, self.__mode_hiders, self.__mode_seekers, self.__num_hiders, self.__num_seekers, self.__map_id, self.__input_file, self.__output_file, self.__verbose)
-		for i in range(self.__num_runs):
-			print('Ran:', i)
+		sim.simulate()
 			
