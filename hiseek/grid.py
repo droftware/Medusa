@@ -151,7 +151,7 @@ class Map(Grid):
 
 		print('x_limit:', x_limit)
 
-		for x in range(self._num_rows):
+		for x in range(x_limit):
 			if lower_stop == None:
 				lower_limit = -1*x
 			else:
