@@ -72,6 +72,3 @@ class TeamMessenger(object):
 
 	def get_all_ids(self):
 		return self.__agent_messengers.keys()
-
-
-
