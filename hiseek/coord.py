@@ -13,6 +13,7 @@ class Coord(object):
 
 	# all_actions = [north, south, east, west, north_east, north_west, south_east, south_west]
 	# all_actions_string = ['north', 'south', 'east', 'west', 'north_east', 'north_west', 'south_east', 'south_west']
+	all_actions_mapping = {}
 	all_actions_mapping['north'] = north
 	all_actions_mapping['south'] = south
 	all_actions_mapping['east'] = east
@@ -27,6 +28,11 @@ class Coord(object):
 		self.__y = y
 		self.__prev_x = None
 		self.__prev_y = None
+
+	def __str__(self):
+		coord_string = '(' + str(self.__x) + ', ' + str(self.__y) + ')'
+		return coord_string
+
 
 	def get_x(self):
 		return self.__x
