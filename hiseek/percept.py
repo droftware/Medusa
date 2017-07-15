@@ -2,9 +2,9 @@ class Percept(object):
 	'''
 		Encapsulates the percept aspect of each agent.
 	'''
-	def __init__(self):
-		self.__hiders = []
-		self.__seekers = []
+	def __init__(self, hider_coords=[], seeker_coords=[]):
+		self.__hiders = hider_coords
+		self.__seekers = seeker_coords
 
 	def are_hiders_visible(self):
 		return bool(self.__hiders)
