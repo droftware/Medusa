@@ -3,8 +3,6 @@ class Percept(object):
 		Encapsulates the percept aspect of each agent.
 	'''
 	def __init__(self):
-		self.__visible_cells = None
-		self.__obstacles = None
 		self.__hiders = []
 		self.__seekers = []
 
@@ -26,15 +24,4 @@ class Percept(object):
 		'''
 		return self.__seekers
 
-	def get_obstacles(self):
-		'''
-			Returns the positions of visible obstacles.
-		'''
-		return self.__obstacles
-
-	def get_visible_cell(self):
-		'''
-			Returns visible cells
-		'''
-		return self.__visible_cells
 
