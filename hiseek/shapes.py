@@ -76,12 +76,9 @@ class Line(object):
 		i_y = r_py + r_dy*t1
 		intersect_point = coord.Coord(i_x, i_y)
 
-		print('Intersect point:')
-		print(intersect_point)
+		# print('Intersect point:')
+		# print(intersect_point)
 		return intersect_point, t1
-
-
-
 
 
 
