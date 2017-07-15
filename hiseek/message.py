@@ -17,7 +17,6 @@ class Message(object):
 		return self.__content
 
 
-
 class AgentMessenger(object):
 	'''
 		AgentMessenger facilitates an agent to manage as well as send and receive its messages
