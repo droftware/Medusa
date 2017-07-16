@@ -244,6 +244,14 @@ class Graphics(pyglet.window.Window):
 		assert(seeker_idx < self.__num_seekers)
 		self.__seekers[seeker_idx].set_action(act)
 
+	def get_hider_percept(self, hider_idx):
+		assert(hider_idx < self.__num_hiders)
+		return self.__hiders[hider_idx].get_percept()
+
+	def get_seeker_percept(self, seeker_idx):
+		assert(seeker_idx < self.__num_seekers)
+		return self.__seekers[seeker_idx].get_percept()
+
 	def on_draw(self):
 		self.clear()
 		self.__static_batch.draw()
