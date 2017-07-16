@@ -34,8 +34,10 @@ class Agent(object):
 			Simulator accepts the chosen action from the agent and updates the
 			current position accordingly
 		'''
-		assert(self._map_manager.is_obstacle(coordinate) == False)
 		self._position = coordinate
+
+	def get_position(self):
+		return self._position
 
 	def get_action(self):
 		return self._action
@@ -136,6 +138,95 @@ class RandomSeekerAgent(SeekerAgent):
 
 	def clear_temporary_state(self):
 		pass
+
+class RandomHiderCommanderAgent(RandomHiderAgent):
+
+	def __init__(self, agent_id, team, map_manager):
+		super(RandomHiderCommanderAgent, self).__init__(agent_id, team, map_manager)
+		self.__opening_positions = {}
+		self.__openings_created = False
+
+	def get_opening_position(self, rank, idx):
+		assert(rank < self._team.get_ranks())
+		assert(idx < self._team.get_num_rankers(rank))
+		if not self.__openings_created:
+			self.__set_opening()
+			self.__openings_created = True
+		return self.__opening_positions[(rank, idx)]
+
+	def __check_within_obstacle(self, position):
+		gamemap = self._map_manager.get_map()
+		num_polygons = gamemap.get_num_polygons()
+		for i in range(num_polygons):
+			polygon = gamemap.get_polygon(i)
+			if polygon.is_point_inside(position):
+				return True
+		return False
+
+	def __check_already_occupied(self, position):
+		for value in self.__opening_positions.values():
+			if position == value:
+				return True
+		return False
+
+	def __set_opening(self):
+		gamemap = self._map_manager.get_map()
+		max_rank = self._team.get_ranks()
+		for i in reversed(range(max_rank)):
+			for j in range(self._team.get_num_rankers(i)):
+				found_position = False
+				while not found_position:
+					position = coord.Coord(random.randint(0, gamemap.get_map_width()), random.randint(0, gamemap.get_map_height()))
+					if not self.__check_within_obstacle(position) and not self.__check_already_occupied(position):
+						self.__opening_positions[(i, j)] = position
+						found_position = True
+
+class RandomSeekerCommanderAgent(RandomSeekerAgent):
+
+	def __init__(self, agent_id, team, map_manager):
+		super(RandomSeekerCommanderAgent, self).__init__(agent_id, team, map_manager)
+		self.__opening_positions = {}
+		self.__openings_created = False
+
+	def get_opening_position(self, rank, idx):
+		assert(rank < self._team.get_ranks())
+		assert(idx < self._team.get_num_rankers(rank))
+		if not self.__openings_created:
+			self.__set_opening()
+			self.__openings_created = True
+		return self.__opening_positions[(rank, idx)]
+
+	def __check_within_obstacle(self, position):
+		gamemap = self._map_manager.get_map()
+		num_polygons = gamemap.get_num_polygons()
+		for i in range(num_polygons):
+			polygon = gamemap.get_polygon(i)
+			if polygon.is_point_inside(position):
+				return True
+		return False
+
+	def __check_already_occupied(self, position):
+		for value in self.__opening_positions.values():
+			if position == value:
+				return True
+		return False
+
+	def __set_opening(self):
+		gamemap = self._map_manager.get_map()
+		max_rank = self._team.get_ranks()
+		for i in reversed(range(max_rank)):
+			rank_holders = self._team.get_num_rankers(i)
+			for j in range(rank_holders):
+				found_position = False
+				while not found_position:
+					x = random.randint(0, gamemap.get_map_width())
+					y = random.randint(0, gamemap.get_map_height())
+					position = coord.Coord(x, y)
+					within_obstacle = self.__check_within_obstacle(position)
+					already_occupied = self.__check_already_occupied(position)
+					if not within_obstacle and not already_occupied:
+						self.__opening_positions[(i, j)] = position
+						found_position = True
 
 
 class FidgetingHiderAgent(HiderAgent):

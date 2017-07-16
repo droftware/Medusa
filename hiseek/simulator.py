@@ -100,6 +100,22 @@ class Simulator(object):
 				act = self.__seeker_team.get_action(rank, ai_idx)
 				self.__window.set_seeker_action(graphics_idx, act)
 
+	def __set_hider_openings(self):
+		for i in range(self.__hider_team.get_ranks()):
+			for j in range(self.__hider_team.get_num_rankers(i)):
+				rank, ai_idx = i, j
+				graphics_idx = self.__hiders_agent2player[(rank, ai_idx)]
+				position = self.__hider_team.get_position(rank, ai_idx)
+				self.__window.set_hider_position(graphics_idx ,position)
+
+	def __set_seeker_openings(self):
+		for i in range(self.__seeker_team.get_ranks()):
+			for j in range(self.__seeker_team.get_num_rankers(i)):
+				rank, ai_idx = i, j
+				graphics_idx = self.__seekers_agent2player[(rank, ai_idx)]
+				position = self.__seeker_team.get_position(rank, ai_idx)
+				self.__window.set_seeker_position(graphics_idx, position)
+
 	def __update_simulation(self, dt):
 
 		# extract percept from graphics layer and send to ai layer
@@ -110,24 +126,17 @@ class Simulator(object):
 		self.__hider_team.select_actions()
 		self.__seeker_team.select_actions()
 
-		# extract action from ai layer and 
-		# execute the above extracted action using graphics layer
+		# extract actions from ai layer and send it to graphics layer
 		self.__transfer_hider_actions()
 		self.__transfer_seeker_actions()
-
-
-		# available_actions = list(action.Action)
-		# for i in range(self.__num_hiders):
-		# 	act = random.choice(available_actions)
-		# 	self.__window.set_hider_action(i, act)
-
-		# for i in range(1, self.__num_seekers):
-		# 	act = random.choice(available_actions)
-		# 	self.__window.set_seeker_action(i, act)
 			
+		# Update the game window
 		self.__window.update(dt)
 
 	def simulate(self):
+		# pyglet.gl.glClearColor(255,255,255,0)
+		self.__set_hider_openings()
+		self.__set_seeker_openings()
 		pyglet.clock.schedule_interval(self.__update_simulation, 1/60.)
 		pyglet.app.run()
 		

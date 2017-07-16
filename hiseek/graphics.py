@@ -12,7 +12,7 @@ import percept
 
 class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 
-	acceleration = 200.
+	acceleration = 0
 
 	def __init__(self, img, batch, background, foreground, polygons, window_width, window_height, pos_x, pos_y, pos_rot):
 		super(Player, self).__init__(img, pos_x, pos_y, batch=batch, group=foreground)
@@ -86,6 +86,13 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 	def set_action(self, act):
 		assert(act, action.Action)
 		self.__action = act
+
+	def set_position(self, position):
+		self.x = position.get_x()
+		self.y = position.get_y()
+
+	def get_position(self):
+		return coord.Coord(self.x, self.y)
 
 	def get_visibility_polygon(self):
 		return self.__visibility_polygon
@@ -165,7 +172,6 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 			self.dx = Player.acceleration * self.rotation_x 
 			self.dy = Player.acceleration * self.rotation_y
 		
-
 		self.x = Player.wrap(self.x + self.dx * dt, self.__window_width)
 		self.y = Player.wrap(self.y + self.dy * dt, self.__window_height)
 
@@ -175,6 +181,7 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 	def __update_visibility(self):
 		c = coord.Coord(self.x, self.y)
 		vis_points = [int(c.get_x()), int(c.get_y())]
+
 		rotation = self.rotation - self.__visibility_angle
 		offset = (self.__visibility_angle * 2.0)/self.__num_rays
 		while rotation < self.rotation + self.__visibility_angle:
@@ -184,7 +191,9 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 			ray = shapes.Line(c, r)
 			closest_intersect = None
 			for polygon in self.__polygons:
+				
 				for i in range(polygon.get_num_lines()):
+					
 					intersect = shapes.Line.get_intersection(ray, polygon.get_line(i))
 					if not intersect:
 						continue
@@ -192,8 +201,10 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 						closest_intersect = intersect
 
 			# print(closest_intersect[0])
+
 			vis_points.append(int(closest_intersect[0].get_x()))
 			vis_points.append(int(closest_intersect[0].get_y()))
+
 			rotation += offset
 
 		vis_points_tuple = tuple(vis_points)
@@ -219,22 +230,42 @@ class Graphics(pyglet.window.Window):
 		assert(isinstance(polygon_map, gamemap.PolygonMap))
 		self.__polygon_map = polygon_map
 		self.__polygons = [] # By polygons we refer to the background obstacles only
+
 		self.__num_polygons = polygon_map.get_num_polygons()
 		for i in range(self.__num_polygons):
 			polygon = self.__polygon_map.get_polygon(i)
 			self.__polygons.append(polygon)
-			if polygon.get_num_vertices() == 4:
-				self.__static_batch.add_indexed(4, pyglet.gl.GL_LINES, self.__background, 
-				[0,1,1,2,2,3,3,0],
-				('v2i', polygon.get_points_tuple()),)
-			if polygon.get_num_vertices() == 3:
-				self.__static_batch.add_indexed(3, pyglet.gl.GL_LINES, self.__background, 
-				[0,1,1,2,2,0],
-				('v2i', polygon.get_points_tuple() ),)
-		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, self.__polygons, window_width, window_height, random.random() * window_width, random.random() * window_height, random.random() * 360) for i in range(num_hiders)]
-		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, self.__polygons, window_width, window_height, random.random() * window_width, random.random() * window_height, random.random() * 360) for i in range(num_seekers)]
+			self.__add_batch_polygon(polygon)
+
+		self.__boundary_polygon = polygon_map.get_boundary_polygon()
+		self.__add_batch_polygon(self.__boundary_polygon)
+
+		hider_polygons = []
+		seeker_polygons = []
+		for i in range(self.__num_polygons):
+			hider_polygons.append(self.__polygons[i])
+			seeker_polygons.append(self.__polygons[i])
+		hider_polygons.append(self.__boundary_polygon)
+		seeker_polygons.append(self.__boundary_polygon)
+
+
+
+			
+		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, hider_polygons, window_width, window_height, 0, 0, random.random() * 360) for i in range(num_hiders)]
+		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, seeker_polygons, window_width, window_height, 0, 0, random.random() * 360) for i in range(num_seekers)]
 		# pyglet.clock.schedule_interval(self.update, 1/60.)
 		self.push_handlers(self.__seekers[0])
+
+	def __add_batch_polygon(self, polygon):
+		if polygon.get_num_vertices() == 4:
+			self.__static_batch.add_indexed(4, pyglet.gl.GL_LINES, self.__background, 
+			[0,1,1,2,2,3,3,0],
+			('v2i', polygon.get_points_tuple()),)
+		if polygon.get_num_vertices() == 3:
+			self.__static_batch.add_indexed(3, pyglet.gl.GL_LINES, self.__background, 
+			[0,1,1,2,2,0],
+			('v2i', polygon.get_points_tuple() ),)
+
 
 	def set_hider_action(self, hider_idx, act):
 		assert(hider_idx < self.__num_hiders)
@@ -251,6 +282,22 @@ class Graphics(pyglet.window.Window):
 	def get_seeker_percept(self, seeker_idx):
 		assert(seeker_idx < self.__num_seekers)
 		return self.__seekers[seeker_idx].get_percept()
+
+	def set_hider_position(self, hider_idx, position):
+		assert(hider_idx < self.__num_hiders)
+		self.__hiders[hider_idx].set_position(position)
+
+	def set_seeker_position(self, seeker_idx, position):
+		assert(seeker_idx < self.__num_seekers)
+		self.__seekers[seeker_idx].set_position(position)
+
+	def get_hider_position(self, hider_idx):
+		assert(hider_idx < self.__num_hiders)
+		return self.__hiders[hider_idx].get_position()
+
+	def get_seeker_position(self, seeker_idx):
+		assert(seeker_idx < self.__num_seekers)
+		return self.__seekers[seeker_idx].get_position()
 
 	def on_draw(self):
 		self.clear()
@@ -287,6 +334,10 @@ class Graphics(pyglet.window.Window):
 			ignore_hiders = [i]
 			ignore_seekers = []
 			hider_coords, seeker_coords = self.__get_visible_players(visibility_polygon, ignore_hiders, ignore_seekers)
+			# if hider_coords:
+			# 	print('Hider spotted:', hider_coords)
+			# if seeker_coords:
+			# 	print('Seeker spotted:', seeker_coords)
 			current_percept = percept.Percept(hider_coords, seeker_coords)
 			hider.set_percept(current_percept)
 
@@ -296,11 +347,10 @@ class Graphics(pyglet.window.Window):
 			ignore_hiders = []
 			ignore_seekers = [i]
 			hider_coords, seeker_coords = self.__get_visible_players(visibility_polygon, ignore_hiders, ignore_seekers)
-			if i == 0:
-				if hider_coords:
-					print('Hider spotted:', hider_coords)
-				if seeker_coords:
-					print('Seeker spotted:', seeker_coords)
+			# if hider_coords:
+			# 	print('Hider spotted:', hider_coords)
+			# if seeker_coords:
+			# 	print('Seeker spotted:', seeker_coords)
 			current_percept = percept.Percept(hider_coords, seeker_coords)
 			seeker.set_percept(current_percept)
 

@@ -106,6 +106,8 @@ class Polygon(object):
 		
 
 	def __str__(self):
+		if not self.__line_analysis:
+			self.create_line_representation()
 		polygon_string = ''
 		for i in range(self.__num_lines):
 			polygon_string += str(self.__lines[i]) + ', '

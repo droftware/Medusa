@@ -33,6 +33,16 @@ class Coord(object):
 		coord_string = '(' + str(self.__x) + ', ' + str(self.__y) + ')'
 		return coord_string
 
+	def __eq__(self, other):
+		if isinstance(other, Coord):
+			if self.__x == other.__x and self.__y == other.__y:
+				return True
+		else:
+			return False
+
+	def __ne__(self, other):
+		return not self.__eq__(other)
+
 
 	def get_x(self):
 		return self.__x

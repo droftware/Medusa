@@ -8,7 +8,10 @@ class BasicMapManager(object):
 		its map related data.
 	'''
 	def __init__(self, mapworld):
-		self.__map = mapworld
+		self.__mapworld = mapworld
+
+	def get_map(self):
+		return self.__mapworld
 		
 
 
