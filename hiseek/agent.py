@@ -5,6 +5,7 @@ import random
 import percept
 import message
 import coord
+import action
 
 class Agent(object):
 	'''
@@ -35,6 +36,9 @@ class Agent(object):
 		'''
 		assert(self._map_manager.is_obstacle(coordinate) == False)
 		self._position = coordinate
+
+	def get_action(self):
+		return self._action
 
 
 	@abstractmethod
@@ -105,20 +109,8 @@ class RandomHiderAgent(HiderAgent):
 		pass
 
 	def select_action(self):
-		valid_actions = []
-		available_actions = coord.Coord.get_all_actions()
-		test_position = copy.deepcopy(self._position)
-		for move in available_actions:
-			test_position.move_action(move)
-			if self._map_manager.is_inside(test_position):
-				if not self._map_manager.is_obstacle(test_position):
-					valid_actions.append(move)
-			test_position.revert_action()
-
-		if valid_actions:
-			self._action = random.choice(valid_actions)
-		else:
-			self._action = None
+		available_actions = list(action.Action)
+		self._action = random.choice(available_actions)
 
 	def clear_temporary_state(self):
 		pass
@@ -139,20 +131,8 @@ class RandomSeekerAgent(SeekerAgent):
 		pass
 
 	def select_action(self):
-		valid_actions = []
-		available_actions = coord.Coord.get_all_actions()
-		test_position = copy.deepcopy(self._position)
-		for move in available_actions:
-			test_position.move_action(move)
-			if self._map_manager.is_inside(test_position):
-				if not self._map_manager.is_obstacle(test_position):
-					valid_actions.append(move)
-			test_position.revert_action()
-
-		if valid_actions:
-			self._action = random.choice(valid_actions)
-		else:
-			self._action = None
+		available_actions = list(action.Action)
+		self._action = random.choice(available_actions)
 
 	def clear_temporary_state(self):
 		pass
