@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+import enum
 
 import message
 import agent
@@ -24,7 +25,7 @@ class Team(object):
 			this list is stored.
 		'''
 		self._num_agents = num_agents
-		self._team_messenger = message.TeamMessageManager()
+		self._team_messenger = message.TeamMessenger()
 		self._members = None # which type of members to recruit ?
 		self._map_managers = None # which map manager to assign to each hierarchy level ?
 
@@ -33,13 +34,32 @@ class Team(object):
 
 	def get_ranks(self):
 		return self.ranks
-			
-	def get_members(self, rank):
+
+	def get_num_rankers(self, rank):
 		'''
-			Get all the members of a specfic rank
+			Returns number of units having a particular rank
 		'''
+		return len(self._members[rank])
+
+	def set_percept(self, rank, idx, current_percept):
 		assert(rank < self.ranks)
-		return self._members[rank]
+		assert(idx < len(self._members[rank]))
+		member = self._members[rank][idx]
+		member.set_percept(current_percept)
+
+	def get_action(self, rank, idx):
+		assert(rank < self.ranks)
+		assert(idx < len(self._members[rank]))
+		member = self._members[rank][idx]
+		return member.get_action()
+
+			
+	# def get_members(self, rank):
+	# 	'''
+	# 		Get all the members of a specfic rank
+	# 	'''
+	# 	assert(rank < self.ranks)
+	# 	return self._members[rank]
 
 	def __enable_message_generation(self):
 		''' 
