@@ -187,6 +187,8 @@ class RandomSeekerCommanderAgent(RandomSeekerAgent):
 		super(RandomSeekerCommanderAgent, self).__init__(agent_id, team, map_manager)
 		self.__opening_positions = {}
 		self.__openings_created = False
+		self.__offset = 50
+
 
 	def get_opening_position(self, rank, idx):
 		assert(rank < self._team.get_ranks())
@@ -219,8 +221,8 @@ class RandomSeekerCommanderAgent(RandomSeekerAgent):
 			for j in range(rank_holders):
 				found_position = False
 				while not found_position:
-					x = random.randint(0, gamemap.get_map_width())
-					y = random.randint(0, gamemap.get_map_height())
+					x = random.randint(0, gamemap.get_map_width()) - self.__offset
+					y = random.randint(0, gamemap.get_map_height()) - self.__offset
 					position = coord.Coord(x, y)
 					within_obstacle = self.__check_within_obstacle(position)
 					already_occupied = self.__check_already_occupied(position)
