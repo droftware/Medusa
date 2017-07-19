@@ -44,9 +44,9 @@ class Simulator(object):
 			self.__seeker_team = team.RandomSeekerTeam(num_seekers, self.__map)
 
 		# Graphics setup
-		self.__window_width = window_width
-		self.__window_height = window_height
-		self.__window = graphics.Graphics(window_width, window_height, num_hiders, num_seekers, self.__map)
+		self.__window_width = self.__map.get_map_width()
+		self.__window_height = self.__map.get_map_height()
+		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__map)
 		
 		# Mapping AI agents and Graphics players for interchange of percepts and 
 		# actions
