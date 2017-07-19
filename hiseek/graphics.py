@@ -12,11 +12,12 @@ import percept
 
 class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 
-	acceleration = 0
+	acceleration = 200.
 
 	def __init__(self, img, batch, background, foreground, polygons, window_width, window_height, pos_x, pos_y, pos_rot):
 		super(Player, self).__init__(img, pos_x, pos_y, batch=batch, group=foreground)
 		Player.center_anchor(img)
+		self.scale = 0.5
 		self.rotation = pos_rot
 		self.dx = 0
 		self.dy = 0
@@ -31,7 +32,8 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		# Visibility polygon setup
 		self.__num_rays = 10
 		self.__visibility_angle = 45
-		self.__visibility_color = (149, 165, 166)
+		# self.__visibility_color = (149, 165, 166)
+		self.__visibility_color = 28, 40, 51  
 		self.__visibility_polygon = None
 
 		self.__num_vertices = self.__num_rays + 1
@@ -189,9 +191,10 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 			rotation_y = math.sin(Player.to_radians(-rotation))
 			r = coord.Coord(self.x + rotation_x, self.y + rotation_y)
 			ray = shapes.Line(c, r)
+			# print('ray:', ray)
 			closest_intersect = None
 			for polygon in self.__polygons:
-				
+				# print('polygon:',polygon)
 				for i in range(polygon.get_num_lines()):
 					
 					intersect = shapes.Line.get_intersection(ray, polygon.get_line(i))
