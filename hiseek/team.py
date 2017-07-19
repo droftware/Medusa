@@ -135,6 +135,16 @@ class HiderTeam(Team):
 
 	__metaclass__ = ABCMeta
 
+	def __init__(self, num_agents):
+		super(HiderTeam, self).__init__(num_agents)
+		self._caught = {}
+
+	def set_hider_caught(self, rank, idx):
+		assert(rank < self.ranks)
+		assert(idx < len(self._members[rank]))
+		self._caught[rank][idx] = True
+
+
 	def team_type(self):
 		return 'hider_team'
 

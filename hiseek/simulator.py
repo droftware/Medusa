@@ -72,6 +72,10 @@ class Simulator(object):
 				self.__seekers_player2agent[graphics_idx] = (rank, ai_idx)
 				counter += 1
 
+		# Initializing the caught list by setting all hiders as NOT CAUGHT
+		self._caught = [[False for j in range(self.__hider_team.get_num_rankers(i))] for i in range(self.__hider_team.get_ranks())]
+
+
 	def __transfer_hider_percepts(self):
 		for i in range(self.__num_hiders):
 			current_percept = self.__window.get_hider_percept(i)
@@ -116,7 +120,19 @@ class Simulator(object):
 				position = self.__seeker_team.get_position(rank, ai_idx)
 				self.__window.set_seeker_position(graphics_idx, position)
 
+	# def __check_hider_caught(self):
+	# 	for i in range(self.__num_seekers):
+	# 		rank, idx = self.__seekers_player2agent[i]
+	# 		current_percept = self.__window.get_seeker_percept(i)
+	# 		if current_percept.are_hiders_visible():
+				
+	# 		self.__seeker_team.set_percept(rank, idx, current_percept)
+
+
 	def __update_simulation(self, dt):
+
+		# check if any hider is caught by a seeker
+		# self.__check_hider_caught()
 
 		# extract percept from graphics layer and send to ai layer
 		self.__transfer_hider_percepts()
