@@ -40,9 +40,9 @@ class Simulator(object):
 
 		# AI setup
 		if mode_hiders == 'random':
-			self.__hider_team = team.RandomHiderTeam(num_hiders, self.__map)
+			self.__hider_team = team.RandomHiderTeam(num_hiders, hider_map_copy)
 		if mode_seekers == 'random':
-			self.__seeker_team = team.RandomSeekerTeam(num_seekers, self.__map)
+			self.__seeker_team = team.RandomSeekerTeam(num_seekers, seeker_map_copy)
 
 		# Graphics setup
 		self.__window_width = self.__map.get_map_width()
