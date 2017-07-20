@@ -27,7 +27,7 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		self.__window_height = window_height
 		self.__polygons = polygons
 		self.__action = None
-		self.__current_percept = None
+		self.__current_percept = percept.GraphicsPercept([],[],[],[])
 
 		# Visibility polygon setup
 		self.__num_rays = 10
