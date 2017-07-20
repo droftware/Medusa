@@ -68,6 +68,11 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		('c3B', color_tuple)
 		)
 
+	def remove(self):
+		self.__visibility_vertices.vertices = [0 for i in range(self.__num_vertices * 2)]
+		self.__visibility_vertices.delete
+		self.delete
+
 	@staticmethod
 	def center_anchor(img):
 		img.anchor_x = img.width // 2
@@ -88,6 +93,9 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 	def set_action(self, act):
 		assert(act, action.Action)
 		self.__action = act
+
+	def set_visibility(self, visibility):
+		self.visible = visibility
 
 	def set_position(self, position):
 		self.x = position.get_x()
@@ -234,6 +242,7 @@ class Graphics(pyglet.window.Window):
 		self.__polygon_map = polygon_map
 		self.__polygons = [] # By polygons we refer to the background obstacles only
 
+
 		self.__num_polygons = polygon_map.get_num_polygons()
 		for i in range(self.__num_polygons):
 			polygon = self.__polygon_map.get_polygon(i)
@@ -254,6 +263,10 @@ class Graphics(pyglet.window.Window):
 			
 		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, hider_polygons, window_width, window_height, 0, 0, random.random() * 360) for i in range(num_hiders)]
 		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, seeker_polygons, window_width, window_height, 0, 0, random.random() * 360) for i in range(num_seekers)]
+		
+		self.__hider_active = [True for i in range(num_hiders)]
+		self.__seeker_active = [True for i in range(num_seekers)]
+
 		# pyglet.clock.schedule_interval(self.update, 1/60.)
 		self.push_handlers(self.__seekers[0])
 
@@ -268,36 +281,58 @@ class Graphics(pyglet.window.Window):
 			('v2i', polygon.get_points_tuple() ),)
 
 
+	def set_hider_inactive(self, hider_idx):
+		assert(hider_idx < self.__num_hiders)
+		assert(self.__hider_active[hider_idx])
+		self.__hider_active[hider_idx] = False
+		self.__hiders[hider_idx].remove()
+		self.__hiders[hider_idx] = None
+
+	def set_seeker_inactive(self, seeker_idx):
+		assert(seeker_idx < self.__num_seekers)
+		assert(self.__seeker_active[seeker_idx])
+		self.__seeker_active[seeker_idx] = False
+		self.__seekers[seeker_idx].remove()
+		self.__seekers[seeker_idx] = None
+
 	def set_hider_action(self, hider_idx, act):
 		assert(hider_idx < self.__num_hiders)
+		assert(self.__hider_active[hider_idx])
 		self.__hiders[hider_idx].set_action(act)
 
 	def set_seeker_action(self, seeker_idx, act):
 		assert(seeker_idx < self.__num_seekers)
+		assert(self.__seeker_active[seeker_idx])
 		self.__seekers[seeker_idx].set_action(act)
 
 	def get_hider_percept(self, hider_idx):
 		assert(hider_idx < self.__num_hiders)
+		assert(self.__hider_active[hider_idx])
 		return self.__hiders[hider_idx].get_percept()
 
 	def get_seeker_percept(self, seeker_idx):
 		assert(seeker_idx < self.__num_seekers)
+		assert(self.__seeker_active[seeker_idx])
 		return self.__seekers[seeker_idx].get_percept()
 
 	def set_hider_position(self, hider_idx, position):
 		assert(hider_idx < self.__num_hiders)
+		assert(self.__hider_active[hider_idx])
 		self.__hiders[hider_idx].set_position(position)
 
 	def set_seeker_position(self, seeker_idx, position):
 		assert(seeker_idx < self.__num_seekers)
+		assert(self.__seeker_active[seeker_idx])
 		self.__seekers[seeker_idx].set_position(position)
 
 	def get_hider_position(self, hider_idx):
 		assert(hider_idx < self.__num_hiders)
+		assert(self.__hider_active[hider_idx])
 		return self.__hiders[hider_idx].get_position()
 
 	def get_seeker_position(self, seeker_idx):
 		assert(seeker_idx < self.__num_seekers)
+		assert(self.__seeker_active[seeker_idx])
 		return self.__seekers[seeker_idx].get_position()
 
 	def on_draw(self):
@@ -309,22 +344,24 @@ class Graphics(pyglet.window.Window):
 		hider_coords = []
 		hider_idxs = []
 		for i in range(self.__num_hiders):
-			if i in ignore_hiders:
-				continue
-			position = self.__hiders[i].get_current_coordinate()
-			if visibility_polygon.is_point_inside(position):
-				hider_coords.append(position)
-				hider_idxs.append(i)
+			if self.__hider_active[i]:
+				if i in ignore_hiders:
+					continue
+				position = self.__hiders[i].get_current_coordinate()
+				if visibility_polygon.is_point_inside(position):
+					hider_coords.append(position)
+					hider_idxs.append(i)
 
 		seeker_coords = []
 		seeker_idxs = []
 		for i in range(self.__num_seekers):
-			if i in ignore_seekers:
-				continue
-			position = self.__seekers[i].get_current_coordinate()
-			if visibility_polygon.is_point_inside(position):
-				seeker_coords.append(position)
-				seeker_idxs.append(i)
+			if self.__seeker_active[i]:
+				if i in ignore_seekers:
+					continue
+				position = self.__seekers[i].get_current_coordinate()
+				if visibility_polygon.is_point_inside(position):
+					seeker_coords.append(position)
+					seeker_idxs.append(i)
 
 		return hider_coords, seeker_coords, hider_idxs, seeker_idxs
 
@@ -334,37 +371,40 @@ class Graphics(pyglet.window.Window):
 			player is visible or not, preparing the percept accordingly.
 		'''
 		for i in range(self.__num_hiders):
-			hider = self.__hiders[i]
-			visibility_polygon = hider.get_visibility_polygon()
-			ignore_hiders = [i]
-			ignore_seekers = []
-			hider_coords, seeker_coords, hider_idxs, seeker_idxs = self.__get_visible_players(visibility_polygon, ignore_hiders, ignore_seekers)
-			# if hider_coords:
-			# 	print('Hider spotted:', hider_coords)
-			# if seeker_coords:
-			# 	print('Seeker spotted:', seeker_coords)
-			current_percept = percept.GraphicsPercept(hider_coords, seeker_coords, hider_idxs, seeker_idxs)
-			hider.set_percept(current_percept)
+			if self.__hider_active[i]:
+				hider = self.__hiders[i]
+				visibility_polygon = hider.get_visibility_polygon()
+				ignore_hiders = [i]
+				ignore_seekers = []
+				hider_coords, seeker_coords, hider_idxs, seeker_idxs = self.__get_visible_players(visibility_polygon, ignore_hiders, ignore_seekers)
+				# if hider_coords:
+				# 	print('Hider spotted:', hider_coords)
+				# if seeker_coords:
+				# 	print('Seeker spotted:', seeker_coords)
+				current_percept = percept.GraphicsPercept(hider_coords, seeker_coords, hider_idxs, seeker_idxs)
+				hider.set_percept(current_percept)
 
 		for i in range(self.__num_seekers):
-			seeker = self.__seekers[i]
-			visibility_polygon = seeker.get_visibility_polygon()
-			ignore_hiders = []
-			ignore_seekers = [i]
-			hider_coords, seeker_coords, hider_idxs, seeker_idxs = self.__get_visible_players(visibility_polygon, ignore_hiders, ignore_seekers)
-			# if hider_coords:
-			# 	print('Hider spotted:', hider_coords)
-			# if seeker_coords:
-			# 	print('Seeker spotted:', seeker_coords)
-			current_percept = percept.GraphicsPercept(hider_coords, seeker_coords, hider_idxs, seeker_idxs)
-			seeker.set_percept(current_percept)
+			if self.__seeker_active[i]:
+				seeker = self.__seekers[i]
+				visibility_polygon = seeker.get_visibility_polygon()
+				ignore_hiders = []
+				ignore_seekers = [i]
+				hider_coords, seeker_coords, hider_idxs, seeker_idxs = self.__get_visible_players(visibility_polygon, ignore_hiders, ignore_seekers)
+				# if hider_coords:
+				# 	print('Hider spotted:', hider_coords)
+				# if seeker_coords:
+				# 	print('Seeker spotted:', seeker_coords)
+				current_percept = percept.GraphicsPercept(hider_coords, seeker_coords, hider_idxs, seeker_idxs)
+				seeker.set_percept(current_percept)
 
 	def update(self, dt):
 		for i in range(self.__num_hiders):
-			self.__hiders[i].update(dt)
+			if self.__hider_active[i]:
+				self.__hiders[i].update(dt)
 		for i in range(self.__num_seekers):
-			self.__seekers[i].update(dt)
-
+			if self.__seeker_active[i]:
+				self.__seekers[i].update(dt)
 		self.__update_percepts()
 
 	

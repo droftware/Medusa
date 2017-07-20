@@ -28,12 +28,14 @@ class Team(object):
 		self._team_messenger = message.TeamMessenger()
 		self._members = None # which type of members to recruit ?
 		self._map_managers = None # which map manager to assign to each hierarchy level ?
-
+		self._active = None # a list denoting which of the agents are still in the game
+	
 	def create_agent_messenger(self, agent_id):
 		return self._team_messenger.create_agent_messenger(agent_id)
 
 	def get_ranks(self):
 		return self.ranks
+
 
 	def get_num_rankers(self, rank):
 		'''
@@ -45,25 +47,46 @@ class Team(object):
 	def set_percept(self, rank, idx, current_percept):
 		assert(rank < self.ranks)
 		assert(idx < len(self._members[rank]))
+		assert(self._active[rank][idx])
 		member = self._members[rank][idx]
 		member.set_percept(current_percept)
+
+	def get_percept(self, rank, idx):
+		assert(rank < self.ranks)
+		assert(idx < len(self._members[rank]))
+		assert(self._active[rank][idx])
+		member = self._members[rank][idx]
+		return member.get_percept()
 
 	def get_action(self, rank, idx):
 		assert(rank < self.ranks)
 		assert(idx < len(self._members[rank]))
+		assert(self._active[rank][idx])
 		member = self._members[rank][idx]
 		return member.get_action()
 
 	def set_position(self, rank, idx, position):
 		assert(rank < self.ranks)
 		assert(idx < len(self._members[rank]))
+		assert(self._active[rank][idx])
 		self._members[rank][idx].set_position(position)
 
 	def get_position(self, rank, idx):
 		assert(rank < self.ranks)
 		assert(idx < len(self._members[rank]))
+		assert(self._active[rank][idx])
 		return self._members[rank][idx].get_position()
 
+	def set_member_inactive(self, rank, idx):
+		assert(rank < self.ranks)
+		assert(idx < len(self._members[rank]))
+		assert(self._active[rank][idx])
+		self._active[rank][idx] = False
+
+	def is_member_active(self, rank, idx):
+		assert(rank < self.ranks)
+		assert(idx < len(self._members[rank]))
+		return self._active[rank][idx]
 
 	def __enable_message_generation(self):
 		''' 
@@ -73,8 +96,9 @@ class Team(object):
 		'''
 		for i in reversed(range(0, self.ranks)):
 			for j in range(len(self._members[i])):
-				member = self._members[i][j]
-				member.generate_messages()
+				if self._active[i][j]:
+					member = self._members[i][j]
+					member.generate_messages()
 
 	def __enable_message_analysis(self):
 		'''
@@ -84,8 +108,9 @@ class Team(object):
 		'''
 		for i in reversed(range(0, self.ranks)):
 			for j in range(len(self._members[i])):
-				member = self._members[i][j]
-				member.analyze_messages()
+				if self._active[i][j]:
+					member = self._members[i][j]
+					member.analyze_messages()
 
 	def __enable_action_selection(self):
 		'''
@@ -94,8 +119,9 @@ class Team(object):
 		'''
 		for i in reversed(range(0, self.ranks)):
 			for j in range(len(self._members[i])):
-				member = self._members[i][j]
-				member.select_action()
+				if self._active[i][j]:
+					member = self._members[i][j]
+					member.select_action()
 
 	def __enable_temporal_state_clearance(self):
 		'''
@@ -104,8 +130,9 @@ class Team(object):
 		'''
 		for i in reversed(range(0, self.ranks)):
 			for j in range(len(self._members[i])):
-				member = self._members[i][j]
-				member.clear_temporary_state()
+				if self._active[i][j]:
+					member = self._members[i][j]
+					member.clear_temporary_state()
 
 
 
@@ -135,16 +162,6 @@ class HiderTeam(Team):
 
 	__metaclass__ = ABCMeta
 
-	def __init__(self, num_agents):
-		super(HiderTeam, self).__init__(num_agents)
-		self._caught = {}
-
-	def set_hider_caught(self, rank, idx):
-		assert(rank < self.ranks)
-		assert(idx < len(self._members[rank]))
-		self._caught[rank][idx] = True
-
-
 	def team_type(self):
 		return 'hider_team'
 
@@ -165,6 +182,7 @@ class RandomHiderTeam(HiderTeam):
 		# prepare a rank 1 hierarchy member list and map managers
 		self._map_managers = [] # one map manager for one level
 		self._members = [[], []]
+		self._active = [[], []]
 
 		# assign a basic map manager to the only level
 		map_manager = mapmanager.BasicMapManager(mapworld)
@@ -174,12 +192,14 @@ class RandomHiderTeam(HiderTeam):
 		agent_id = 'RH' + str(0)
 		commander_member = agent.RandomHiderCommanderAgent(agent_id, self, self._map_managers[0])
 		self._members[1].append(commander_member)
+		self._active[1].append(True)
 
 		# recruit agents for the team
 		for i in range(self._num_agents - 1):
 			agent_id = 'RH' + str(i)
-			member = agent.RandomSeekerAgent(agent_id, self, self._map_managers[0])
+			member = agent.RandomHiderAgent(agent_id, self, self._map_managers[0])
 			self._members[0].append(member)
+			self._active[0].append(True)
 
 		# Get the opening positions from the commader member and set each agents
 		# position accordingly
@@ -198,6 +218,7 @@ class RandomSeekerTeam(SeekerTeam):
 		# prepare a rank 1 hierarchy member list and map managers
 		self._map_managers = [] # one map manager for one level
 		self._members = [[], []]
+		self._active = [[], []]
 
 		# assign a basic map manager to the only level
 		map_manager = mapmanager.BasicMapManager(mapworld)
@@ -207,12 +228,14 @@ class RandomSeekerTeam(SeekerTeam):
 		agent_id = 'RS' + str(0)
 		commander_member = agent.RandomSeekerCommanderAgent(agent_id, self, self._map_managers[0])
 		self._members[1].append(commander_member)
+		self._active[1].append(True)
 
 		# recruit agents for the team
 		for i in range(self._num_agents - 1):
 			agent_id = 'RS' + str(i)
 			member = agent.RandomSeekerAgent(agent_id, self, self._map_managers[0])
 			self._members[0].append(member)
+			self._active[0].append(True)
 
 		# Get the opening positions from the commader member and set each agents
 		# position accordingly
@@ -220,5 +243,3 @@ class RandomSeekerTeam(SeekerTeam):
 			for j in range(self.get_num_rankers(i)):
 				position = commander_member.get_opening_position(i, j)
 				self._members[i][j].set_position(position)
-
-

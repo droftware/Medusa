@@ -29,6 +29,12 @@ class Agent(object):
 		'''
 		self._percept = percept
 
+	def get_percept(self):
+		'''
+			Returns the current percept
+		'''
+		return self._percept
+
 	def set_position(self, coordinate):
 		'''
 			Simulator accepts the chosen action from the agent and updates the
@@ -84,6 +90,16 @@ class Agent(object):
 class HiderAgent(Agent):
 
 	__metaclass__ = ABCMeta
+
+	def __init__(self, agent_id, team, map_manager):
+		super(HiderAgent, self).__init__(agent_id, team, map_manager)
+	# 	self._caught = False
+		
+	# def set_caught(self):
+	# 	self._caught = True
+
+	# def is_caught(self):
+	# 	return self._caught
 
 	def agent_type(self):
 		return 'hider_agent'

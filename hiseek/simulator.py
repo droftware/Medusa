@@ -32,6 +32,7 @@ class Simulator(object):
 		self.__verbose = verbose
 		self.__stats = statistic.Statistic(num_hiders, num_seekers)
 		self.__max_steps = max_steps
+		self.__fps = 1/60.
 		self.__map = gamemap.PolygonMap(0)
 
 		hider_map_copy = copy.deepcopy(self.__map)
@@ -73,8 +74,9 @@ class Simulator(object):
 				counter += 1
 
 		# Initializing the caught list by setting all hiders as NOT CAUGHT
-		self._caught = [[False for j in range(self.__hider_team.get_num_rankers(i))] for i in range(self.__hider_team.get_ranks())]
-
+		self.__caught = [[False for j in range(self.__hider_team.get_num_rankers(i))] for i in range(self.__hider_team.get_ranks())]
+		self.__num_caught = 0
+		self.__total_time = 0
 
 	def __graphics2team_percept(self, current_percept):
 		assert(current_percept, percept.GraphicsPercept)
@@ -98,10 +100,11 @@ class Simulator(object):
 	def __transfer_hider_percepts(self):
 		for i in range(self.__num_hiders):
 			rank, idx = self.__hiders_player2agent[i]
-			current_percept = self.__window.get_hider_percept(i)
-			# print(current_percept)
-			converted_percept = self.__graphics2team_percept(current_percept)
-			self.__hider_team.set_percept(rank, idx, converted_percept)
+			if not self.__caught[rank][idx]:
+				current_percept = self.__window.get_hider_percept(i)
+				# print(current_percept)
+				converted_percept = self.__graphics2team_percept(current_percept)
+				self.__hider_team.set_percept(rank, idx, converted_percept)
 
 	def __transfer_seeker_percepts(self):
 		for i in range(self.__num_seekers):
@@ -115,9 +118,10 @@ class Simulator(object):
 		for i in range(self.__hider_team.get_ranks()):
 			for j in range(self.__hider_team.get_num_rankers(i)):
 				rank, ai_idx = i, j
-				graphics_idx = self.__hiders_agent2player[(rank, ai_idx)]
-				act = self.__hider_team.get_action(rank, ai_idx)
-				self.__window.set_hider_action(graphics_idx, act)
+				if not self.__caught[rank][ai_idx]:
+					graphics_idx = self.__hiders_agent2player[(rank, ai_idx)]
+					act = self.__hider_team.get_action(rank, ai_idx)
+					self.__window.set_hider_action(graphics_idx, act)
 
 	def __transfer_seeker_actions(self):
 		for i in range(self.__seeker_team.get_ranks()):
@@ -143,23 +147,36 @@ class Simulator(object):
 				position = self.__seeker_team.get_position(rank, ai_idx)
 				self.__window.set_seeker_position(graphics_idx, position)
 
-	# def __check_hider_caught(self):
-	# 	for i in range(self.__num_seekers):
-	# 		rank, idx = self.__seekers_player2agent[i]
-	# 		current_percept = self.__window.get_seeker_percept(i)
-	# 		if current_percept.are_hiders_visible():
-				
-	# 		self.__seeker_team.set_percept(rank, idx, current_percept)
+	def __check_hider_caught(self):
+		visible_hiders = []
+		for i in range(self.__seeker_team.get_ranks()):
+			for j in range(self.__seeker_team.get_num_rankers(i)):
+				rank, ai_idx = i, j
+				current_percept = self.__seeker_team.get_percept(rank, ai_idx)
+				if current_percept.are_hiders_visible():
+					visible_hiders = visible_hiders + current_percept.get_hider_uids()
+
+		for i in range(len(visible_hiders)):
+			rank, ai_idx = visible_hiders[i]
+			graphics_idx = self.__hiders_agent2player[visible_hiders[i]]
+			print(self.__num_caught,':Hider caught:', rank, ai_idx)
+			if not self.__caught[rank][ai_idx]:
+				self.__caught[rank][ai_idx] = True
+				self.__hider_team.set_member_inactive(rank, ai_idx)
+				self.__window.set_hider_inactive(graphics_idx)
+				self.__num_caught += 1
 
 
 	def __update_simulation(self, dt):
-
-		# check if any hider is caught by a seeker
-		# self.__check_hider_caught()
+		# update the time
+		self.__total_time += dt
 
 		# extract percept from graphics layer and send to ai layer
 		self.__transfer_hider_percepts()
 		self.__transfer_seeker_percepts()
+
+		# check if any hider is caught by a seeker and inform the AI layer
+		self.__check_hider_caught()
 
 		# update the states in ai layer so that they selct actions
 		self.__hider_team.select_actions()
@@ -172,13 +189,16 @@ class Simulator(object):
 		# Update the game window
 		self.__window.update(dt)
 
+		if self.__num_caught == self.__num_hiders:
+			print('All hiders caught')
+			print('Total time take:', self.__total_time)
+			print('Total steps taken:', self.__total_time * (1/self.__fps))
+			pyglet.app.exit()
+
 	def simulate(self):
 		# pyglet.gl.glClearColor(255,255,255,0)
 		self.__set_hider_openings()
 		self.__set_seeker_openings()
-		pyglet.clock.schedule_interval(self.__update_simulation, 1/60.)
+		pyglet.clock.schedule_interval(self.__update_simulation, self.__fps)
 		pyglet.app.run()
 		
-
-
-

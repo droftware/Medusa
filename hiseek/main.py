@@ -21,7 +21,5 @@ def main():
 	exp = experiment.Experiment(args.display, args.num_runs, args.mode_hiders, args.mode_seekers, args.num_hiders, args.num_seekers, args.map_id, args.input_file, args.output_file, args.verbose)
 	exp.run()
 
-	print('Hello world')
-
 if __name__ == '__main__':
     main()
