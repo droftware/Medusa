@@ -76,17 +76,40 @@ class Simulator(object):
 		self._caught = [[False for j in range(self.__hider_team.get_num_rankers(i))] for i in range(self.__hider_team.get_ranks())]
 
 
+	def __graphics2team_percept(self, current_percept):
+		assert(current_percept, percept.GraphicsPercept)
+		hider_coords = current_percept.get_hiders()
+		hider_idxs = current_percept.get_hider_idxs()
+		hider_uids = []
+		for i in range(len(hider_idxs)):
+			uid = self.__hiders_player2agent[hider_idxs[i]]
+			hider_uids.append(uid)
+
+		seeker_coords = current_percept.get_seekers()
+		seeker_idxs = current_percept.get_seeker_idxs()
+		seeker_uids = []
+		for i in range(len(seeker_idxs)):
+			uid = self.__seekers_player2agent[seeker_idxs[i]]
+			seeker_uids.append(uid)
+
+		converted_percept = percept.TeamPercept(hider_coords, seeker_coords, hider_uids, seeker_uids)
+		return converted_percept
+
 	def __transfer_hider_percepts(self):
 		for i in range(self.__num_hiders):
-			current_percept = self.__window.get_hider_percept(i)
 			rank, idx = self.__hiders_player2agent[i]
-			self.__hider_team.set_percept(rank, idx, current_percept)
+			current_percept = self.__window.get_hider_percept(i)
+			# print(current_percept)
+			converted_percept = self.__graphics2team_percept(current_percept)
+			self.__hider_team.set_percept(rank, idx, converted_percept)
 
 	def __transfer_seeker_percepts(self):
 		for i in range(self.__num_seekers):
-			current_percept = self.__window.get_seeker_percept(i)
 			rank, idx = self.__seekers_player2agent[i]
-			self.__seeker_team.set_percept(rank, idx, current_percept)
+			current_percept = self.__window.get_seeker_percept(i)
+			# print(current_percept)
+			converted_percept = self.__graphics2team_percept(current_percept)
+			self.__seeker_team.set_percept(rank, idx, converted_percept)
 
 	def __transfer_hider_actions(self):
 		for i in range(self.__hider_team.get_ranks()):
