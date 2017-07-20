@@ -28,6 +28,9 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		self.__polygons = polygons
 		self.__action = None
 		self.__current_percept = percept.GraphicsPercept([],[],[],[])
+		self.__prev_x = None
+		self.__prev_y = None
+		self.__prev_rotation = None
 
 		# Visibility polygon setup
 		self.__num_rays = 10
@@ -90,6 +93,12 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 	        value += length
 	    return value	
 
+	def revert_configuration(self):
+		self.x = self.__prev_x
+		self.y = self.__prev_y
+		self.rotation = self.__prev_rotation
+		self.__update_visibility()
+
 	def set_action(self, act):
 		assert(act, action.Action)
 		self.__action = act
@@ -124,6 +133,10 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		self.dy = 0
 
 		flag = False
+
+		self.__prev_x = self.x
+		self.__prev_y = self.y
+		self.__prev_rotation = self.rotation
 
 		if self.__action == action.Action.East:
 			self.rotation = 0.1
@@ -184,6 +197,20 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		
 		self.x = Player.wrap(self.x + self.dx * dt, self.__window_width)
 		self.y = Player.wrap(self.y + self.dy * dt, self.__window_height)
+
+		# if not self.__check_configuration_validity():
+		# 	self.revert_configuration()
+
+		# position = self.get_current_coordinate()
+
+		# # The last polygon is the boundary which does not need to be checked
+		# # , thats why len(polygon)-1
+		# collision = False
+		# for i in range(len(self.__polygons) - 1):
+		# 	polygon = self.__polygons[i]
+		# 	if polygon.is_point_inside(position):
+		# 		collision = True
+		# 		break
 
 		self.__update_visibility()
 
@@ -399,12 +426,25 @@ class Graphics(pyglet.window.Window):
 				seeker.set_percept(current_percept)
 
 	def update(self, dt):
+		occupied_positions = []
 		for i in range(self.__num_hiders):
 			if self.__hider_active[i]:
 				self.__hiders[i].update(dt)
+				current_position = self.__hiders[i].get_current_coordinate()
+				collided = self.__polygon_map.check_obstacle_collision(current_position)
+				obstructed = current_position in occupied_positions
+				if collided or obstructed:
+					 self.__hiders[i].revert_configuration()
+				else:
+					occupied_positions.append(current_position)
 		for i in range(self.__num_seekers):
 			if self.__seeker_active[i]:
 				self.__seekers[i].update(dt)
+				current_position = self.__seekers[i].get_current_coordinate()
+				collided = self.__polygon_map.check_obstacle_collision(current_position)
+				obstructed = current_position in occupied_positions
+				if collided or obstructed:
+					 self.__seekers[i].revert_configuration()
+				else:
+					occupied_positions.append(current_position)
 		self.__update_percepts()
-
-	

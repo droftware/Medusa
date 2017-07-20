@@ -53,5 +53,13 @@ class PolygonMap(object):
 	def get_boundary_polygon(self):
 		return self.__boundary_polygon
 
-
-
+	def check_obstacle_collision(self, position):
+		'''
+			Returns True if point collides(is inside) any
+			obstacle polygon.
+		'''
+		for i in range(self.__num_polygons):
+			polygon = self.__polygons[i]
+			if polygon.is_point_inside(position):
+				return True
+		return False

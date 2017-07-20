@@ -169,6 +169,7 @@ class Simulator(object):
 
 	def __update_simulation(self, dt):
 		# update the time
+		# print('dt:', dt)
 		self.__total_time += dt
 
 		# extract percept from graphics layer and send to ai layer
