@@ -1,6 +1,8 @@
 import os
+import math
 
 import shapes
+import coord
 
 class PolygonMap(object):
 	'''
@@ -11,6 +13,7 @@ class PolygonMap(object):
 	def __init__(self, map_id):
 		self.__polygons = []
 		self.__boundary_polygon = None
+		self.__all_polygons = None # Includes all the obstacle polygons as well as boundary polygon
 
 		map_name = 'id_' + str(map_id) + '.polygons'
 		# print('Path:', map_name)
@@ -35,6 +38,7 @@ class PolygonMap(object):
 					self.__polygons.append(polygon)
 
 		self.__num_polygons = len(self.__polygons)
+		self.__all_polygons = self.__polygons + [self.__boundary_polygon]
 
 
 	def get_num_polygons(self):
@@ -63,3 +67,44 @@ class PolygonMap(object):
 			if polygon.is_point_inside(position):
 				return True
 		return False
+
+	def to_radians(degrees):
+		return math.pi * degrees / 180.0
+
+	def get_visibility_polygon(self, current_position, current_rotation, num_rays, visibility_angle):
+		# c = coord.Coord(self.x, self.y)
+		vis_points = [int(current_position.get_x()), int(current_position.get_y())]
+
+		rotation = current_rotation - visibility_angle
+		offset = (visibility_angle * 2.0)/num_rays
+		while rotation < current_rotation + visibility_angle:
+			rotation_x = math.cos(PolygonMap.to_radians(-rotation))
+			rotation_y = math.sin(PolygonMap.to_radians(-rotation))
+			r = coord.Coord(current_position.get_x() + rotation_x, current_position.get_y() + rotation_y)
+			ray = shapes.Line(current_position, r)
+			# print('ray:', ray)
+			closest_intersect = None
+			for polygon in self.__all_polygons:
+				# print('polygon:',polygon)
+				for i in range(polygon.get_num_lines()):
+					
+					intersect = shapes.Line.get_intersection(ray, polygon.get_line(i))
+					if not intersect:
+						continue
+					if not closest_intersect or intersect[1] < closest_intersect[1]:
+						closest_intersect = intersect
+
+			# print(closest_intersect[0])
+			
+			assert(closest_intersect)
+			vis_points.append(int(closest_intersect[0].get_x()))
+			vis_points.append(int(closest_intersect[0].get_y()))
+
+			rotation += offset
+
+		vis_points_tuple = tuple(vis_points)
+		visibility_polygon = shapes.Polygon(vis_points_tuple)
+		return visibility_polygon
+
+
+

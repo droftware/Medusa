@@ -14,7 +14,7 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 
 	acceleration = 200.
 
-	def __init__(self, img, batch, background, foreground, polygons, window_width, window_height, pos_x, pos_y, pos_rot):
+	def __init__(self, img, batch, background, foreground, polygon_map, window_width, window_height, pos_x, pos_y, pos_rot):
 		super(Player, self).__init__(img, pos_x, pos_y, batch=batch, group=foreground)
 		Player.center_anchor(img)
 		self.scale = 0.5
@@ -25,7 +25,7 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		self.rotation_y = 0
 		self.__window_width = window_width
 		self.__window_height = window_height
-		self.__polygons = polygons
+		self.__polygon_map = polygon_map
 		self.__action = None
 		self.__current_percept = percept.GraphicsPercept([],[],[],[])
 		self.__prev_x = None
@@ -198,58 +198,13 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		self.x = Player.wrap(self.x + self.dx * dt, self.__window_width)
 		self.y = Player.wrap(self.y + self.dy * dt, self.__window_height)
 
-		# if not self.__check_configuration_validity():
-		# 	self.revert_configuration()
-
-		# position = self.get_current_coordinate()
-
-		# # The last polygon is the boundary which does not need to be checked
-		# # , thats why len(polygon)-1
-		# collision = False
-		# for i in range(len(self.__polygons) - 1):
-		# 	polygon = self.__polygons[i]
-		# 	if polygon.is_point_inside(position):
-		# 		collision = True
-		# 		break
-
 		self.__update_visibility()
 
 
 	def __update_visibility(self):
-		c = coord.Coord(self.x, self.y)
-		vis_points = [int(c.get_x()), int(c.get_y())]
-
-		rotation = self.rotation - self.__visibility_angle
-		offset = (self.__visibility_angle * 2.0)/self.__num_rays
-		while rotation < self.rotation + self.__visibility_angle:
-			rotation_x = math.cos(Player.to_radians(-rotation))
-			rotation_y = math.sin(Player.to_radians(-rotation))
-			r = coord.Coord(self.x + rotation_x, self.y + rotation_y)
-			ray = shapes.Line(c, r)
-			# print('ray:', ray)
-			closest_intersect = None
-			for polygon in self.__polygons:
-				# print('polygon:',polygon)
-				for i in range(polygon.get_num_lines()):
-					
-					intersect = shapes.Line.get_intersection(ray, polygon.get_line(i))
-					if not intersect:
-						continue
-					if not closest_intersect or intersect[1] < closest_intersect[1]:
-						closest_intersect = intersect
-
-			# print(closest_intersect[0])
-
-			vis_points.append(int(closest_intersect[0].get_x()))
-			vis_points.append(int(closest_intersect[0].get_y()))
-
-			rotation += offset
-
-		vis_points_tuple = tuple(vis_points)
-		self.__visibility_vertices.vertices = vis_points_tuple
-		self.__visibility_polygon = shapes.Polygon(vis_points_tuple)
-
-
+		self.__visibility_polygon = self.__polygon_map.get_visibility_polygon(self.get_current_coordinate(), self.rotation, self.__num_rays, self.__visibility_angle)
+		self.__visibility_vertices.vertices = self.__visibility_polygon.get_points_tuple()
+		
 
 class Graphics(pyglet.window.Window):
 
@@ -279,17 +234,17 @@ class Graphics(pyglet.window.Window):
 		self.__boundary_polygon = polygon_map.get_boundary_polygon()
 		self.__add_batch_polygon(self.__boundary_polygon)
 
-		hider_polygons = []
-		seeker_polygons = []
-		for i in range(self.__num_polygons):
-			hider_polygons.append(self.__polygons[i])
-			seeker_polygons.append(self.__polygons[i])
-		hider_polygons.append(self.__boundary_polygon)
-		seeker_polygons.append(self.__boundary_polygon)
+		# hider_polygons = []
+		# seeker_polygons = []
+		# for i in range(self.__num_polygons):
+		# 	hider_polygons.append(self.__polygons[i])
+		# 	seeker_polygons.append(self.__polygons[i])
+		# hider_polygons.append(self.__boundary_polygon)
+		# seeker_polygons.append(self.__boundary_polygon)
 
 			
-		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, hider_polygons, window_width, window_height, 0, 0, random.random() * 360) for i in range(num_hiders)]
-		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, seeker_polygons, window_width, window_height, 0, 0, random.random() * 360) for i in range(num_seekers)]
+		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, self.__polygon_map, window_width, window_height, 0, 0, random.random() * 360) for i in range(num_hiders)]
+		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, self.__polygon_map, window_width, window_height, 0, 0, random.random() * 360) for i in range(num_seekers)]
 		
 		self.__hider_active = [True for i in range(num_hiders)]
 		self.__seeker_active = [True for i in range(num_seekers)]

@@ -153,6 +153,9 @@ class Polygon(object):
 		assert(i < self.__num_vertices)
 		return self.__vertices[i]
 
+	def get_vertices(self):
+		return self.__vertices
+
 	def get_line(self, i):
 		assert(i < self.__num_lines)
 		if not self.__line_analysis:
