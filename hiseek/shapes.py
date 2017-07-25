@@ -49,6 +49,7 @@ class Line(object):
 		point = coord.Coord(p_x, p_y)
 		d_x = self.get_b().get_x() - self.get_a().get_x()
 		d_y = self.get_b().get_y() - self.get_a().get_y()
+		assert(d_x != d_y)
 		return point, d_x, d_y
 
 	@staticmethod
@@ -68,7 +69,11 @@ class Line(object):
 			return None
 
 		t2 = ((r_dx*(s_py-r_py) + r_dy*(r_px-s_px))*1.0)/(s_dx*r_dy - s_dy*r_dx)
-		t1 = ((s_px+s_dx*t2-r_px)*1.0)/r_dx
+
+		if r_dx != 0:
+			t1 = ((s_px+s_dx*t2-r_px)*1.0)/r_dx
+		else:
+			t1 = ((s_py+s_dy*t2-r_py)*1.0)/r_dy
 
 		if t1 < 0:
 			return None
