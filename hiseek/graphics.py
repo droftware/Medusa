@@ -12,9 +12,8 @@ import percept
 
 class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 
-	acceleration = 200.
 
-	def __init__(self, img, batch, background, foreground, polygon_map, window_width, window_height, pos_x, pos_y, pos_rot):
+	def __init__(self, img, batch, background, foreground, polygon_map, window_width, window_height, pos_x, pos_y, pos_rot, velocity):
 		super(Player, self).__init__(img, pos_x, pos_y, batch=batch, group=foreground)
 		Player.center_anchor(img)
 		self.scale = 0.5
@@ -31,6 +30,7 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		self.__prev_x = None
 		self.__prev_y = None
 		self.__prev_rotation = None
+		self.__velocity = velocity
 
 		# Visibility polygon setup
 		self.__num_rays = 10
@@ -80,10 +80,6 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 	def center_anchor(img):
 		img.anchor_x = img.width // 2
 		img.anchor_y = img.height // 2
-
-	@staticmethod
-	def to_radians(degrees):
-		return math.pi * degrees / 180.0
 
 	@staticmethod
 	def wrap(value, length):
@@ -138,31 +134,9 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		self.__prev_y = self.y
 		self.__prev_rotation = self.rotation
 
-		if self.__action == action.Action.East:
-			self.rotation = 0.1
+		if self.__action != action.Action.Stop:
+			self.rotation = action.ROTATION[self.__action]
 			flag = True
-		elif self.__action == action.Action.SouthEast:
-			self.rotation = 45.1
-			flag = True
-		elif self.__action == action.Action.South:
-			self.rotation = 90.1
-			flag = True
-		elif self.__action == action.Action.SouthWest:
-			self.rotation = 135.1
-			flag = True
-		elif self.__action == action.Action.West:
-			self.rotation = 180.1
-			flag = True
-		elif self.__action == action.Action.NorthWest:
-			self.rotation = 225.1
-			flag = True
-		elif self.__action == action.Action.North:
-			self.rotation = 270.1
-			flag = True
-		elif self.__action == action.Action.NorthEast:
-			self.rotation = 315.1
-			flag = True
-
 
 		if self[key.NUM_6]:
 			self.rotation = 0.1
@@ -190,25 +164,32 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 			flag = True
 
 		if flag:
-			self.rotation_x = math.cos(Player.to_radians(-self.rotation))
-			self.rotation_y = math.sin(Player.to_radians(-self.rotation))
-			self.dx = Player.acceleration * self.rotation_x 
-			self.dy = Player.acceleration * self.rotation_y
+			self.rotation_x = math.cos(coord.Coord.to_radians(-self.rotation))
+			self.rotation_y = math.sin(coord.Coord.to_radians(-self.rotation))
+			self.dx = self.__velocity * self.rotation_x 
+			self.dy = self.__velocity * self.rotation_y
 		
-		self.x = Player.wrap(self.x + self.dx * dt, self.__window_width)
-		self.y = Player.wrap(self.y + self.dy * dt, self.__window_height)
+		self.x = self.x + self.dx * dt
+		self.y = self.y + self.dy * dt
+
+		current_position = self.get_current_coordinate()
+		collided = self.__polygon_map.check_obstacle_collision(current_position) or self.__polygon_map.check_boundary_collision(current_position)
+		if collided:
+			self.revert_configuration()
 
 		self.__update_visibility()
+		# print('x,y:',self.x,self.y)
 
 
 	def __update_visibility(self):
 		self.__visibility_polygon = self.__polygon_map.get_visibility_polygon(self.get_current_coordinate(), self.rotation, self.__num_rays, self.__visibility_angle)
+		# print('Poly tuples:', self.__visibility_polygon.get_points_tuple())
 		self.__visibility_vertices.vertices = self.__visibility_polygon.get_points_tuple()
 		
 
 class Graphics(pyglet.window.Window):
 
-	def __init__(self, window_width, window_height, num_hiders, num_seekers, polygon_map):
+	def __init__(self, window_width, window_height, num_hiders, num_seekers, velocity, polygon_map):
 		super(Graphics, self).__init__(window_width, window_height)
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
@@ -233,23 +214,13 @@ class Graphics(pyglet.window.Window):
 
 		self.__boundary_polygon = polygon_map.get_boundary_polygon()
 		self.__add_batch_polygon(self.__boundary_polygon)
-
-		# hider_polygons = []
-		# seeker_polygons = []
-		# for i in range(self.__num_polygons):
-		# 	hider_polygons.append(self.__polygons[i])
-		# 	seeker_polygons.append(self.__polygons[i])
-		# hider_polygons.append(self.__boundary_polygon)
-		# seeker_polygons.append(self.__boundary_polygon)
-
 			
-		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, self.__polygon_map, window_width, window_height, 0, 0, random.random() * 360) for i in range(num_hiders)]
-		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, self.__polygon_map, window_width, window_height, 0, 0, random.random() * 360) for i in range(num_seekers)]
+		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, self.__polygon_map, window_width, window_height, 0, 0, random.random() * 360, velocity) for i in range(num_hiders)]
+		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, self.__polygon_map, window_width, window_height, 0, 0, random.random() * 360, velocity) for i in range(num_seekers)]
 		
 		self.__hider_active = [True for i in range(num_hiders)]
 		self.__seeker_active = [True for i in range(num_seekers)]
 
-		# pyglet.clock.schedule_interval(self.update, 1/60.)
 		self.push_handlers(self.__seekers[0])
 
 	def __add_batch_polygon(self, polygon):
@@ -386,8 +357,9 @@ class Graphics(pyglet.window.Window):
 			if self.__hider_active[i]:
 				self.__hiders[i].update(dt)
 				current_position = self.__hiders[i].get_current_coordinate()
-				collided = self.__polygon_map.check_obstacle_collision(current_position)
+				collided = self.__polygon_map.check_obstacle_collision(current_position) or self.__polygon_map.check_boundary_collision(current_position)
 				obstructed = current_position in occupied_positions
+
 				if collided or obstructed:
 					 self.__hiders[i].revert_configuration()
 				else:
@@ -396,7 +368,7 @@ class Graphics(pyglet.window.Window):
 			if self.__seeker_active[i]:
 				self.__seekers[i].update(dt)
 				current_position = self.__seekers[i].get_current_coordinate()
-				collided = self.__polygon_map.check_obstacle_collision(current_position)
+				collided = self.__polygon_map.check_obstacle_collision(current_position) or self.__polygon_map.check_boundary_collision(current_position)
 				obstructed = current_position in occupied_positions
 				if collided or obstructed:
 					 self.__seekers[i].revert_configuration()

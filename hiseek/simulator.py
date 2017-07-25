@@ -18,7 +18,7 @@ class Simulator(object):
 	mode_type_hiders = ['random']
 	mode_type_seekers = ['random']
 
-	def __init__(self, display, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, verbose, max_steps=1000, window_width=640, window_height=360):
+	def __init__(self, display, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, fps, velocity, verbose, max_steps=1000, window_width=640, window_height=360):
 		self.__display = display
 		assert(mode_hiders in Simulator.mode_type_hiders)
 		assert(mode_seekers in Simulator.mode_type_seekers)
@@ -29,10 +29,11 @@ class Simulator(object):
 		self.__map_id = map_id
 		self.__input_file = input_file
 		self.__output_file = output_file
+		self.__fps = fps * 1.0
+		self.__velocity = velocity
 		self.__verbose = verbose
 		self.__stats = statistic.Statistic(num_hiders, num_seekers)
 		self.__max_steps = max_steps
-		self.__fps = 1/60.
 		self.__map = gamemap.PolygonMap(0)
 
 		hider_map_copy = copy.deepcopy(self.__map)
@@ -40,14 +41,14 @@ class Simulator(object):
 
 		# AI setup
 		if mode_hiders == 'random':
-			self.__hider_team = team.RandomHiderTeam(num_hiders, hider_map_copy)
+			self.__hider_team = team.RandomHiderTeam(num_hiders, hider_map_copy, fps, velocity)
 		if mode_seekers == 'random':
-			self.__seeker_team = team.RandomSeekerTeam(num_seekers, seeker_map_copy)
+			self.__seeker_team = team.RandomSeekerTeam(num_seekers, seeker_map_copy, fps, velocity)
 
 		# Graphics setup
 		self.__window_width = self.__map.get_map_width()
 		self.__window_height = self.__map.get_map_height()
-		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__map)
+		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, velocity, self.__map)
 		
 		# Mapping AI agents and Graphics players for interchange of percepts and 
 		# actions
@@ -137,6 +138,7 @@ class Simulator(object):
 				rank, ai_idx = i, j
 				graphics_idx = self.__hiders_agent2player[(rank, ai_idx)]
 				position = self.__hider_team.get_position(rank, ai_idx)
+				print('Hider idx:', graphics_idx, 'position:', position)
 				self.__window.set_hider_position(graphics_idx ,position)
 
 	def __set_seeker_openings(self):
@@ -145,6 +147,7 @@ class Simulator(object):
 				rank, ai_idx = i, j
 				graphics_idx = self.__seekers_agent2player[(rank, ai_idx)]
 				position = self.__seeker_team.get_position(rank, ai_idx)
+				print('Seeker idx:', graphics_idx, 'position:', position)
 				self.__window.set_seeker_position(graphics_idx, position)
 
 	def __check_hider_caught(self):
@@ -169,7 +172,7 @@ class Simulator(object):
 
 	def __update_simulation(self, dt):
 		# update the time
-		# print('dt:', dt)
+		print('dt:', dt)
 		self.__total_time += dt
 
 		# extract percept from graphics layer and send to ai layer
@@ -193,13 +196,14 @@ class Simulator(object):
 		if self.__num_caught == self.__num_hiders:
 			print('All hiders caught')
 			print('Total time take:', self.__total_time)
-			print('Total steps taken:', self.__total_time * (1/self.__fps))
-			pyglet.app.exit()
+			print('Total steps taken:', self.__total_time * (self.__fps))
+			# pyglet.app.exit()
 
 	def simulate(self):
 		# pyglet.gl.glClearColor(255,255,255,0)
 		self.__set_hider_openings()
 		self.__set_seeker_openings()
-		pyglet.clock.schedule_interval(self.__update_simulation, self.__fps)
+		pyglet.clock.schedule_interval(self.__update_simulation, 1/self.__fps)
+		# pyglet.clock.schedule(self.__update_simulation)
 		pyglet.app.run()
 		
