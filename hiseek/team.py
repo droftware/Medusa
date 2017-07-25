@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-import enum
+
 
 import message
 import agent
@@ -154,10 +154,6 @@ class Team(object):
 	def team_type(self):
 		pass
 
-	@abstractmethod
-	def set_opening(self):
-		pass
-
 class HiderTeam(Team):
 
 	__metaclass__ = ABCMeta
@@ -176,7 +172,7 @@ class RandomHiderTeam(HiderTeam):
 
 	ranks = 2
 
-	def __init__(self, num_agents, mapworld):
+	def __init__(self, num_agents, mapworld, fps, velocity):
 		super(RandomHiderTeam, self).__init__(num_agents)
 
 		# prepare a rank 1 hierarchy member list and map managers
@@ -185,7 +181,7 @@ class RandomHiderTeam(HiderTeam):
 		self._active = [[], []]
 
 		# assign a basic map manager to the only level
-		map_manager = mapmanager.BasicMapManager(mapworld)
+		map_manager = mapmanager.BasicMapManager(mapworld, fps, velocity)
 		self._map_managers.append(map_manager)
 
 		# recruit the commander of the random team
@@ -212,7 +208,7 @@ class RandomSeekerTeam(SeekerTeam):
 
 	ranks = 2
 
-	def __init__(self, num_agents, mapworld):
+	def __init__(self, num_agents, mapworld, fps, velocity):
 		super(RandomSeekerTeam, self).__init__(num_agents)
 		assert(num_agents > 0)
 		# prepare a rank 1 hierarchy member list and map managers
@@ -221,7 +217,7 @@ class RandomSeekerTeam(SeekerTeam):
 		self._active = [[], []]
 
 		# assign a basic map manager to the only level
-		map_manager = mapmanager.BasicMapManager(mapworld)
+		map_manager = mapmanager.BasicMapManager(mapworld, fps, velocity)
 		self._map_managers.append(map_manager)
 
 		# recruit the commander of the random team
