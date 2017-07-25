@@ -1,3 +1,5 @@
+import math
+
 class Coord(object):
 
 	# All valid actions
@@ -63,6 +65,10 @@ class Coord(object):
 	def revert_action(self):
 		self.__x = self.__prev_x
 		self.__y = self.__prev_y
+
+	@staticmethod
+	def to_radians(degrees):
+		return math.pi * degrees / 180.0
 
 	def move_action(self, action):
 		assert(action in Coord.all_actions_mapping)
