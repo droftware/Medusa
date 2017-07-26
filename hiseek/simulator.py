@@ -15,7 +15,7 @@ class Simulator(object):
 		Responsible for one complete simulation
 	"""
 
-	mode_type_hiders = ['random']
+	mode_type_hiders = ['random', 'bayesian']
 	mode_type_seekers = ['random']
 
 	def __init__(self, display, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, fps, velocity, verbose, max_steps=1000, window_width=640, window_height=360):
@@ -42,6 +42,9 @@ class Simulator(object):
 		# AI setup
 		if mode_hiders == 'random':
 			self.__hider_team = team.RandomHiderTeam(num_hiders, hider_map_copy, fps, velocity)
+		if mode_hiders == 'bayesian':
+			self.__hider_team = team.BayesianHiderTeam(num_hiders, hider_map_copy, fps, velocity)
+
 		if mode_seekers == 'random':
 			self.__seeker_team = team.RandomSeekerTeam(num_seekers, seeker_map_copy, fps, velocity)
 
@@ -115,6 +118,19 @@ class Simulator(object):
 			converted_percept = self.__graphics2team_percept(current_percept)
 			self.__seeker_team.set_percept(rank, idx, converted_percept)
 
+	def __transfer_hider_positions(self):
+		for i in range(self.__num_hiders):
+			rank, idx = self.__hiders_player2agent[i]
+			if not self.__caught[rank][idx]:
+				current_position = self.__window.get_hider_position(i)
+				self.__hider_team.set_position(rank, idx, current_position)
+
+	def __transfer_seeker_positions(self):
+		for i in range(self.__num_seekers):
+			rank, idx = self.__seekers_player2agent[i]
+			current_position = self.__window.get_seeker_position(i)
+			self.__seeker_team.set_position(rank, idx, current_position)
+
 	def __transfer_hider_actions(self):
 		for i in range(self.__hider_team.get_ranks()):
 			for j in range(self.__hider_team.get_num_rankers(i)):
@@ -138,7 +154,7 @@ class Simulator(object):
 				rank, ai_idx = i, j
 				graphics_idx = self.__hiders_agent2player[(rank, ai_idx)]
 				position = self.__hider_team.get_position(rank, ai_idx)
-				print('Hider idx:', graphics_idx, 'position:', position)
+				# print('Hider idx:', graphics_idx, 'position:', position)
 				self.__window.set_hider_position(graphics_idx ,position)
 
 	def __set_seeker_openings(self):
@@ -162,7 +178,7 @@ class Simulator(object):
 		for i in range(len(visible_hiders)):
 			rank, ai_idx = visible_hiders[i]
 			graphics_idx = self.__hiders_agent2player[visible_hiders[i]]
-			print(self.__num_caught,':Hider caught:', rank, ai_idx)
+			# print(self.__num_caught,':Hider caught:', rank, ai_idx)
 			if not self.__caught[rank][ai_idx]:
 				self.__caught[rank][ai_idx] = True
 				self.__hider_team.set_member_inactive(rank, ai_idx)
@@ -172,12 +188,16 @@ class Simulator(object):
 
 	def __update_simulation(self, dt):
 		# update the time
-		print('dt:', dt)
+		# print('dt:', dt)
 		self.__total_time += dt
 
-		# extract percept from graphics layer and send to ai layer
+		# extract percept from graphics layer and send to AI layer
 		self.__transfer_hider_percepts()
 		self.__transfer_seeker_percepts()
+
+		# extract positions from graphics layer and send to AI layer
+		self.__transfer_hider_positions()
+		self.__transfer_seeker_positions()
 
 		# check if any hider is caught by a seeker and inform the AI layer
 		self.__check_hider_caught()
@@ -195,9 +215,9 @@ class Simulator(object):
 
 		if self.__num_caught == self.__num_hiders:
 			print('All hiders caught')
-			print('Total time take:', self.__total_time)
-			print('Total steps taken:', self.__total_time * (self.__fps))
-			# pyglet.app.exit()
+			# print('Total time taken:', self.__total_time)
+			# print('Total steps taken:', self.__total_time * (self.__fps))
+			pyglet.app.exit()
 
 	def simulate(self):
 		# pyglet.gl.glClearColor(255,255,255,0)
