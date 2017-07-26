@@ -11,6 +11,13 @@ class BasicMapManager(object):
 	'''
 		Each agent is asoociated with a map manager which helps it to manage
 		its map related data.
+		visibility inference map: Average number of cells visible from a given cell
+							      Greater the visbility value, greater the number
+							      of cells visible from that cell
+		obstruction inference map: Average number of cells from which a given cell 
+									visible, Greater the obstruction value, greater 
+									the number of cells which can see that cell,
+									therfore lesser the obstruction
 	'''
 	def __init__(self, mapworld, fps, velocity, offset = 20, inference_map=True):
 		self.__mapworld = mapworld
@@ -22,8 +29,8 @@ class BasicMapManager(object):
 		self.__velocity = velocity
 		self.__visibility = None
 		self.__obstruction = None
-		self.__obstruction_quarts = (0, 0, 0, 0)
-		self.__visibility_quarts = (0, 0, 0, 0)
+		self.__obstruction_penta = [0, 0, 0, 0, 0]
+		self.__visibility_penta = [0, 0, 0, 0, 0]
 
 		if inference_map:
 			map_name = mapworld.get_map_name()
@@ -53,7 +60,7 @@ class BasicMapManager(object):
 						print('Analyzing:',i,j)
 						coord_vis = coord.Coord(i * self.__offset, j * self.__offset)
 						if self.__visibility[i, j] != -1:
-							visibility_polygon = self.__mapworld.get_visibility_polygon(coord_vis, 0, 100, 180)
+							visibility_polygon = get_360_visibility_polygon(coord_vis)
 							for a in range(self.__num_rows):
 								for b in range(self.__num_cols):
 									if self.__obstruction[a, b] != -1:
@@ -65,17 +72,23 @@ class BasicMapManager(object):
 				np.savetxt('visibility.txt',self.__visibility)
 				np.savetxt('obstruction.txt', self.__obstruction)
 
-				self.__obstruction_quarts[4] = np.amax(self.__obstruction)
-				self.__obstruction_quarts[0] = np.amin(self.__obstruction)
-				self.__obstruction_quarts[2] = np.mean(self.__obstruction)
-				self.__obstruction_quarts[1] = (self.__obstruction_quarts[0] + self.__obstruction_quarts[2])/2.
-				self.__obstruction_quarts[3] = (self.__obstruction_quarts[2] + self.__obstruction_quarts[4])/2.
+			self.__obstruction_penta[4] = np.amax(self.__obstruction)
+			self.__obstruction_penta[0] = np.amin(self.__obstruction)
+			self.__obstruction_penta[2] = np.mean(self.__obstruction)
+			self.__obstruction_penta[1] = (self.__obstruction_penta[0] + self.__obstruction_penta[2])/2.
+			self.__obstruction_penta[3] = (self.__obstruction_penta[2] + self.__obstruction_penta[4])/2.
 
-				self.__max_obstruction = 
-
+			self.__visibility_penta[4] = np.amax(self.__visibility)
+			self.__visibility_penta[0] = np.amin(self.__visibility)
+			self.__visibility_penta[2] = np.mean(self.__visibility)
+			self.__visibility_penta[1] = (self.__visibility_penta[0] + self.__visibility_penta[2])/2.
+			self.__visibility_penta[3] = (self.__visibility_penta[2] + self.__visibility_penta[4])/2.
 
 	def get_map(self):
 		return self.__mapworld
+
+	def get_360_visibility_polygon(self, position, num_rays=100):
+		return self.__mapworld.get_visibility_polygon(position, 0, num_rays, 180)
 
 	def __get_position_index(self, position):
 		row = int(position.get_x())%self.__offset
@@ -90,12 +103,9 @@ class BasicMapManager(object):
 		row, col = self.__get_position_index(position)
 		return self.__obstruction[row, col]
 
-	def get_blocked_value(self, position):
-		return self.__mapworld.check_obstacle_collision(position)
-
 	def get_action_map(self, position):
 		results = {}
-		for move in action.Action:
+		for move in range(action.Action.num_actions):
 			if move != action.Action.Stop:
 				rotation = action.ROTATION[move]
 				rotation_x = math.cos(coord.Coord.to_radians(-rotation))
@@ -105,5 +115,44 @@ class BasicMapManager(object):
 				x = position.get_x() + vx * self.__dt
 				y = position.get_y() + vy * self.__dt
 				results[move] = coord.Coord(x, y)
+			else:
+				results[move] = position
 		return results
+
+	def get_visibility_level(self, position):
+		vis_val = self.get_visibility_value(position)
+		vis_level = -1
+		print()
+		print('visibility penta:', self.__visibility_penta)
+		if vis_val >= self.__visibility_penta[0] and vis_val < self.__visibility_penta[1]:
+			vis_level = 0
+		elif vis_val >= self.__visibility_penta[1] and vis_val < self.__visibility_penta[2]:
+			vis_level = 1
+		elif vis_val >= self.__visibility_penta[2] and vis_val < self.__visibility_penta[3]:
+			vis_level = 2
+		elif vis_val >= self.__visibility_penta[3] and vis_val <= self.__visibility_penta[4]:
+			vis_level = 3
+		print('Position:', str(position), 'Visibility value:', vis_val, 'Vis level:', vis_level)
+		return vis_level
+
+
+
+	def get_obstruction_level(self, position):
+		obs_val = self.get_obstruction_value(position)
+		obs_level = -1
+		print()
+		print('obstruction penta:', self.__obstruction_penta)
+		if obs_val >= self.__obstruction_penta[0] and obs_val < self.__obstruction_penta[1]:
+			obs_level = 0
+		elif obs_val >= self.__obstruction_penta[1] and obs_val < self.__obstruction_penta[2]:
+			obs_level = 1
+		elif obs_val >= self.__obstruction_penta[2] and obs_val < self.__obstruction_penta[3]:
+			obs_level = 2
+		elif obs_val >= self.__obstruction_penta[3] and obs_val <= self.__obstruction_penta[4]:
+			obs_level = 3
+		print('Position:', str(position), 'Obstruction value:', obs_val, 'Obs level:', obs_level)
+		return obs_level
+
+	def get_blockage_value(self, position):
+		return self.__mapworld.check_obstacle_collision(position)
 

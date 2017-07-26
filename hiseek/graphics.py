@@ -221,7 +221,7 @@ class Graphics(pyglet.window.Window):
 		self.__hider_active = [True for i in range(num_hiders)]
 		self.__seeker_active = [True for i in range(num_seekers)]
 
-		self.push_handlers(self.__seekers[0])
+		self.push_handlers(self.__hiders[0])
 
 	def __add_batch_polygon(self, polygon):
 		if polygon.get_num_vertices() == 4:

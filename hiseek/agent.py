@@ -6,6 +6,7 @@ import percept
 import message
 import coord
 import action
+import controller
 
 class Agent(object):
 	'''
@@ -91,16 +92,6 @@ class HiderAgent(Agent):
 
 	__metaclass__ = ABCMeta
 
-	def __init__(self, agent_id, team, map_manager):
-		super(HiderAgent, self).__init__(agent_id, team, map_manager)
-	# 	self._caught = False
-		
-	# def set_caught(self):
-	# 	self._caught = True
-
-	# def is_caught(self):
-	# 	return self._caught
-
 	def agent_type(self):
 		return 'hider_agent'
 
@@ -117,9 +108,6 @@ class RandomHiderAgent(HiderAgent):
 		A hider which takes a random move each turn
 	'''
 
-	def __init__(self, agent_id, team, map_manager):
-		super(RandomHiderAgent, self).__init__(agent_id, team, map_manager)
-
 	def generate_messages(self):
 		pass
 
@@ -127,8 +115,7 @@ class RandomHiderAgent(HiderAgent):
 		pass
 
 	def select_action(self):
-		available_actions = list(action.Action)
-		self._action = random.choice(available_actions)
+		self._action = random.choice(action.Action.all_actions)
 
 	def clear_temporary_state(self):
 		pass
@@ -139,9 +126,6 @@ class RandomSeekerAgent(SeekerAgent):
 		A seeker which takes a random move each turn
 	'''
 
-	def __init__(self, agent_id, team, map_manager):
-		super(RandomSeekerAgent, self).__init__(agent_id, team, map_manager)
-
 	def generate_messages(self):
 		pass
 
@@ -149,8 +133,7 @@ class RandomSeekerAgent(SeekerAgent):
 		pass
 
 	def select_action(self):
-		available_actions = list(action.Action)
-		self._action = random.choice(available_actions)
+		self._action = random.choice(action.Action.all_actions)
 
 	def clear_temporary_state(self):
 		pass
@@ -203,8 +186,6 @@ class RandomSeekerCommanderAgent(RandomSeekerAgent):
 		super(RandomSeekerCommanderAgent, self).__init__(agent_id, team, map_manager)
 		self.__opening_positions = {}
 		self.__openings_created = False
-		self.__offset = 50
-
 
 	def get_opening_position(self, rank, idx):
 		assert(rank < self._team.get_ranks())
@@ -237,14 +218,31 @@ class RandomSeekerCommanderAgent(RandomSeekerAgent):
 			for j in range(rank_holders):
 				found_position = False
 				while not found_position:
-					x = random.randint(0, gamemap.get_map_width()) - self.__offset
-					y = random.randint(0, gamemap.get_map_height()) - self.__offset
-					position = coord.Coord(x, y)
+					position = coord.Coord(random.randint(0, gamemap.get_map_width()), random.randint(0, gamemap.get_map_height()))
 					within_obstacle = self.__check_within_obstacle(position)
 					already_occupied = self.__check_already_occupied(position)
 					if not within_obstacle and not already_occupied:
 						self.__opening_positions[(i, j)] = position
 						found_position = True
+
+class BayesianHiderAgent(HiderAgent):
+
+	def __init__(self, agent_id, team, map_manager):
+		super(BayesianHiderAgent, self).__init__(agent_id, team, map_manager)
+		self.__controller = controller.BayesianController(map_manager)
+
+	def generate_messages(self):
+		pass
+
+	def analyze_messages(self):
+		pass
+
+	def select_action(self):
+		self.__controller.set_current_state(self._position, self._percept)
+		self._action = self.__controller.infer_action()
+
+	def clear_temporary_state(self):
+		pass
 
 
 class FidgetingHiderAgent(HiderAgent):
