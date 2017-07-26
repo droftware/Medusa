@@ -66,6 +66,11 @@ class Coord(object):
 		self.__x = self.__prev_x
 		self.__y = self.__prev_y
 
+	def get_euclidean_distance(self, other):
+		diff_x = self.get_x() - other.get_x()
+		diff_y = self.get_y() - other.get_y()
+		return math.sqrt(diff_x*diff_x + diff_y*diff_y)
+
 	@staticmethod
 	def to_radians(degrees):
 		return math.pi * degrees / 180.0
