@@ -1,48 +1,72 @@
 
 class Action:
-	North = 0
-	NorthEast = 1
-	East = 2
-	SouthEast = 3
-	South = 4
-	SouthWest = 5
-	West = 6
-	NorthWest = 7
-	Stop = 8
+	N = 0
+	NNE = 1
+	NE = 2
+	ENE = 3
+	E = 4
+	ESE = 5 
+	SE = 6
+	SSE = 7
+	S = 8
+	SSW = 9 
+	SW = 10
+	WSW = 11
+	W = 12
+	WNW = 13 
+	NW = 14
+	NNW = 15
+	ST = 16
 
-	all_actions = [North, NorthEast, East, SouthEast, South, SouthWest, West, NorthWest, Stop]
+	all_actions = [E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW, N, NNE, NE, ENE, ST]
 	num_actions = len(all_actions)
 
 	action2string = {}
 	string2action = {}
 
-	string2action["North"] = North
-	string2action["NorthEast"] = NorthEast
-	string2action["East"] = East
-	string2action["SouthEast"] = SouthEast
-	string2action["South"] = South
-	string2action["SouthWest"] = SouthWest
-	string2action["West"] = West
-	string2action["NorthWest"] = NorthWest
-	string2action["Stop"] = Stop
+	string2action["N"] = N
+	string2action["NNE"] = NNE
+	string2action["NE"] = NE
+	string2action["ENE"] = ENE
+	string2action["E"] = E
+	string2action["ESE"] = ESE
+	string2action["SE"] = SE
+	string2action["SSE"] = SSE
+	string2action["S"] = S
+	string2action["SSW"] = SSW
+	string2action["SW"] = SW
+	string2action["WSW"] = WSW
+	string2action["W"] = W
+	string2action["WNW"] = WNW
+	string2action["NW"] = NW
+	string2action["NNW"] = NNW
+	string2action["ST"] = ST
 
-	action2string[North] = "North"
-	action2string[NorthEast] = "NorthEast"
-	action2string[East] = "East"
-	action2string[SouthEast] = "SouthEast"
-	action2string[South] = "South"
-	action2string[SouthWest] = "SouthWest"
-	action2string[West] = "West"
-	action2string[NorthWest] = "NorthWest"
-	action2string[Stop] = "Stop"
+	action2string[N] = "N"
+	action2string[NNE] = "NNE"
+	action2string[NE] = "NE"
+	action2string[ENE] = "ENE"
+	action2string[E] = "E"
+	action2string[ESE] = "ESE"
+	action2string[SE] = "SE"
+	action2string[SSE] = "SSE"
+	action2string[S] = "S"
+	action2string[SSW] = "SSW"
+	action2string[SW] = "SW"
+	action2string[WSW] = "WSW"
+	action2string[W] = "W"
+	action2string[WNW] = "WNW"
+	action2string[NW] = "NW"
+	action2string[NNW] = "NNW"
+	action2string[ST] = "ST"
 
+
+# Rotation mappings
 ROTATION = [None] * (Action.num_actions-1)
-ROTATION[Action.North] = 270.001 
-ROTATION[Action.NorthEast] = 315.001
-ROTATION[Action.East] = 0.001
-ROTATION[Action.SouthEast] = 45.001
-ROTATION[Action.South] = 90.001
-ROTATION[Action.SouthWest] = 135.001
-ROTATION[Action.West] = 180.001
-ROTATION[Action.NorthWest] = 225.001
+offset_angle = 22.5001
+current_angle = 0
+for act in Action.all_actions:
+	if act != Action.ST:
+		current_angle += offset_angle
+		ROTATION[act] = current_angle 
 

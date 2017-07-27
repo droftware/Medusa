@@ -134,7 +134,7 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		self.__prev_y = self.y
 		self.__prev_rotation = self.rotation
 
-		if self.__action != action.Action.Stop:
+		if self.__action != action.Action.ST:
 			self.rotation = action.ROTATION[self.__action]
 			flag = True
 
