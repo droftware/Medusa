@@ -13,7 +13,7 @@ import percept
 class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 
 
-	def __init__(self, img, batch, background, foreground, polygon_map, window_width, window_height, pos_x, pos_y, pos_rot, velocity):
+	def __init__(self, img, batch, background, foreground, polygon_map, window_width, window_height, pos_x, pos_y, pos_rot, fps, velocity, fixed_time_quanta):
 		super(Player, self).__init__(img, pos_x, pos_y, batch=batch, group=foreground)
 		Player.center_anchor(img)
 		self.scale = 0.5
@@ -30,7 +30,9 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		self.__prev_x = None
 		self.__prev_y = None
 		self.__prev_rotation = None
+		self.__fps = fps
 		self.__velocity = velocity
+		self.__fixed_time_quanta = fixed_time_quanta
 
 		# Visibility polygon setup
 		self.__num_rays = 10
@@ -169,8 +171,13 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 			self.dx = self.__velocity * self.rotation_x 
 			self.dy = self.__velocity * self.rotation_y
 		
-		self.x = self.x + self.dx * dt
-		self.y = self.y + self.dy * dt
+		# time_unit = dt
+		if self.__fixed_time_quanta:
+			time_quanta = 1.0/self.__fps
+		else:
+			time_quanta = dt
+		self.x = self.x + self.dx * time_quanta
+		self.y = self.y + self.dy * time_quanta
 
 		current_position = self.get_current_coordinate()
 		collided = self.__polygon_map.check_obstacle_collision(current_position) or self.__polygon_map.check_boundary_collision(current_position)
@@ -189,7 +196,7 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 
 class Graphics(pyglet.window.Window):
 
-	def __init__(self, window_width, window_height, num_hiders, num_seekers, velocity, polygon_map):
+	def __init__(self, window_width, window_height, num_hiders, num_seekers, fps, velocity, polygon_map, fixed_time_quanta):
 		super(Graphics, self).__init__(window_width, window_height)
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
@@ -215,13 +222,13 @@ class Graphics(pyglet.window.Window):
 		self.__boundary_polygon = polygon_map.get_boundary_polygon()
 		self.__add_batch_polygon(self.__boundary_polygon)
 			
-		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, self.__polygon_map, window_width, window_height, 0, 0, random.random() * 360, velocity) for i in range(num_hiders)]
-		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, self.__polygon_map, window_width, window_height, 0, 0, random.random() * 360, velocity) for i in range(num_seekers)]
+		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, self.__polygon_map, window_width, window_height, 0, 0, random.random() * 360, fps, velocity, fixed_time_quanta) for i in range(num_hiders)]
+		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, self.__polygon_map, window_width, window_height, 0, 0, random.random() * 360, fps, velocity, fixed_time_quanta) for i in range(num_seekers)]
 		
 		self.__hider_active = [True for i in range(num_hiders)]
 		self.__seeker_active = [True for i in range(num_seekers)]
 
-		self.push_handlers(self.__hiders[0])
+		self.push_handlers(self.__seekers[0])
 
 	def __add_batch_polygon(self, polygon):
 		if polygon.get_num_vertices() == 4:

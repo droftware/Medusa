@@ -1,7 +1,7 @@
 import argparse
 import experiment
 
-def main():
+def main():				
 	parser = argparse.ArgumentParser(description="Hiseek: Simulation of a massive hide and seek game")
 	parser.add_argument("-d", "--display", action="store_true", help="Display the simulations.")
 	parser.add_argument("-t", "--train", action="store_true", help="Train the model.")
@@ -16,11 +16,13 @@ def main():
 	parser.add_argument("-f", "--fps", type=int, default = 60, help="Frames per second to be used during simulation.")
 	parser.add_argument("-ve", "--velocity", type=int, default = 200, help="Velocity in pixels/sec of hider and seekers.")
 	parser.add_argument("-v", "--verbose", type=int, choices = [0, 1, 2], default = 0, help="Increase output verbosity")
+	parser.add_argument("-fq", "--fixed_time_quanta", action="store_true", help="Time quanta used for updating the players distance(fixed/variable)")
+
 	args = parser.parse_args()
 
 	# Need to have a trainer class which trains on input and provides its output to the experiment
 
-	exp = experiment.Experiment(args.display, args.num_runs, args.mode_hiders, args.mode_seekers, args.num_hiders, args.num_seekers, args.map_id, args.input_file, args.output_file, args.fps, args.velocity, args.verbose)
+	exp = experiment.Experiment(args.display, args.num_runs, args.mode_hiders, args.mode_seekers, args.num_hiders, args.num_seekers, args.map_id, args.input_file, args.output_file, args.fps, args.velocity, args.verbose, args.fixed_time_quanta)
 	exp.run()
 
 if __name__ == '__main__':

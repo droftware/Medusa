@@ -18,7 +18,7 @@ class Simulator(object):
 	mode_type_hiders = ['random', 'bayesian']
 	mode_type_seekers = ['random']
 
-	def __init__(self, display, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, fps, velocity, verbose, max_steps=1000, window_width=640, window_height=360):
+	def __init__(self, display, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, fps, velocity, verbose, fixed_time_quanta, max_steps=1000, window_width=640, window_height=360):
 		self.__display = display
 		assert(mode_hiders in Simulator.mode_type_hiders)
 		assert(mode_seekers in Simulator.mode_type_seekers)
@@ -41,17 +41,17 @@ class Simulator(object):
 
 		# AI setup
 		if mode_hiders == 'random':
-			self.__hider_team = team.RandomHiderTeam(num_hiders, hider_map_copy, fps, velocity)
+			self.__hider_team = team.RandomHiderTeam(num_hiders, hider_map_copy, fps, velocity, fixed_time_quanta)
 		if mode_hiders == 'bayesian':
-			self.__hider_team = team.BayesianHiderTeam(num_hiders, hider_map_copy, fps, velocity)
+			self.__hider_team = team.BayesianHiderTeam(num_hiders, hider_map_copy, fps, velocity, fixed_time_quanta)
 
 		if mode_seekers == 'random':
-			self.__seeker_team = team.RandomSeekerTeam(num_seekers, seeker_map_copy, fps, velocity)
+			self.__seeker_team = team.RandomSeekerTeam(num_seekers, seeker_map_copy, fps, velocity, fixed_time_quanta)
 
 		# Graphics setup
 		self.__window_width = self.__map.get_map_width()
 		self.__window_height = self.__map.get_map_height()
-		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, velocity, self.__map)
+		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, fps, velocity, self.__map, fixed_time_quanta)
 		
 		# Mapping AI agents and Graphics players for interchange of percepts and 
 		# actions

@@ -7,7 +7,7 @@ class Experiment(object):
 		tracking the statistics involved
 	"""
 
-	def __init__(self, display, num_runs, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, fps, velocity, verbose):
+	def __init__(self, display, num_runs, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, fps, velocity, verbose, fixed_time_quanta):
 		self.__display = display
 		self.__num_runs = num_runs
 		self.__mode_hiders = mode_hiders
@@ -20,8 +20,9 @@ class Experiment(object):
 		self.__fps = fps
 		self.__velocity = velocity
 		self.__verbose = verbose
+		self.__fixed_time_quanta = fixed_time_quanta
 
 	def run(self):
-		sim = simulator.Simulator(self.__display, self.__mode_hiders, self.__mode_seekers, self.__num_hiders, self.__num_seekers, self.__map_id, self.__input_file, self.__output_file, self.__fps, self.__velocity, self.__verbose)
+		sim = simulator.Simulator(self.__display, self.__mode_hiders, self.__mode_seekers, self.__num_hiders, self.__num_seekers, self.__map_id, self.__input_file, self.__output_file, self.__fps, self.__velocity, self.__verbose, self.__fixed_time_quanta)
 		sim.simulate()
 			
