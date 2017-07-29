@@ -106,7 +106,7 @@ class BasicMapManager(object):
 	def get_action_map(self, position):
 		results = {}
 		for move in range(action.Action.num_actions):
-			if move != action.Action.Stop:
+			if move != action.Action.ST:
 				rotation = action.ROTATION[move]
 				rotation_x = math.cos(coord.Coord.to_radians(-rotation))
 				rotation_y = math.sin(coord.Coord.to_radians(-rotation))
