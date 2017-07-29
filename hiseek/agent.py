@@ -7,6 +7,8 @@ import message
 import coord
 import action
 import controller
+import planner
+import vector
 
 class Agent(object):
 	'''
@@ -41,6 +43,8 @@ class Agent(object):
 			Simulator accepts the chosen action from the agent and updates the
 			current position accordingly
 		'''
+		# if self._position != None:
+		# 	print('Distance moved:', self._position.get_euclidean_distance(coordinate))
 		self._position = coordinate
 
 	def get_position(self):
@@ -134,6 +138,7 @@ class RandomSeekerAgent(SeekerAgent):
 
 	def select_action(self):
 		self._action = random.choice(action.Action.all_actions)
+		# print('Seekers position:', str(self._position))
 
 	def clear_temporary_state(self):
 		pass
@@ -225,11 +230,17 @@ class RandomSeekerCommanderAgent(RandomSeekerAgent):
 						self.__opening_positions[(i, j)] = position
 						found_position = True
 
+
+
 class BayesianHiderAgent(HiderAgent):
 
 	def __init__(self, agent_id, team, map_manager):
 		super(BayesianHiderAgent, self).__init__(agent_id, team, map_manager)
 		self.__controller = controller.BayesianController(map_manager)
+		self.__in_transit = False
+		self.__next_state = None
+		self.__planner = planner.BasicPlanner(self._map_manager)
+		self.__margin = 40
 
 	def generate_messages(self):
 		pass
@@ -237,9 +248,134 @@ class BayesianHiderAgent(HiderAgent):
 	def analyze_messages(self):
 		pass
 
+	def __select_path(self):
+		start_coord = self._position
+		goal_coord = coord.Coord(60, 60)
+		self.__planner.plan(start_coord, goal_coord)
+
+	def __select_direction(self):
+		if self.__in_transit:
+
+			# Decides wether the next_state needs to change or not
+			if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
+				# print('!! Reached the next state, finding next state ...')
+				self.__next_state = self.__planner.get_paths_next_coord()
+				if self.__next_state == None:
+					# Agent reached its destination
+
+					# print(' Goal reached !!! , no appropriate Next state')
+					self.__in_transit = False
+
+			# If the next state is vaid, calculate the vector and return
+			if self.__next_state != None:
+				# print(' next state is valid, finding and returning the direction vec ...')
+				direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
+				direction_vec.normalize()
+				return direction_vec
+
+		# print('Returning None')
+		return None
+
+
 	def select_action(self):
-		self.__controller.set_current_state(self._position, self._percept)
+		if not self.__in_transit:
+			if self._percept.are_hiders_visible() or self._percept.are_seekers_visible():
+				# print('!! Deciding a path')
+				self.__select_path()
+				self.__next_state = self.__planner.get_paths_next_coord()
+				if self.__next_state != None:
+					# print('!! Path is valid')
+					self.__in_transit = True
+				else:
+					# print('!! Path is not valid')
+					self.__in_transit = False
+		# print('Current position:', str(self._position))
+		# print('')
+
+		direction_vec = self.__select_direction()
+		# print('Direction vec:', str(direction_vec))
+
+		self.__controller.set_current_state(self._position, self._percept, direction_vec)
 		self._action = self.__controller.infer_action()
+
+	def clear_temporary_state(self):
+		pass
+
+class BayesianHiderCommanderAgent(BayesianHiderAgent):
+
+	def __init__(self, agent_id, team, map_manager):
+		super(BayesianHiderCommanderAgent, self).__init__(agent_id, team, map_manager)
+		self.__opening_positions = {}
+		self.__openings_created = False
+
+	def get_opening_position(self, rank, idx):
+		assert(rank < self._team.get_ranks())
+		assert(idx < self._team.get_num_rankers(rank))
+		if not self.__openings_created:
+			self.__set_opening()
+			self.__openings_created = True
+		return self.__opening_positions[(rank, idx)]
+
+	def __check_within_obstacle(self, position):
+		gamemap = self._map_manager.get_map()
+		num_polygons = gamemap.get_num_polygons()
+		for i in range(num_polygons):
+			polygon = gamemap.get_polygon(i)
+			if polygon.is_point_inside(position):
+				return True
+		return False
+
+	def __check_already_occupied(self, position):
+		for value in self.__opening_positions.values():
+			if position == value:
+				return True
+		return False
+
+	def __set_opening(self):
+		gamemap = self._map_manager.get_map()
+		max_rank = self._team.get_ranks()
+		for i in reversed(range(max_rank)):
+			for j in range(self._team.get_num_rankers(i)):
+				found_position = False
+				while not found_position:
+					position = coord.Coord(random.randint(0, gamemap.get_map_width()), random.randint(0, gamemap.get_map_height()))
+					if not self.__check_within_obstacle(position) and not self.__check_already_occupied(position):
+						self.__opening_positions[(i, j)] = position
+						found_position = True
+
+
+class PlannerSeekerAgent(SeekerAgent):
+
+	def __init__(self, agent_id, team, map_manager):
+		super(PlannerSeekerAgent, self).__init__(agent_id, team, map_manager)
+		self.__in_transit = False
+		self.__next_state = None
+		self.__planner = planner.BasicPlanner(self._map_manager)
+
+
+	def generate_messages(self):
+		pass
+
+	def analyze_messages(self):
+		pass
+
+	def __select_path(self):
+		start_coord = self._position
+		# goal_coord = self._percept.get_hiders()[0]
+		self.__planner.plan_random_goal(start_coord)
+
+	def __select_direction(self):
+		self._action = random.choice(action.Action.all_actions)
+
+	def select_action(self):
+		# print('Current position', str(self._position))
+		if not self.__in_transit and self._percept.are_hiders_visible():
+			print('*** Hiders visible')
+			self.__select_path()
+			self.__select_direction()
+		else:
+			self.__select_direction()
+
 
 	def clear_temporary_state(self):
 		pass

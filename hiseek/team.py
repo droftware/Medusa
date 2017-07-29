@@ -18,13 +18,19 @@ class Team(object):
 	# rank 2 means there are higher level players who control lower level players 
 	# and so on
 
-	def __init__(self, num_agents):
+	def __init__(self, num_agents, mapworld, fps, velocity, fixed_time_quanta):
 		'''
 			_members is a list of lists, each list contains members
 			of the particular rank which corresponds to the index at which
 			this list is stored.
 		'''
 		self._num_agents = num_agents
+		self._mapworld = mapworld
+		self._fps = fps
+		self._time_quanta = 1.0/fps
+		self._velocity = velocity
+		self._fixed_time_quanta = fixed_time_quanta
+		self._distance_quanta = self._time_quanta * self._velocity
 		self._team_messenger = message.TeamMessenger()
 		self._members = None # which type of members to recruit ?
 		self._map_managers = None # which map manager to assign to each hierarchy level ?
@@ -36,6 +42,8 @@ class Team(object):
 	def get_ranks(self):
 		return self.ranks
 
+	def get_distance_quanta(self):
+		return self._distance_quanta
 
 	def get_num_rankers(self, rank):
 		'''
@@ -135,7 +143,6 @@ class Team(object):
 					member.clear_temporary_state()
 
 
-
 	def select_actions(self):
 		'''
 			Assigns actions to each of its members.
@@ -172,8 +179,8 @@ class RandomHiderTeam(HiderTeam):
 
 	ranks = 2
 
-	def __init__(self, num_agents, mapworld, fps, velocity):
-		super(RandomHiderTeam, self).__init__(num_agents)
+	def __init__(self, num_agents, mapworld, fps, velocity, fixed_time_quanta):
+		super(RandomHiderTeam, self).__init__(num_agents, mapworld, fps, velocity, fixed_time_quanta)
 
 		# prepare a rank 1 hierarchy member list and map managers
 		self._map_managers = [] # one map manager for one level
@@ -181,7 +188,7 @@ class RandomHiderTeam(HiderTeam):
 		self._active = [[], []]
 
 		# assign a basic map manager to the only level
-		map_manager = mapmanager.BasicMapManager(mapworld, fps, velocity)
+		map_manager = mapmanager.BasicMapManager(self._mapworld, self._fps, self._velocity)
 		self._map_managers.append(map_manager)
 
 		# recruit the commander of the random team
@@ -208,8 +215,8 @@ class RandomSeekerTeam(SeekerTeam):
 
 	ranks = 2
 
-	def __init__(self, num_agents, mapworld, fps, velocity):
-		super(RandomSeekerTeam, self).__init__(num_agents)
+	def __init__(self, num_agents, mapworld, fps, velocity, fixed_time_quanta):
+		super(RandomSeekerTeam, self).__init__(num_agents, mapworld, fps, velocity, fixed_time_quanta)
 		assert(num_agents > 0)
 		# prepare a rank 1 hierarchy member list and map managers
 		self._map_managers = [] # one map manager for one level
@@ -217,7 +224,7 @@ class RandomSeekerTeam(SeekerTeam):
 		self._active = [[], []]
 
 		# assign a basic map manager to the only level
-		map_manager = mapmanager.BasicMapManager(mapworld, fps, velocity)
+		map_manager = mapmanager.BasicMapManager(self._mapworld, self._fps, self._velocity)
 		self._map_managers.append(map_manager)
 
 		# recruit the commander of the random team
@@ -230,6 +237,7 @@ class RandomSeekerTeam(SeekerTeam):
 		for i in range(self._num_agents - 1):
 			agent_id = 'RS' + str(i)
 			member = agent.RandomSeekerAgent(agent_id, self, self._map_managers[0])
+			# member = agent.PlannerSeekerAgent(agent_id, self, self._map_managers[0])
 			self._members[0].append(member)
 			self._active[0].append(True)
 
@@ -244,8 +252,8 @@ class BayesianHiderTeam(HiderTeam):
 
 	ranks = 2
 
-	def __init__(self, num_agents, mapworld, fps, velocity):
-		super(BayesianHiderTeam, self).__init__(num_agents)
+	def __init__(self, num_agents, mapworld, fps, velocity, fixed_time_quanta):
+		super(BayesianHiderTeam, self).__init__(num_agents, mapworld, fps, velocity, fixed_time_quanta)
 
 		# prepare a rank 1 hierarchy member list and map managers
 		self._map_managers = [] # one map manager for one level
@@ -253,12 +261,12 @@ class BayesianHiderTeam(HiderTeam):
 		self._active = [[], []]
 
 		# assign a basic map manager to the only level
-		map_manager = mapmanager.BasicMapManager(mapworld, fps, velocity)
+		map_manager = mapmanager.BasicMapManager(self._mapworld, self._fps, self._velocity)
 		self._map_managers.append(map_manager)
 
 		# recruit the commander of the random team
 		agent_id = 'RH' + str(0)
-		commander_member = agent.RandomSeekerCommanderAgent(agent_id, self, self._map_managers[0])
+		commander_member = agent.BayesianHiderCommanderAgent(agent_id, self, self._map_managers[0])
 		self._members[1].append(commander_member)
 		self._active[1].append(True)
 

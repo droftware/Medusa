@@ -32,13 +32,34 @@ class BasicPlanner(object):
             functools.partial(BasicPlanner.isStateValid, self)))
 
         self._path = None
+        self.__next_idx = 1
+
+    def get_paths_next_coord(self):
+        if self._path == None:
+            return None
+        if self.__next_idx >= self._path.length():
+            return None
+        else:
+            state = self._path.getState(self.__next_idx)
+            state_position = coord.Coord(int(state.getX()), int(state.getY()))
+            self.__next_idx += 1
+            return state_position
+
 
     def plan_random_goal(self, start_coord):
         start_state = ob.State(self._setup.getStateSpace())
         start_state().setX(start_coord.get_x())
         start_state().setY(start_coord.get_y())
+
         goal_state = ob.State(self._setup.getStateSpace())
-        goal_state.random()
+        valid = False
+        while not valid:
+            goal_state.random()
+            valid = self.isStateValid(goal_state())
+            if not valid:
+                print('!! Random state not valid')
+            else:
+                print('** Random state valid')
 
         self.__solve_path(start_state, goal_state)
 
@@ -49,6 +70,7 @@ class BasicPlanner(object):
         goal_state = ob.State(self._setup.getStateSpace())
         goal_state().setX(goal_coord.get_x())
         goal_state().setY(goal_coord.get_y())
+
 
         self.__solve_path(start_state, goal_state)
         
@@ -66,8 +88,10 @@ class BasicPlanner(object):
             print(self._path)
 
 
-
     def isStateValid(self, state):
-        state_position = coord.Coord(int(state.getX()), int(state.getY()))
+        x = state.getX()
+        y = state.getY()
+        # print('x,y:',x,y)
+        state_position = coord.Coord(x, y)
         return not self._map_manager.get_map().check_obstacle_collision(state_position)
 

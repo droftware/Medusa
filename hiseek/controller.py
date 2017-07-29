@@ -11,10 +11,14 @@ class BayesianController(object):
 		self.__position = None
 		self.__percept = None
 		self.__action_map = None
+		self.__target_threshold = 0.3
+
+		# target dot products
+		self.__target_dots = [None] * action.Action.num_actions
 
 		# Random variables of the bayesian network
 		# '__r_' stands for random variable
-		# self.__objective = [None] * action.Action.num_actions
+		self.__r_target = [None] * action.Action.num_actions
 		self.__r_danger = [None] * action.Action.num_actions
 		self.__r_obstruction = [None] * action.Action.num_actions
 		self.__r_visibility = [None] * action.Action.num_actions
@@ -26,7 +30,7 @@ class BayesianController(object):
 		# '__d_' stands for discrete distributions
 
 		self.__d_direction = [pm.DiscreteDistribution({'T':0.5, 'F':0.5}) for i in range(action.Action.num_actions)]
-
+		self.__d_target = [None] * action.Action.num_actions
 		self.__d_danger = [pm.ConditionalProbabilityTable(
 					[['T', '0', 0.99],
 					 ['T', '1', 0.01],
@@ -81,39 +85,15 @@ class BayesianController(object):
 
 		# State objects(for pomegranate) library which hold both the distribution as well as name
 		self.__s_direction = [pm.State(self.__d_direction[i], name='direction_'+str(i)) for i in range(action.Action.num_actions)] 
+		self.__s_target = None
 		self.__s_danger = [pm.State(self.__d_danger[i], name='danger_'+str(i)) for i in range(action.Action.num_actions)]
 		self.__s_visibility = [pm.State(self.__d_visibility[i], name='visibility_'+str(i)) for i in range(action.Action.num_actions)] 
 		self.__s_obstruction = [pm.State(self.__d_obstruction[i], name='obstruction_'+str(i)) for i in range(action.Action.num_actions)] 
 		self.__s_hider = [pm.State(self.__d_hider[i], name='hider_'+str(i)) for i in range(action.Action.num_actions)] 
 		self.__s_seeker = [pm.State(self.__d_seeker[i], name='seeker_'+str(i)) for i in range(action.Action.num_actions)] 
 		self.__s_blockage = [pm.State(self.__d_blockage[i], name='blockage_'+str(i)) for i in range(action.Action.num_actions)] 
-
-		# Model
-		self.__model = pm.BayesianNetwork("Bayesian Controller")
-
-		# Adding the states
-		for i in range(action.Action.num_actions):
-			self.__model.add_states(self.__s_direction[i])
-
-		for i in range(action.Action.num_actions):
-			self.__model.add_states(self.__s_danger[i])
-			self.__model.add_states(self.__s_visibility[i])
-			self.__model.add_states(self.__s_obstruction[i])
-			self.__model.add_states(self.__s_hider[i])
-			self.__model.add_states(self.__s_seeker[i])
-			self.__model.add_states(self.__s_blockage[i])
-
-		# Creating the network by adding transitions
-		for i in range(action.Action.num_actions):
-			self.__model.add_transition(self.__s_direction[i], self.__s_danger[i])
-			self.__model.add_transition(self.__s_direction[i], self.__s_visibility[i])
-			self.__model.add_transition(self.__s_direction[i], self.__s_obstruction[i])
-			self.__model.add_transition(self.__s_direction[i], self.__s_hider[i])
-			self.__model.add_transition(self.__s_direction[i], self.__s_seeker[i])
-			self.__model.add_transition(self.__s_direction[i], self.__s_blockage[i])
-
-		self.__model.bake()
-
+		
+		self.__model = None
 		self.__inferred_results = None
 		self.__direction_probs = [None] * action.Action.num_actions
 		self.__direction_dist = None
@@ -126,15 +106,77 @@ class BayesianController(object):
 		assert(isinstance(current_percept, percept.TeamPercept))
 		self.__percept = current_percept
 
-	def set_current_state(self, position, percept):
+	def set_current_target_vec(self, target_vec):
+		self.__target_vec = target_vec
+
+	def set_current_state(self, position, percept, target_vec):
 		self.set_current_position(position)
 		self.set_current_percept(percept)
+		self.set_current_target_vec(target_vec)
+
+	def __set_target_probability(self):
+
+		for i in range(action.Action.num_actions):
+			if i != action.Action.ST:
+				prob_value = 0.5
+				if self.__target_vec != None:
+					direction_vec = action.VECTOR[i]
+					direction_vec.normalize()
+					self.__target_vec.normalize()
+					dot = self.__target_vec.dot_product(direction_vec)
+					self.__target_dots[i] = dot
+					prob_value = self.__target_threshold + (1.0 - self.__target_threshold) * max(0, dot)
+				self.__d_target[i] = pm.ConditionalProbabilityTable(
+					[['T', 'T', prob_value],
+					 ['T', 'F', 1.0 - prob_value],
+					 ['F', 'T', 0.5],
+					 ['F', 'F', 0.5]], [self.__d_direction[i]])
+			else:
+				self.__target_dots[i] = 0
+				self.__d_target[i] = pm.ConditionalProbabilityTable(
+					[['T', 'T', 0.5],
+					 ['T', 'F', 0.5],
+					 ['F', 'T', 0.5],
+					 ['F', 'F', 0.5]], [self.__d_direction[i]])
+
+		self.__s_target = [pm.State(self.__d_target[i], name='target_' + str(i)) for i in range(action.Action.num_actions)] 
+
+		
+	def __set_bayesian_network(self):
+		# Model
+		self.__model = pm.BayesianNetwork("Bayesian Controller")
+
+		# Adding the states
+		for i in range(action.Action.num_actions):
+			self.__model.add_states(self.__s_direction[i])
+
+		for i in range(action.Action.num_actions):
+			self.__model.add_states(self.__s_target[i])
+			self.__model.add_states(self.__s_danger[i])
+			self.__model.add_states(self.__s_visibility[i])
+			self.__model.add_states(self.__s_obstruction[i])
+			self.__model.add_states(self.__s_hider[i])
+			self.__model.add_states(self.__s_seeker[i])
+			self.__model.add_states(self.__s_blockage[i])
+
+		# Creating the network by adding transitions
+		for i in range(action.Action.num_actions):
+			self.__model.add_transition(self.__s_direction[i], self.__s_target[i])
+			self.__model.add_transition(self.__s_direction[i], self.__s_danger[i])
+			self.__model.add_transition(self.__s_direction[i], self.__s_visibility[i])
+			self.__model.add_transition(self.__s_direction[i], self.__s_obstruction[i])
+			self.__model.add_transition(self.__s_direction[i], self.__s_hider[i])
+			self.__model.add_transition(self.__s_direction[i], self.__s_seeker[i])
+			self.__model.add_transition(self.__s_direction[i], self.__s_blockage[i])
+
+		self.__model.bake()
 
 	def __set_action_map(self):
 		self.__action_map = self.__map_manager.get_action_map(self.__position)
 
 	def print_random_var_levels(self):
 		# print('Levels of random variables')
+		print('Target:', self.__r_target)
 		print('Danger:', self.__r_danger)
 		print('Obstruction:', self.__r_obstruction)
 		print('Visibility:', self.__r_visibility)
@@ -143,6 +185,8 @@ class BayesianController(object):
 		print('Blockage:', self.__r_blockage)
 
 	def infer_action(self):
+		self.__set_target_probability()
+		self.__set_bayesian_network()
 		self.__set_random_var_levels()
 		self.__perform_bayesian_inference()
 		self.__extract_direction_probabilities()
@@ -151,6 +195,7 @@ class BayesianController(object):
 
 	def __set_random_var_levels(self):
 		self.__set_action_map()
+		self.__set_target_levels()
 		self.__set_danger_levels()
 		self.__set_obstruction_levels()
 		self.__set_visibility_levels()
@@ -159,7 +204,6 @@ class BayesianController(object):
 		self.__set_blockage_levels()
 		# print('All random vars set')
 		# self.print_random_var_levels()
-		
 
 
 	def __perform_bayesian_inference(self):
@@ -168,6 +212,7 @@ class BayesianController(object):
 		# Filling random variables
 		for i in range(action.Action.num_actions):
 			rvar_dict['danger_' + str(i)] = str(self.__r_danger[i])
+			rvar_dict['target_'+str(i)] = str(self.__r_target[i])
 			rvar_dict['visibility_' + str(i)] = str(self.__r_visibility[i])
 			rvar_dict['obstruction_' + str(i)] = str(self.__r_obstruction[i])
 			rvar_dict['hider_' + str(i)] = str(self.__r_hider[i])
@@ -214,12 +259,23 @@ class BayesianController(object):
 
 		level = -1
 		for i in range(action.Action.num_actions):
-			if i%2 == 0:
+			if i%4 == 0:
 				level += 1
 			if visibility_values[i][1] == -1:
-				self.__r_visibility[visibility_values[i][0]] = 0
+				self.__r_visibility[visibility_values[i][0]] = '0'
 			else:
-				self.__r_visibility[visibility_values[i][0]] = level
+				self.__r_visibility[visibility_values[i][0]] = str(level)
+
+	def __set_target_levels(self):
+
+		cos_products = sorted(self.__target_dots, reverse=True)
+		threshold = cos_products[2]
+		
+		for i in range(action.Action.num_actions):
+			if self.__target_dots[i] >= threshold:
+				self.__r_target[i] = 'T'
+			else:
+				self.__r_target[i] = 'F'
 
 
 	def __set_obstruction_levels(self):
@@ -238,12 +294,12 @@ class BayesianController(object):
 
 		level = -1
 		for i in range(action.Action.num_actions):
-			if i%2 == 0:
+			if i%4 == 0:
 				level += 1
 			if obstruction_values[i][1] == -1:
-				self.__r_obstruction[obstruction_values[i][0]] = 0
+				self.__r_obstruction[obstruction_values[i][0]] = '0'
 			else:
-				self.__r_obstruction[obstruction_values[i][0]] = level
+				self.__r_obstruction[obstruction_values[i][0]] = str(level)
 
 	def __set_blockage_levels(self):
 		'''
@@ -254,9 +310,9 @@ class BayesianController(object):
 		for i in range(action.Action.num_actions):
 			position = self.__action_map[i]
 			if self.__map_manager.get_blockage_value(position):
-				self.__r_blockage[i] = 1
+				self.__r_blockage[i] = '1'
 			else:
-				self.__r_blockage[i] = 0
+				self.__r_blockage[i] = '0'
 
 	def __set_danger_levels(self):
 		'''
@@ -267,11 +323,11 @@ class BayesianController(object):
 		seekers = self.__percept.get_seekers()
 		for i in range(action.Action.num_actions):
 			position = self.__action_map[i]
-			self.__r_danger[i] = 0
+			self.__r_danger[i] = '0'
 			for spos in seekers:
 				visibility_polygon = self.__map_manager.get_360_visibility_polygon(spos)
 				if visibility_polygon.is_point_inside(position):
-					self.__r_danger[i] = 1
+					self.__r_danger[i] = '1'
 					break
 
 	def __set_hider_levels(self):
@@ -284,16 +340,16 @@ class BayesianController(object):
 		hiders = self.__percept.get_hiders()
 		for i in range(action.Action.num_actions):
 			position = self.__action_map[i]
-			self.__r_hider[i] = 0
+			self.__r_hider[i] = '0'
 			min_dist = float('inf')
 			for hpos in hiders:
 				hider_dist = position.get_euclidean_distance(hpos) 
 				if hider_dist < min_dist:
 					min_dist = hider_dist
 			if min_dist >= 0 and min_dist < 5:
-				self.__r_hider[i] = 2
+				self.__r_hider[i] = '2'
 			elif min_dist >= 5 and min_dist < 7:
-				self.__r_hider[i] = 1
+				self.__r_hider[i] = '1'
 
 	def __set_seeker_levels(self):
 		'''
@@ -305,16 +361,13 @@ class BayesianController(object):
 		seekers = self.__percept.get_seekers()
 		for i in range(action.Action.num_actions):
 			position = self.__action_map[i]
-			self.__r_seeker[i] = 0
+			self.__r_seeker[i] = '0'
 			min_dist = float('inf')
 			for spos in seekers:
 				seeker_dist = position.get_euclidean_distance(spos) 
 				if seeker_dist < min_dist:
 					min_dist = seeker_dist
 			if min_dist >= 0 and min_dist < 5:
-				self.__r_seeker[i] = 2
+				self.__r_seeker[i] = '2'
 			elif min_dist >= 5 and min_dist < 7:
-				self.__r_seeker[i] = 1
-
-
-
+				self.__r_seeker[i] = '1'
