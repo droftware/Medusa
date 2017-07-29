@@ -1,3 +1,7 @@
+import math
+
+import coord
+import vector
 
 class Action:
 	N = 0
@@ -61,12 +65,25 @@ class Action:
 	action2string[ST] = "ST"
 
 
-# Rotation mappings
-ROTATION = [None] * (Action.num_actions-1)
-offset_angle = 22.5001
-current_angle = 0
+
+# Rotation and vector mappings
+ROTATION = [None] * (Action.num_actions - 1)
+VECTOR = [None] * (Action.num_actions - 1)
+
+offset_angle = 22.5
+current_angle = 0.00001
 for act in Action.all_actions:
 	if act != Action.ST:
-		current_angle += offset_angle
 		ROTATION[act] = current_angle 
+		x = math.cos(coord.Coord.to_radians(-current_angle))
+		y = math.sin(coord.Coord.to_radians(-current_angle))
+		VECTOR[act] = vector.Vector2D(x, y)
+		VECTOR[act].normalize()
+		current_angle += offset_angle
+
+
+# for i in range(Action.num_actions):
+# 	if i != Action.ST:
+# 		print(Action.action2string[i], '-->', ROTATION[i], '-->', str(VECTOR[i]))
+
 
