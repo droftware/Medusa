@@ -145,9 +145,9 @@ class RandomSeekerAgent(SeekerAgent):
 		pass
 
 	def select_action(self):
-		print('Position:', str(self._position))
-		print('Action:', self._action)
-		print('\n')
+		# print('Position:', str(self._position))
+		# print('Action:', self._action)
+		# print('\n')
 		self._action = random.choice(action.Action.all_actions)
 		# print('Seekers position:', str(self._position))
 
@@ -261,9 +261,9 @@ class BayesianHiderAgent(HiderAgent):
 
 	def __select_path(self):
 		start_coord = self._position
-		# goal_coord = coord.Coord(60, 60)
-		# self.__planner.plan(start_coord, goal_coord)
-		self.__planner.plan_random_goal(start_coord)
+		goal_coord = coord.Coord(60, 60)
+		self.__planner.plan(start_coord, goal_coord)
+		# self.__planner.plan_random_goal(start_coord)
 
 	def __select_direction(self):
 		if self.__in_transit:
@@ -335,16 +335,16 @@ class BayesianHiderAgent(HiderAgent):
 		direction_vec = self.__select_direction()
 		# print('Direction vec:', str(direction_vec))
 
-		# self.__controller.set_current_state(self._position, self._percept, direction_vec)
-		# self._action = self.__controller.infer_action()
+		self.__controller.set_current_state(self._position, self._percept, direction_vec)
+		self._action = self.__controller.infer_action()
 
-		if direction_vec == None:
-			self._action = random.choice(action.Action.all_actions)
-		else:
-			if self._stop_counter >= 3:
-				self._action = random.choice(action.Action.all_actions)
-			else:
-				self._action = self.__select_closest_action(direction_vec)
+		# if direction_vec == None:
+		# 	self._action = random.choice(action.Action.all_actions)
+		# else:
+		# 	if self._stop_counter >= 3:
+		# 		self._action = random.choice(action.Action.all_actions)
+		# 	else:
+		# 		self._action = self.__select_closest_action(direction_vec)
 
 
 	def clear_temporary_state(self):
