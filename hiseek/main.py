@@ -10,7 +10,7 @@ def main():
 	parser.add_argument("-ms", "--mode_seekers", default = "random", help="Seeker's mode, strategy to be used by the seeker team during simulations.")
 	parser.add_argument("-nh", "--num_hiders", type=int, default = 1, help="Number of hiders to be used in each simulation.")
 	parser.add_argument("-ns", "--num_seekers", type=int, default = 1, help="Number of seekers to be used in each simulation")
-	parser.add_argument("-m", "--map_id", type=int, choices = [0, 1], default = 0)
+	parser.add_argument("-m", "--map_id", type=int, choices = [0, 1, 2, 3], default = 0)
 	parser.add_argument("-i", "--input_file", default = ".", help="Input file")
 	parser.add_argument("-o", "--output_file", default = ".", help="Output file")
 	parser.add_argument("-f", "--fps", type=int, default = 60, help="Frames per second to be used during simulation.")
