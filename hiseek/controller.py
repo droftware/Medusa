@@ -41,20 +41,20 @@ class BayesianController(object):
 					 ['F', '1', 0.5]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
 
 		self.__d_visibility = [pm.ConditionalProbabilityTable(
-					[['T', '0', 0.01],
-					 ['T', '1', 0.03],
-					 ['T', '2', 0.06],
-					 ['T', '3', 0.9],
+					[['T', '0', 0.001],
+					 ['T', '1', 0.003],
+					 ['T', '2', 0.006],
+					 ['T', '3', 0.99],
 					 ['F', '0', 1./4],
 					 ['F', '1', 1./4],
 					 ['F', '2', 1./4],
 					 ['F', '3', 1./4]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
 
 		self.__d_obstruction = [pm.ConditionalProbabilityTable(
-					[['T', '0', 0.01],
-					 ['T', '1', 0.03],
-					 ['T', '2', 0.06],
-					 ['T', '3', 0.9],
+					[['T', '0', 0.001],
+					 ['T', '1', 0.003],
+					 ['T', '2', 0.006],
+					 ['T', '3', 0.99],
 					 ['F', '0', 1./4],
 					 ['F', '1', 1./4],
 					 ['F', '2', 1./4],
