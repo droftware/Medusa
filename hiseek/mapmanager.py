@@ -19,7 +19,7 @@ class BasicMapManager(object):
 									the number of cells which can see that cell,
 									therfore lesser the obstruction
 	'''
-	def __init__(self, mapworld, fps, velocity, offset = 20, inference_map=False):
+	def __init__(self, mapworld, fps, velocity, offset = 10, inference_map=True):
 		self.__mapworld = mapworld
 		self.__offset = offset
 		self.__num_rows = int(math.ceil((mapworld.get_map_width() * 1.0)/offset))
@@ -52,8 +52,8 @@ class BasicMapManager(object):
 							self.__visibility[i, j] = -1
 							self.__obstruction[i, j] = -1
 
-				print('Filled all obstacles')
-				print(self.__visibility)
+				# print('Filled all obstacles')
+				# print(self.__visibility)
 
 				for i in range(self.__num_rows):
 					for j in range(self.__num_cols):
@@ -122,10 +122,12 @@ class BasicMapManager(object):
 
 	def get_visibility_level(self, position):
 		vis_val = self.get_visibility_value(position)
-		vis_level = -1
-		print()
-		print('visibility penta:', self.__visibility_penta)
-		if vis_val >= self.__visibility_penta[0] and vis_val < self.__visibility_penta[1]:
+		vis_level = None
+		# print()
+		# print('visibility penta:', self.__visibility_penta)
+		if vis_val == -1:
+			vis_level = 0
+		elif vis_val >= self.__visibility_penta[0] and vis_val < self.__visibility_penta[1]:
 			vis_level = 0
 		elif vis_val >= self.__visibility_penta[1] and vis_val < self.__visibility_penta[2]:
 			vis_level = 1
@@ -133,7 +135,7 @@ class BasicMapManager(object):
 			vis_level = 2
 		elif vis_val >= self.__visibility_penta[3] and vis_val <= self.__visibility_penta[4]:
 			vis_level = 3
-		print('Position:', str(position), 'Visibility value:', vis_val, 'Vis level:', vis_level)
+		# print('Position:', str(position), 'Visibility value:', vis_val, 'Vis level:', vis_level)
 		return vis_level
 
 
@@ -141,17 +143,19 @@ class BasicMapManager(object):
 	def get_obstruction_level(self, position):
 		obs_val = self.get_obstruction_value(position)
 		obs_level = -1
-		print()
-		print('obstruction penta:', self.__obstruction_penta)
-		if obs_val >= self.__obstruction_penta[0] and obs_val < self.__obstruction_penta[1]:
+		# print()
+		# print('obstruction penta:', self.__obstruction_penta)
+		if obs_val == -1:
 			obs_level = 0
-		elif obs_val >= self.__obstruction_penta[1] and obs_val < self.__obstruction_penta[2]:
-			obs_level = 1
-		elif obs_val >= self.__obstruction_penta[2] and obs_val < self.__obstruction_penta[3]:
-			obs_level = 2
-		elif obs_val >= self.__obstruction_penta[3] and obs_val <= self.__obstruction_penta[4]:
+		elif obs_val >= self.__obstruction_penta[0] and obs_val < self.__obstruction_penta[1]:
 			obs_level = 3
-		print('Position:', str(position), 'Obstruction value:', obs_val, 'Obs level:', obs_level)
+		elif obs_val >= self.__obstruction_penta[1] and obs_val < self.__obstruction_penta[2]:
+			obs_level = 2
+		elif obs_val >= self.__obstruction_penta[2] and obs_val < self.__obstruction_penta[3]:
+			obs_level = 1
+		elif obs_val >= self.__obstruction_penta[3] and obs_val <= self.__obstruction_penta[4]:
+			obs_level = 0
+		# print('Position:', str(position), 'Obstruction value:', obs_val, 'Obs level:', obs_level)
 		return obs_level
 
 	def get_blockage_value(self, position):
