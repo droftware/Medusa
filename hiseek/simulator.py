@@ -34,7 +34,7 @@ class Simulator(object):
 		self.__verbose = verbose
 		self.__stats = statistic.Statistic(num_hiders, num_seekers)
 		self.__max_steps = max_steps
-		self.__map = gamemap.PolygonMap(0)
+		self.__map = gamemap.PolygonMap(map_id)
 
 		hider_map_copy = copy.deepcopy(self.__map)
 		seeker_map_copy = copy.deepcopy(self.__map)
