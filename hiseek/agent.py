@@ -25,6 +25,8 @@ class Agent(object):
 		self._percept = None
 		self._action = None
 		self._position = None
+		self._prev_position = None	
+		self._stop_counter = 0
 
 	def set_percept(self, percept):
 		'''
@@ -45,7 +47,13 @@ class Agent(object):
 		'''
 		# if self._position != None:
 		# 	print('Distance moved:', self._position.get_euclidean_distance(coordinate))
+		if self._position == self._prev_position:
+			self._stop_counter += 1
+		else:
+			self._stop_counter = 0
+		self._prev_position = self._position
 		self._position = coordinate
+
 
 	def get_position(self):
 		return self._position
@@ -137,6 +145,9 @@ class RandomSeekerAgent(SeekerAgent):
 		pass
 
 	def select_action(self):
+		print('Position:', str(self._position))
+		print('Action:', self._action)
+		print('\n')
 		self._action = random.choice(action.Action.all_actions)
 		# print('Seekers position:', str(self._position))
 
@@ -250,11 +261,13 @@ class BayesianHiderAgent(HiderAgent):
 
 	def __select_path(self):
 		start_coord = self._position
-		goal_coord = coord.Coord(60, 60)
-		self.__planner.plan(start_coord, goal_coord)
+		# goal_coord = coord.Coord(60, 60)
+		# self.__planner.plan(start_coord, goal_coord)
+		self.__planner.plan_random_goal(start_coord)
 
 	def __select_direction(self):
 		if self.__in_transit:
+			# print('Next state:', str(self.__next_state))
 
 			# Decides wether the next_state needs to change or not
 			if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
@@ -276,10 +289,38 @@ class BayesianHiderAgent(HiderAgent):
 		# print('Returning None')
 		return None
 
+	def __select_closest_action(self, direction_vec):
+		max_cos_prod = -1 * float('inf')
+		max_action = 0
+		# print('*** Selecting action')
+		for i in range(action.Action.num_actions):
+			if i == action.Action.ST:
+				continue
+			action_vec = action.VECTOR[i]
+			action_vec.normalize()
+			direction_vec.normalize()
+			cos_prod = direction_vec.dot_product(action_vec)
+			# print(' ')
+			# print('direction vector:', str(direction_vec))
+			# print('action vector:', str(action_vec))
+			# print('Current action:', action.Action.action2string[i])
+			# print('Current cos prod:', cos_prod)
+			# print('Existing min cos prod:', max_cos_prod)
+			# print('Existing min action:', max_action)
+			# if cos_prod < 0:
+			# 	continue
+			if cos_prod >= max_cos_prod:
+				# print('Changing min')
+				max_cos_prod = cos_prod
+				max_action = i
+		# print('Action choosen:', action.Action.action2string[max_action])
+		return max_action
 
 	def select_action(self):
+		# print(' ')
+
 		if not self.__in_transit:
-			if self._percept.are_hiders_visible() or self._percept.are_seekers_visible():
+			if True or self._percept.are_hiders_visible() or self._percept.are_seekers_visible():
 				# print('!! Deciding a path')
 				self.__select_path()
 				self.__next_state = self.__planner.get_paths_next_coord()
@@ -290,13 +331,21 @@ class BayesianHiderAgent(HiderAgent):
 					# print('!! Path is not valid')
 					self.__in_transit = False
 		# print('Current position:', str(self._position))
-		# print('')
 
 		direction_vec = self.__select_direction()
 		# print('Direction vec:', str(direction_vec))
 
-		self.__controller.set_current_state(self._position, self._percept, direction_vec)
-		self._action = self.__controller.infer_action()
+		# self.__controller.set_current_state(self._position, self._percept, direction_vec)
+		# self._action = self.__controller.infer_action()
+
+		if direction_vec == None:
+			self._action = random.choice(action.Action.all_actions)
+		else:
+			if self._stop_counter >= 3:
+				self._action = random.choice(action.Action.all_actions)
+			else:
+				self._action = self.__select_closest_action(direction_vec)
+
 
 	def clear_temporary_state(self):
 		pass
