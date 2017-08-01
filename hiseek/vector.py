@@ -18,7 +18,7 @@ class Vector2D(object):
 			Gets a vector of form 'coord_A - coord_B'
 		'''
 		x = coord_A.get_x() - coord_B.get_x()
-		y = coord_A.get_x() - coord_B.get_y()
+		y = coord_A.get_y() - coord_B.get_y()
 		return cls(x, y)
 
 	def get_magnitude(self):
