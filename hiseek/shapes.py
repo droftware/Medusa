@@ -2,6 +2,7 @@ import math
 
 import numpy as np
 import matplotlib.path as mplPath
+import pyclipper
 
 import coord
 
@@ -49,7 +50,7 @@ class Line(object):
 		point = coord.Coord(p_x, p_y)
 		d_x = self.get_b().get_x() - self.get_a().get_x()
 		d_y = self.get_b().get_y() - self.get_a().get_y()
-		assert(d_x != d_y)
+		# assert(d_x != d_y)
 		return point, d_x, d_y
 
 	@staticmethod
@@ -91,24 +92,39 @@ class Line(object):
 
 class Polygon(object):
 
-	def __init__(self, points_tuple, line_analysis=False, point_analysis=False):
+	def __init__(self, points_tuple, offset = 1.0 ,line_analysis=False, point_analysis=False):
 		assert(len(points_tuple)%2 == 0)
+		# print('')
+		# print('Points tuple:', points_tuple)
 		self.__num_vertices = len(points_tuple)//2
 		self.__vertices = []
-		self.__points_tuple = points_tuple
-
 		self.__line_analysis = line_analysis
 		self.__lines = []
 
 		self.__point_analysis = point_analysis
 		self.__mpl_path = None
+		self.__points_tuple = points_tuple
 
-		i = 0
-		while i < self.__num_vertices * 2:
-			vertex = coord.Coord(points_tuple[i], points_tuple[i+1])
-			self.__vertices.append(vertex)
-			i += 2
-		
+		if offset == 1.0:
+			i = 0
+			while i < self.__num_vertices * 2:
+				vertex = coord.Coord(points_tuple[i], points_tuple[i+1])
+				self.__vertices.append(vertex)
+				i += 2
+		else:
+			i = 0
+			offsetted_list = []
+			while i < self.__num_vertices * 2:
+				vertex = (points_tuple[i], points_tuple[i+1])
+				offsetted_list.append(vertex)
+				i += 2
+			offsetted_tuple = tuple(offsetted_list)	
+			pco = pyclipper.PyclipperOffset()
+			pco.AddPath(offsetted_tuple, pyclipper.JT_ROUND, pyclipper.ET_CLOSEDPOLYGON)
+			solution = pco.Execute(offset)[0]
+			for vertex in solution:
+				vcoord = coord.Coord(vertex[0], vertex[1])
+				self.__vertices.append(vcoord)
 
 	def __str__(self):
 		if not self.__line_analysis:
@@ -117,6 +133,7 @@ class Polygon(object):
 		for i in range(self.__num_lines):
 			polygon_string += str(self.__lines[i]) + ', '
 		return polygon_string
+
 
 	def create_line_representation(self):
 		'''
@@ -177,3 +194,46 @@ class Polygon(object):
 		if not self.__line_analysis:
 			self.create_line_representation()
 		return self.__num_lines
+
+class Square(Polygon):
+
+	def __init__(self, centre, length):
+		self.__centre = centre
+		self.__length = length
+		l2 = int(self.__length/2)
+		self.__left = centre[0] - l2
+		self.__right = centre[0] + l2
+		self.__top = centre[1] + l2
+		self.__bottom = centre[1] - l2
+
+		
+		points_list = [centre[0] - l2, centre[1] - l2, centre[0] - l2, centre[1] + l2, centre[0] + l2, centre[1] + l2, centre[0] + l2, centre[1] - l2]
+		points_tuple = tuple(points_list)
+		print(points_tuple)
+		super(Square, self).__init__(points_tuple)
+
+	def is_point_inside(self, point):
+		# assert(isinstance(point, coord.Coord))
+		x = point.get_x()
+		y = point.get_y()
+		if self.__left < x < self.__right and self.__bottom < y < self.__top:
+			return True
+		else:
+			return False 
+
+	def check_aabb_collision(self, other):
+		if (self.__centre[0] < other.__centre[0] + other.__length) and (other.__centre[0] < self.__centre[0] + self.__length) and (self.__centre[1] < other.__centre[1] + other.__length) and (other.__centre[1] < self.__centre[1] + self.__length):
+			return True
+		else:
+			return False
+
+	def get_centre(self):
+		return self.__centre
+
+	def get_length(self):
+		return self.__length
+
+
+
+
+
