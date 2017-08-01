@@ -19,57 +19,72 @@ class BasicPlanner(object):
 
     def __init__(self, map_manager):
         self._map_manager = map_manager
-        self._space = ob.SE2StateSpace()
-
-        self._bounds = ob.RealVectorBounds(2)
-        self._bounds.setLow(0)
-        self._bounds.setHigh(0, self._map_manager.get_map().get_map_width())
-        self._bounds.setHigh(1, self._map_manager.get_map().get_map_height())
-        self._space.setBounds(self._bounds)
+        # self._space = ob.SE2StateSpace()
+        self._space = ob.RealVectorStateSpace()
+        self._space.addDimension(0.0, self._map_manager.get_map().get_map_width())
+        self._space.addDimension(0.0, self._map_manager.get_map().get_map_height())
 
         self._setup = og.SimpleSetup(self._space)
         self._setup.setStateValidityChecker(ob.StateValidityCheckerFn(
             functools.partial(BasicPlanner.isStateValid, self)))
 
+        self._si = self._setup.getSpaceInformation()
+        self._si.setStateValidityCheckingResolution(1.0 / self._space.getMaximumExtent())
+        self._planner = og.RRTConnect(self._si)
+
+        self._setup.setPlanner(self._planner)
+        self._space.setup()
+
+
         self._path = None
         self.__next_idx = 1
+        self._num_states = 0
 
     def get_paths_next_coord(self):
+        # print('Entered get_paths_next_coord')
+        # print('Path length:', self._path.length())
+        # print('Next idx:', self.__next_idx)
         if self._path == None:
+            # print('No path, thus returning None')
             return None
-        if self.__next_idx >= self._path.length():
+        if self.__next_idx >= self._num_states:
+            # print('Next idx greater, retuning None')
             return None
         else:
+            # print('Entered else:')
             state = self._path.getState(self.__next_idx)
-            state_position = coord.Coord(int(state.getX()), int(state.getY()))
+            # print('Got state')
+            state_position = coord.Coord(int(state[0]), int(state[1]))
             self.__next_idx += 1
+            # print('Returning state pos:', str(state_position))
             return state_position
 
 
     def plan_random_goal(self, start_coord):
         start_state = ob.State(self._setup.getStateSpace())
-        start_state().setX(start_coord.get_x())
-        start_state().setY(start_coord.get_y())
+        start_state()[0] = start_coord.get_x()
+        start_state()[1] = start_coord.get_y()
 
         goal_state = ob.State(self._setup.getStateSpace())
         valid = False
         while not valid:
             goal_state.random()
             valid = self.isStateValid(goal_state())
-            if not valid:
-                print('!! Random state not valid')
-            else:
-                print('** Random state valid')
+            # if not valid:
+            #     print('!! Random state not valid')
+            # else:
+            #     print('** Random state valid')
 
         self.__solve_path(start_state, goal_state)
 
     def plan(self, start_coord, goal_coord):
         start_state = ob.State(self._setup.getStateSpace())
-        start_state().setX(start_coord.get_x())
-        start_state().setY(start_coord.get_y())
+        start_state()[0] = start_coord.get_x()
+        start_state()[1] = start_coord.get_y()
+
         goal_state = ob.State(self._setup.getStateSpace())
-        goal_state().setX(goal_coord.get_x())
-        goal_state().setY(goal_coord.get_y())
+        goal_state()[0] = goal_coord.get_x()
+        goal_state()[1] = goal_coord.get_y()
 
 
         self.__solve_path(start_state, goal_state)
@@ -78,20 +93,31 @@ class BasicPlanner(object):
     def __solve_path(self, start_state, goal_state):
         self._setup.setStartAndGoalStates(start_state, goal_state)
 
-        solved = self._setup.solve(1.0)
-        assert(solved)
-        if solved:
+        for i in range(2):
+            if self._setup.getPlanner():
+                self._setup.getPlanner().clear()
+            self._setup.solve()
+
+        assert(self._setup.haveSolutionPath())
+        if self._setup.haveSolutionPath():
             # try to shorten the path
             self._setup.simplifySolution()
             # print the simplified path
             self._path = self._setup.getSolutionPath()
-            print(self._path)
+            self._num_states = self._path.getStateCount()
+            self.__next_idx = 1
+
+            # p = self._setup.getSolutionPath()
+            # ps = og.PathSimplifier(self._setup.getSpaceInformation())
+            # ps.simplifyMax(p)
+            # ps.smoothBSpline(p)
+            # print(self._path)
 
 
     def isStateValid(self, state):
-        x = state.getX()
-        y = state.getY()
+        x = float(state[0])
+        y = float(state[1])
         # print('x,y:',x,y)
         state_position = coord.Coord(x, y)
-        return not self._map_manager.get_map().check_obstacle_collision(state_position)
+        return not self._map_manager.get_map().check_obstacle_collision(state_position, False)
 
