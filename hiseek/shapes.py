@@ -195,6 +195,10 @@ class Polygon(object):
 			self.create_line_representation()
 		return self.__num_lines
 
+	def get_rtree_bbox(self):
+		print('Not CALLABLE')
+		return
+
 class Square(Polygon):
 
 	def __init__(self, centre, length):
@@ -209,7 +213,7 @@ class Square(Polygon):
 		
 		points_list = [centre[0] - l2, centre[1] - l2, centre[0] - l2, centre[1] + l2, centre[0] + l2, centre[1] + l2, centre[0] + l2, centre[1] - l2]
 		points_tuple = tuple(points_list)
-		print(points_tuple)
+		# print(points_tuple)
 		super(Square, self).__init__(points_tuple)
 
 	def is_point_inside(self, point):
@@ -233,7 +237,8 @@ class Square(Polygon):
 	def get_length(self):
 		return self.__length
 
-
-
-
-
+	def get_rtree_bbox(self):
+		'''
+			Get a coordinate tuple in accordance to the rtree specifics
+		'''
+		return (self.__left, self.__bottom, self.__right, self.__top)

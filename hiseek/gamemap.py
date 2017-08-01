@@ -1,6 +1,8 @@
 import os
 import math
 
+import rtree
+
 import shapes
 import coord
 
@@ -14,8 +16,14 @@ class PolygonMap(object):
 		self.__boundary_polygon = None
 		self.__all_polygons = None # Includes all the obstacle polygons as well as boundary polygon
 		self.__map_name = 'id_' + str(map_id) + '.polygons'
+
 		self.__expansion_factor = 2.50
 		self.__expanded_polygons = []
+
+		self.__bbox_length = 300
+
+		self.__rtree_idx = rtree.index.Index()
+
 		print('Path:', self.__map_name)
 		assert(os.path.isfile(self.__map_name))
 		f = open(self.__map_name, 'r')
@@ -37,10 +45,10 @@ class PolygonMap(object):
 					first = False
 				else:
 					geometry_type = line.split(':')[0].strip()
-					print(geometry_type)
+					# print(geometry_type)
 					points_string = line.split(':')[1]
 					points_list = points_string.split(',')
-					print(points_list)
+					# print(points_list)
 					points_list = [int(point) for point in points_list]
 					points_tuple = tuple(points_list)
 					polygon = None
@@ -59,6 +67,7 @@ class PolygonMap(object):
 						# print(centre)
 						# print(length)
 						polygon = shapes.Square(centre, length)
+					self.__rtree_idx.insert(len(self.__polygons), polygon.get_rtree_bbox(), obj=polygon)
 					self.__polygons.append(polygon)
 
 
@@ -117,6 +126,14 @@ class PolygonMap(object):
 
 		rotation = current_rotation - visibility_angle
 		offset = (visibility_angle * 2.0)/num_rays
+
+		bbox = shapes.Square((current_position.get_x(), current_position.get_y()), self.__bbox_length)
+		hits = list(self.__rtree_idx.intersection(bbox.get_rtree_bbox(), objects=True))
+		polygon_hits = [item.object for item in hits]
+
+		# polygon_ids = [item.id for item in hits]
+		# print('Polygons considered:', polygon_ids)
+		nearby_polygons = polygon_hits + [bbox] + [self.__boundary_polygon]
 		while rotation < current_rotation + visibility_angle:
 			rotation_x = math.cos(coord.Coord.to_radians(-rotation))
 			rotation_y = math.sin(coord.Coord.to_radians(-rotation))
@@ -129,7 +146,7 @@ class PolygonMap(object):
 			ray = shapes.Line(current_position, r)
 			# print('ray:', ray)
 			closest_intersect = None
-			for polygon in self.__all_polygons:
+			for polygon in nearby_polygons:
 				# print('polygon:',polygon)
 				for i in range(polygon.get_num_lines()):
 					
