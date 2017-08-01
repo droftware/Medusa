@@ -9,21 +9,22 @@ class PolygonMap(object):
 		Represents a map in the form of a list of polygons.
 	'''
 
-
 	def __init__(self, map_id):
 		self.__polygons = []
 		self.__boundary_polygon = None
 		self.__all_polygons = None # Includes all the obstacle polygons as well as boundary polygon
 		self.__map_name = 'id_' + str(map_id) + '.polygons'
-		# print('Path:', self.__map_name)
+		self.__expansion_factor = 2.50
+		self.__expanded_polygons = []
+		print('Path:', self.__map_name)
 		assert(os.path.isfile(self.__map_name))
 		f = open(self.__map_name, 'r')
 		first = True
 		for line in f:
 			line.strip()
-			points_list = line.split(',')
 			if len(line) != 0:
 				if first:
+					points_list = line.split(',')
 					self.__width = int(points_list[0])
 					self.__height = int(points_list[1])
 
@@ -31,14 +32,35 @@ class PolygonMap(object):
 					self.__boundary_polygon = shapes.Polygon(points_tuple)
 
 					offset = 10
-					# points_tuple = (offset, offset, self.__width - offset, offset, self.__width - offset, self.__height - offset, offset, self.__height-offset)
-					# self.__imaginary_boundary = shapes.Polygon(points_tuple)
+					points_tuple = (offset, offset, self.__width - offset, offset, self.__width - offset, self.__height - offset, offset, self.__height-offset)
+					self.__imaginary_boundary = shapes.Polygon(points_tuple)
 					first = False
 				else:
+					geometry_type = line.split(':')[0].strip()
+					print(geometry_type)
+					points_string = line.split(':')[1]
+					points_list = points_string.split(',')
+					print(points_list)
 					points_list = [int(point) for point in points_list]
 					points_tuple = tuple(points_list)
-					polygon = shapes.Polygon(points_tuple)
+					polygon = None
+					if geometry_type == 'polygon':
+						polygon = shapes.Polygon(points_tuple)
+						# print(' ')
+						# print(polygon)
+						
+						# print('Expanded polygon:')
+						e_polygon = shapes.Polygon(points_tuple, self.__expansion_factor)
+						# print(e_polygon)
+						self.__expanded_polygons.append(e_polygon)
+					if geometry_type == 'square':
+						centre = (points_tuple[0], points_tuple[1])
+						length = points_tuple[2]
+						# print(centre)
+						# print(length)
+						polygon = shapes.Square(centre, length)
 					self.__polygons.append(polygon)
+
 
 		self.__num_polygons = len(self.__polygons)
 		self.__all_polygons = self.__polygons + [self.__boundary_polygon]
@@ -71,16 +93,23 @@ class PolygonMap(object):
 			return False
 		return True
 
-	def check_obstacle_collision(self, position):
+	def check_obstacle_collision(self, position, expanded=False):
 		'''
 			Returns True if point collides(is inside) any
 			obstacle polygon.
 		'''
+		if expanded:
+			polygons = self.__expanded_polygons
+		else:
+			polygons = self.__polygons
 		for i in range(self.__num_polygons):
-			polygon = self.__polygons[i]
+			polygon = polygons[i]
 			if polygon.is_point_inside(position):
 				return True
 		return False
+
+
+
 
 	def get_visibility_polygon(self, current_position, current_rotation, num_rays, visibility_angle):
 		# c = coord.Coord(self.x, self.y)
