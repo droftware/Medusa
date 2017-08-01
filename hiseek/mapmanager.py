@@ -19,11 +19,11 @@ class BasicMapManager(object):
 									the number of cells which can see that cell,
 									therfore lesser the obstruction
 	'''
-	def __init__(self, mapworld, fps, velocity, offset = 20, inference_map=True):
+	def __init__(self, mapworld, fps, velocity, offset = 20, inference_map=False):
 		self.__mapworld = mapworld
 		self.__offset = offset
-		self.__num_rows = math.ceil((mapworld.get_map_width() * 1.0)/offset)
-		self.__num_cols = math.ceil((mapworld.get_map_height() * 1.0)/offset)
+		self.__num_rows = int(math.ceil((mapworld.get_map_width() * 1.0)/offset))
+		self.__num_cols = int(math.ceil((mapworld.get_map_height() * 1.0)/offset))
 		self.__fps = fps
 		self.__dt = 1.0/fps
 		self.__velocity = velocity
@@ -60,7 +60,7 @@ class BasicMapManager(object):
 						print('Analyzing:',i,j)
 						coord_vis = coord.Coord(i * self.__offset, j * self.__offset)
 						if self.__visibility[i, j] != -1:
-							visibility_polygon = get_360_visibility_polygon(coord_vis)
+							visibility_polygon = self.get_360_visibility_polygon(coord_vis)
 							for a in range(self.__num_rows):
 								for b in range(self.__num_cols):
 									if self.__obstruction[a, b] != -1:
@@ -69,8 +69,9 @@ class BasicMapManager(object):
 											self.__visibility[i, j] += 1
 											self.__obstruction[a, b] += 1
 
-				np.savetxt('visibility.txt',self.__visibility)
-				np.savetxt('obstruction.txt', self.__obstruction)
+
+				np.savetxt(map_name.split('.')[0] + '.visibility',self.__visibility)
+				np.savetxt(map_name.split('.')[0] + '.obstruction', self.__obstruction)
 
 			self.__obstruction_penta[4] = np.amax(self.__obstruction)
 			self.__obstruction_penta[0] = np.amin(self.__obstruction)
