@@ -5,3 +5,4 @@ pyglet
 pomegranate
 ompl
 pyclipper
+rtree
