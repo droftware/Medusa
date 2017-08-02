@@ -7,8 +7,11 @@ import percept
 import action
 
 class BayesianController(object):
-
-	def __init__(self, map_manager):
+	'''
+		If sampling True, choose the action by sampling from the posterior direction distribution
+		if False, choose the action with the best posteriror probability.
+	'''
+	def __init__(self, map_manager, sampling=True):
 		self.__map_manager = map_manager
 		self.__position = None
 		self.__percept = None
@@ -19,28 +22,38 @@ class BayesianController(object):
 		# target dot products
 		self.__target_dots = [None] * action.Action.num_actions
 
-		# Random variables of the bayesian network
-		# '__r_' stands for random variable
-		self.__r_target = [None] * action.Action.num_actions
-		self.__r_danger = [None] * action.Action.num_actions
-		self.__r_obstruction = [None] * action.Action.num_actions
-		self.__r_visibility = [None] * action.Action.num_actions
-		self.__r_hider = [None] * action.Action.num_actions
-		self.__r_seeker = [None] * action.Action.num_actions
-		self.__r_blockage = [None] * action.Action.num_actions
+		# Random variables marked as true will be considered in the bayesian net
+		self.__considered = {'target':True, 'danger':True, 'obstruction':True, 'visibility':True, 
+							'hider':True, 'seeker':True, 'blockage':True}
+
+		self.__sampling = sampling
 
 		# Probability distributions
-		# '__d_' stands for discrete distributions
 
 		self.__d_direction = [pm.DiscreteDistribution({'T':0.5, 'F':0.5}) for i in range(action.Action.num_actions)]
-		self.__d_target = [None] * action.Action.num_actions
-		self.__d_danger = [pm.ConditionalProbabilityTable(
+		self.__s_direction = [pm.State(self.__d_direction[i], name='direction_'+str(i)) for i in range(action.Action.num_actions)] 
+		
+
+		# Random vars, probability distributions and state vars of considered variables
+		# in the bayesian net
+		if self.__considered['target']:
+			self.__r_target = [None] * action.Action.num_actions
+			self.__d_target = [None] * action.Action.num_actions
+			self.__s_target = None
+
+
+		if self.__considered['danger']:
+			self.__r_danger = [None] * action.Action.num_actions
+			self.__d_danger = [pm.ConditionalProbabilityTable(
 					[['T', '0', 0.99],
 					 ['T', '1', 0.01],
 					 ['F', '0', 0.5],
 					 ['F', '1', 0.5]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
+			self.__s_danger = [pm.State(self.__d_danger[i], name='danger_'+str(i)) for i in range(action.Action.num_actions)]
 
-		self.__d_visibility = [pm.ConditionalProbabilityTable(
+		if self.__considered['obstruction']:
+			self.__r_obstruction = [None] * action.Action.num_actions
+			self.__d_obstruction = [pm.ConditionalProbabilityTable(
 					[['T', '0', 0.001],
 					 ['T', '1', 0.003],
 					 ['T', '2', 0.006],
@@ -49,49 +62,53 @@ class BayesianController(object):
 					 ['F', '1', 1./4],
 					 ['F', '2', 1./4],
 					 ['F', '3', 1./4]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
+			self.__s_obstruction = [pm.State(self.__d_obstruction[i], name='obstruction_'+str(i)) for i in range(action.Action.num_actions)] 
+		
+		if self.__considered['visibility']:
+			self.__r_visibility = [None] * action.Action.num_actions
+			self.__d_visibility = [pm.ConditionalProbabilityTable(
+						[['T', '0', 0.001],
+						 ['T', '1', 0.003],
+						 ['T', '2', 0.006],
+						 ['T', '3', 0.99],
+						 ['F', '0', 1./4],
+						 ['F', '1', 1./4],
+						 ['F', '2', 1./4],
+						 ['F', '3', 1./4]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
+			self.__s_visibility = [pm.State(self.__d_visibility[i], name='visibility_'+str(i)) for i in range(action.Action.num_actions)] 
 
-		self.__d_obstruction = [pm.ConditionalProbabilityTable(
-					[['T', '0', 0.001],
-					 ['T', '1', 0.003],
-					 ['T', '2', 0.006],
-					 ['T', '3', 0.99],
-					 ['F', '0', 1./4],
-					 ['F', '1', 1./4],
-					 ['F', '2', 1./4],
-					 ['F', '3', 1./4]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
+		if self.__considered['hider']:
+			self.__r_hider = [None] * action.Action.num_actions
+			self.__d_hider = [pm.ConditionalProbabilityTable(
+						[['T', '0', 0.9],
+						 ['T', '1', 0.066],
+						 ['T', '2', 0.033],
+						 ['F', '0', 1./3],
+						 ['F', '1', 1./3],
+						 ['F', '2', 1./3]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
+			self.__s_hider = [pm.State(self.__d_hider[i], name='hider_'+str(i)) for i in range(action.Action.num_actions)] 
 
-		self.__d_hider = [pm.ConditionalProbabilityTable(
-					[['T', '0', 0.9],
-					 ['T', '1', 0.066],
-					 ['T', '2', 0.033],
-					 ['F', '0', 1./3],
-					 ['F', '1', 1./3],
-					 ['F', '2', 1./3]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
+		if self.__considered['seeker']:
+			self.__r_seeker = [None] * action.Action.num_actions
+			self.__d_seeker = [pm.ConditionalProbabilityTable(
+						[['T', '0', 0.9],
+						 ['T', '1', 0.077],
+						 ['T', '2', 0.022],
+						 ['F', '0', 1./3],
+						 ['F', '1', 1./3],
+						 ['F', '2', 1./3]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
+			self.__s_seeker = [pm.State(self.__d_seeker[i], name='seeker_'+str(i)) for i in range(action.Action.num_actions)] 
 
-		self.__d_seeker = [pm.ConditionalProbabilityTable(
-					[['T', '0', 0.9],
-					 ['T', '1', 0.077],
-					 ['T', '2', 0.022],
-					 ['F', '0', 1./3],
-					 ['F', '1', 1./3],
-					 ['F', '2', 1./3]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
-
-		self.__d_blockage = [pm.ConditionalProbabilityTable(
-					[['T', '0', 0.999999],
-					 ['T', '1', 0.000001],
-					 ['F', '0', 0.5],
-					 ['F', '1', 0.5]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
+		if self.__considered['blockage']:
+			self.__r_blockage = [None] * action.Action.num_actions
+			self.__d_blockage = [pm.ConditionalProbabilityTable(
+						[['T', '0', 0.999999],
+						 ['T', '1', 0.000001],
+						 ['F', '0', 0.5],
+						 ['F', '1', 0.5]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
+			self.__s_blockage = [pm.State(self.__d_blockage[i], name='blockage_'+str(i)) for i in range(action.Action.num_actions)] 
 
 		# State objects(for pomegranate) library which hold both the distribution as well as name
-		self.__s_direction = [pm.State(self.__d_direction[i], name='direction_'+str(i)) for i in range(action.Action.num_actions)] 
-		self.__s_target = None
-		self.__s_danger = [pm.State(self.__d_danger[i], name='danger_'+str(i)) for i in range(action.Action.num_actions)]
-		self.__s_visibility = [pm.State(self.__d_visibility[i], name='visibility_'+str(i)) for i in range(action.Action.num_actions)] 
-		self.__s_obstruction = [pm.State(self.__d_obstruction[i], name='obstruction_'+str(i)) for i in range(action.Action.num_actions)] 
-		self.__s_hider = [pm.State(self.__d_hider[i], name='hider_'+str(i)) for i in range(action.Action.num_actions)] 
-		self.__s_seeker = [pm.State(self.__d_seeker[i], name='seeker_'+str(i)) for i in range(action.Action.num_actions)] 
-		self.__s_blockage = [pm.State(self.__d_blockage[i], name='blockage_'+str(i)) for i in range(action.Action.num_actions)] 
-		
 		self.__model = None
 		self.__inferred_results = None
 		self.__direction_probs = [None] * action.Action.num_actions
@@ -142,31 +159,45 @@ class BayesianController(object):
 
 		
 	def __set_bayesian_network(self):
+
+		if self.__considered['target']:
+			self.__set_target_probability()
+
 		# Model
 		self.__model = pm.BayesianNetwork("Bayesian Controller")
 
-		# Adding the states
+		# Adding the direction states
 		for i in range(action.Action.num_actions):
 			self.__model.add_states(self.__s_direction[i])
 
 		for i in range(action.Action.num_actions):
-			self.__model.add_states(self.__s_target[i])
-			self.__model.add_states(self.__s_danger[i])
-			self.__model.add_states(self.__s_visibility[i])
-			self.__model.add_states(self.__s_obstruction[i])
-			self.__model.add_states(self.__s_hider[i])
-			self.__model.add_states(self.__s_seeker[i])
-			self.__model.add_states(self.__s_blockage[i])
+			if self.__considered['target']:
+				self.__model.add_states(self.__s_target[i])
+				self.__model.add_transition(self.__s_direction[i], self.__s_target[i])
 
-		# Creating the network by adding transitions
-		for i in range(action.Action.num_actions):
-			self.__model.add_transition(self.__s_direction[i], self.__s_target[i])
-			self.__model.add_transition(self.__s_direction[i], self.__s_danger[i])
-			self.__model.add_transition(self.__s_direction[i], self.__s_visibility[i])
-			self.__model.add_transition(self.__s_direction[i], self.__s_obstruction[i])
-			self.__model.add_transition(self.__s_direction[i], self.__s_hider[i])
-			self.__model.add_transition(self.__s_direction[i], self.__s_seeker[i])
-			self.__model.add_transition(self.__s_direction[i], self.__s_blockage[i])
+			if self.__considered['danger']:
+				self.__model.add_states(self.__s_danger[i])
+				self.__model.add_transition(self.__s_direction[i], self.__s_danger[i])
+
+			if self.__considered['obstruction']:
+				self.__model.add_states(self.__s_obstruction[i])
+				self.__model.add_transition(self.__s_direction[i], self.__s_obstruction[i])
+
+			if self.__considered['visibility']:			
+				self.__model.add_states(self.__s_visibility[i])
+				self.__model.add_transition(self.__s_direction[i], self.__s_visibility[i])
+
+			if self.__considered['hider']:
+				self.__model.add_states(self.__s_hider[i])
+				self.__model.add_transition(self.__s_direction[i], self.__s_hider[i])
+
+			if self.__considered['seeker']:
+				self.__model.add_states(self.__s_seeker[i])
+				self.__model.add_transition(self.__s_direction[i], self.__s_seeker[i])
+
+			if self.__considered['blockage']:
+				self.__model.add_states(self.__s_blockage[i])
+				self.__model.add_transition(self.__s_direction[i], self.__s_blockage[i])
 
 		self.__model.bake()
 
@@ -175,18 +206,24 @@ class BayesianController(object):
 
 	def print_random_var_levels(self):
 		# print('Levels of random variables')
-		print('Target:', self.__r_target)
-		print('Danger:', self.__r_danger)
-		print('Obstruction:', self.__r_obstruction)
-		print('Visibility:', self.__r_visibility)
-		print('Hider:', self.__r_hider)
-		print('Seeker:', self.__r_seeker)
-		print('Blockage:', self.__r_blockage)
+		if self.__considered['target']:
+			print('Target:', self.__r_target)
+		if self.__considered['danger']:
+			print('Danger:', self.__r_danger)
+		if self.__considered['obstruction']:
+			print('Obstruction:', self.__r_obstruction)
+		if self.__considered['visibility']:
+			print('Visibility:', self.__r_visibility)
+		if self.__considered['hider']:
+			print('Hider:', self.__r_hider)
+		if self.__considered['seeker']:
+			print('Seeker:', self.__r_seeker)
+		if self.__considered['blockage']:
+			print('Blockage:', self.__r_blockage)
 
 	def infer_action(self):
 		# if self.__target_vec != None:
 		# print('Inferring action')
-		self.__set_target_probability()
 		self.__set_bayesian_network()
 		self.__set_random_var_levels()
 		self.__perform_bayesian_inference()
@@ -195,21 +232,31 @@ class BayesianController(object):
 		self.__create_direction_distribution()
 		# print('Direction distribution created')
 		# print('Returning sampled action')
-		return self.sample_action()
+		if self.__sampling:
+			inferred_action = self.sample_action()
+		else:
+			inferred_action = self.best_action()
+		return inferred_action
 	
 	def __set_random_var_levels(self):
 		self.__set_action_map()
-		self.__set_target_levels()
+		if self.__considered['target']:
+			self.__set_target_levels()
+		if self.__considered['danger']:
+			self.__set_danger_levels()
+		if self.__considered['obstruction']:
+			self.__set_obstruction_levels()
+		if self.__considered['visibility']:
+			self.__set_visibility_levels()
+		if self.__considered['hider']:
+			self.__set_hider_levels()
+		if self.__considered['seeker']:
+			self.__set_seeker_levels()
+		if self.__considered['blockage']:
+			self.__set_blockage_levels()
 
-		self.__set_danger_levels()
-		self.__set_obstruction_levels()
-		self.__set_visibility_levels()
-		self.__set_hider_levels()
-		self.__set_seeker_levels()
-		self.__set_blockage_levels()
-
-		# print('All random vars set')
-		# self.print_random_var_levels()
+		print('All random vars set')
+		self.print_random_var_levels()
 
 
 	def __perform_bayesian_inference(self):
@@ -217,14 +264,20 @@ class BayesianController(object):
 
 		# Filling random variables
 		for i in range(action.Action.num_actions):
-			rvar_dict['target_'+str(i)] = str(self.__r_target[i])
-
-			rvar_dict['danger_' + str(i)] = str(self.__r_danger[i])
-			rvar_dict['visibility_' + str(i)] = str(self.__r_visibility[i])
-			rvar_dict['obstruction_' + str(i)] = str(self.__r_obstruction[i])
-			rvar_dict['hider_' + str(i)] = str(self.__r_hider[i])
-			rvar_dict['seeker_' + str(i)] = str(self.__r_seeker[i])
-			rvar_dict['blockage_' + str(i)] = str(self.__r_blockage[i])
+			if self.__considered['target']:
+				rvar_dict['target_'+str(i)] = str(self.__r_target[i])
+			if self.__considered['danger']:
+				rvar_dict['danger_' + str(i)] = str(self.__r_danger[i])
+			if self.__considered['visibility']:
+				rvar_dict['visibility_' + str(i)] = str(self.__r_visibility[i])
+			if self.__considered['obstruction']:
+				rvar_dict['obstruction_' + str(i)] = str(self.__r_obstruction[i])
+			if self.__considered['hider']:
+				rvar_dict['hider_' + str(i)] = str(self.__r_hider[i])
+			if self.__considered['seeker']:
+				rvar_dict['seeker_' + str(i)] = str(self.__r_seeker[i])
+			if self.__considered['blockage']:
+				rvar_dict['blockage_' + str(i)] = str(self.__r_blockage[i])
 
 		# print(rvar_dict)
 		self.__inferred_results = self.__model.predict_proba(rvar_dict)
@@ -252,7 +305,9 @@ class BayesianController(object):
 	def sample_action(self):
 		sampled_action = self.__direction_dist.sample()
 		return action.Action.string2action[sampled_action]
-		# return self.__max_prob_dir
+	
+	def best_action(self):
+		return self.__max_prob_dir
 
 	def __set_target_levels(self):
 
