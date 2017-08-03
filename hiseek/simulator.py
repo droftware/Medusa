@@ -36,6 +36,7 @@ class Simulator(object):
 		self.__stats = statistic.Statistic(num_hiders, num_seekers)
 		self.__max_steps = max_steps
 		self.__map = gamemap.PolygonMap(map_id)
+		self.__replay_file = open('hs.replay', 'w')
 
 		hider_map_copy = copy.deepcopy(self.__map)
 		seeker_map_copy = copy.deepcopy(self.__map)
@@ -52,7 +53,7 @@ class Simulator(object):
 		# Graphics setup
 		self.__window_width = self.__map.get_map_width()
 		self.__window_height = self.__map.get_map_height()
-		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, fps, velocity, self.__map, fixed_time_quanta)
+		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__replay_file, fps, velocity, self.__map, fixed_time_quanta)
 		
 		# Mapping AI agents and Graphics players for interchange of percepts and 
 		# actions
@@ -164,7 +165,7 @@ class Simulator(object):
 				rank, ai_idx = i, j
 				graphics_idx = self.__seekers_agent2player[(rank, ai_idx)]
 				position = self.__seeker_team.get_position(rank, ai_idx)
-				print('Seeker idx:', graphics_idx, 'position:', position)
+				# print('Seeker idx:', graphics_idx, 'position:', position)
 				self.__window.set_seeker_position(graphics_idx, position)
 
 	def __check_hider_caught(self):
@@ -218,6 +219,7 @@ class Simulator(object):
 			print('All hiders caught')
 			# print('Total time taken:', self.__total_time)
 			# print('Total steps taken:', self.__total_time * (self.__fps))
+			self.__replay_file.close()
 			pyglet.app.exit()
 
 	def simulate(self):

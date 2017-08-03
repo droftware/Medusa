@@ -196,7 +196,7 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 
 class Graphics(pyglet.window.Window):
 
-	def __init__(self, window_width, window_height, num_hiders, num_seekers, fps, velocity, polygon_map, fixed_time_quanta):
+	def __init__(self, window_width, window_height, num_hiders, num_seekers, replay_file, fps, velocity, polygon_map, fixed_time_quanta):
 		super(Graphics, self).__init__(window_width, window_height)
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
@@ -209,6 +209,7 @@ class Graphics(pyglet.window.Window):
 		self.__num_hiders = num_hiders
 		self.__num_seekers = num_seekers
 		self.__fps_display = pyglet.clock.ClockDisplay()
+		self.__replay_file = replay_file
 		assert(isinstance(polygon_map, gamemap.PolygonMap))
 		self.__polygon_map = polygon_map
 		self.__polygons = [] # By polygons we refer to the background obstacles only
@@ -232,6 +233,7 @@ class Graphics(pyglet.window.Window):
 		self.push_handlers(self.__seekers[0])
 
 	def __add_batch_polygon(self, polygon):
+		assert(polygon.get_num_vertices() == 4 or polygon.get_num_vertices() == 3)
 		if polygon.get_num_vertices() == 4:
 			self.__static_batch.add_indexed(4, pyglet.gl.GL_LINES, self.__background, 
 			[0,1,1,2,2,3,3,0],
@@ -363,6 +365,7 @@ class Graphics(pyglet.window.Window):
 
 	def update(self, dt):
 		occupied_positions = []
+		hiders_pos_string = ''
 		for i in range(self.__num_hiders):
 			if self.__hider_active[i]:
 				self.__hiders[i].update(dt)
@@ -374,6 +377,21 @@ class Graphics(pyglet.window.Window):
 					 self.__hiders[i].revert_configuration()
 				else:
 					occupied_positions.append(current_position)
+				x = self.__hiders[i].get_current_coordinate().get_x()
+				y = self.__hiders[i].get_current_coordinate().get_y()
+				if i != 0:
+					hiders_pos_string += '; '
+				hiders_pos_string += str(x) + ':' + str(y)
+				# print(self.__hiders[i].get_visibility_polygon().get_vertices_string())
+				# print('')
+				hiders_pos_string += '*' + self.__hiders[i].get_visibility_polygon().get_vertices_string()
+			else:
+				if i != 0:
+					hiders_pos_string += '; '
+				hiders_pos_string += 'X:X*X'
+		# print(hiders_pos_string)
+
+		seekers_pos_string = ''
 		for i in range(self.__num_seekers):
 			if self.__seeker_active[i]:
 				self.__seekers[i].update(dt)
@@ -384,4 +402,21 @@ class Graphics(pyglet.window.Window):
 					 self.__seekers[i].revert_configuration()
 				else:
 					occupied_positions.append(current_position)
+				x = self.__seekers[i].get_current_coordinate().get_x()
+				y = self.__seekers[i].get_current_coordinate().get_y()
+				if i != 0:
+					seekers_pos_string += '; '
+				seekers_pos_string += str(x) + ':' + str(y)
+				seekers_pos_string += '*' + self.__seekers[i].get_visibility_polygon().get_vertices_string()
+
+			else:
+				if i != 0:
+					seekers_pos_string += '; '
+				seekers_pos_string += 'X:X*X'
+		# print(seekers_pos_string)
+		self.__replay_file.write(hiders_pos_string+'\n')
+		self.__replay_file.write(seekers_pos_string+'\n')
+
+
+
 		self.__update_percepts()

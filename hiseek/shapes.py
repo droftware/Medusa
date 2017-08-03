@@ -178,6 +178,20 @@ class Polygon(object):
 	def get_vertices(self):
 		return self.__vertices
 
+	def get_vertices_string(self):
+		vertices_string = ''
+		first = True
+		for vertex in self.__vertices:
+			x = vertex.get_x()
+			y = vertex.get_y()
+			if not first:
+				vertices_string += ', '
+			else:
+				first = False
+			vertices_string += str(x)+':'+str(y)
+		return vertices_string
+
+
 	def get_line(self, i):
 		assert(i < self.__num_lines)
 		if not self.__line_analysis:
