@@ -101,7 +101,7 @@ class BayesianController(object):
 		if self._considered['hider']:
 			if agent_type == agent.AgentType.Hider:
 				target_cpt = cpt_a
-			else if agent_type == agent.AgentType.Seeker:
+			elif agent_type == agent.AgentType.Seeker:
 				target_cpt = cpt_b
 			self.__r_hider = [None] * action.Action.num_actions
 			self.__d_hider = [pm.ConditionalProbabilityTable(
@@ -111,7 +111,7 @@ class BayesianController(object):
 		if self._considered['seeker']:
 			if agent_type == agent.AgentType.Hider:
 				target_cpt = cpt_b
-			else if agent_type == agent.AgentType.Seeker:
+			elif agent_type == agent.AgentType.Seeker:
 				target_cpt = cpt_a
 			self.__r_seeker = [None] * action.Action.num_actions
 			self.__d_seeker = [pm.ConditionalProbabilityTable(
