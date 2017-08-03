@@ -83,14 +83,6 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		img.anchor_x = img.width // 2
 		img.anchor_y = img.height // 2
 
-	@staticmethod
-	def wrap(value, length):
-		if value > length:
-			value -= length
-		if value < 0:
-			value += length
-		return value	
-
 	def revert_configuration(self):
 		self.x = self.__prev_x
 		self.y = self.__prev_y
