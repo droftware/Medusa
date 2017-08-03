@@ -193,14 +193,14 @@ class RandomHiderTeam(HiderTeam):
 
 		# recruit the commander of the random team
 		agent_id = 'RH' + str(0)
-		commander_member = agent.RandomHiderCommanderAgent(agent_id, self, self._map_managers[0])
+		commander_member = agent.RandomCommanderAgent(agent.AgentType.Hider, agent_id, self, self._map_managers[0])
 		self._members[1].append(commander_member)
 		self._active[1].append(True)
 
 		# recruit agents for the team
 		for i in range(self._num_agents - 1):
 			agent_id = 'RH' + str(i)
-			member = agent.RandomHiderAgent(agent_id, self, self._map_managers[0])
+			member = agent.RandomAgent(agent.AgentType.Hider, agent_id, self, self._map_managers[0])
 			self._members[0].append(member)
 			self._active[0].append(True)
 
@@ -229,14 +229,14 @@ class RandomSeekerTeam(SeekerTeam):
 
 		# recruit the commander of the random team
 		agent_id = 'RS' + str(0)
-		commander_member = agent.RandomSeekerCommanderAgent(agent_id, self, self._map_managers[0])
+		commander_member = agent.RandomCommanderAgent(agent.AgentType.Seeker, agent_id, self, self._map_managers[0])
 		self._members[1].append(commander_member)
 		self._active[1].append(True)
 
 		# recruit agents for the team
 		for i in range(self._num_agents - 1):
 			agent_id = 'RS' + str(i)
-			member = agent.RandomSeekerAgent(agent_id, self, self._map_managers[0])
+			member = agent.RandomAgent(agent.AgentType.Seeker, agent_id, self, self._map_managers[0])
 			# member = agent.PlannerSeekerAgent(agent_id, self, self._map_managers[0])
 			self._members[0].append(member)
 			self._active[0].append(True)
@@ -266,14 +266,14 @@ class BayesianHiderTeam(HiderTeam):
 
 		# recruit the commander of the random team
 		agent_id = 'RH' + str(0)
-		commander_member = agent.BayesianHiderCommanderAgent(agent_id, self, self._map_managers[0])
+		commander_member = agent.BayesianCommanderAgent(agent.AgentType.Hider, agent_id, self, self._map_managers[0])
 		self._members[1].append(commander_member)
 		self._active[1].append(True)
 
 		# recruit agents for the team
 		for i in range(self._num_agents - 1):
 			agent_id = 'RH' + str(i)
-			member = agent.BayesianHiderAgent(agent_id, self, self._map_managers[0])
+			member = agent.BayesianAgent(agent.AgentType.Hider, self, self._map_managers[0])
 			self._members[0].append(member)
 			self._active[0].append(True)
 
