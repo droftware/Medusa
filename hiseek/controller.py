@@ -81,26 +81,41 @@ class BayesianController(object):
 						 ['F', '3', 1./4]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
 			self.__s_visibility = [pm.State(self.__d_visibility[i], name='visibility_'+str(i)) for i in range(action.Action.num_actions)] 
 
+		cpt_a = [['T', '0', 0.9],
+					 ['T', '1', 0.066],
+					 ['T', '2', 0.033],
+					 ['F', '0', 1./3],
+					 ['F', '1', 1./3],
+					 ['F', '2', 1./3]]
+
+		cpt_b = [['T', '0', 0.9],
+					 ['T', '1', 0.077],
+					 ['T', '2', 0.022],
+					 ['F', '0', 1./3],
+					 ['F', '1', 1./3],
+					 ['F', '2', 1./3]]
+
+		target_cpt = None
+
+
 		if self._considered['hider']:
+			if agent_type == agent.AgentType.Hider:
+				target_cpt = cpt_a
+			else if agent_type == agent.AgentType.Seeker:
+				target_cpt = cpt_b
 			self.__r_hider = [None] * action.Action.num_actions
 			self.__d_hider = [pm.ConditionalProbabilityTable(
-						[['T', '0', 0.9],
-						 ['T', '1', 0.066],
-						 ['T', '2', 0.033],
-						 ['F', '0', 1./3],
-						 ['F', '1', 1./3],
-						 ['F', '2', 1./3]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
+						target_cpt, [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
 			self.__s_hider = [pm.State(self.__d_hider[i], name='hider_'+str(i)) for i in range(action.Action.num_actions)] 
 
 		if self._considered['seeker']:
+			if agent_type == agent.AgentType.Hider:
+				target_cpt = cpt_b
+			else if agent_type == agent.AgentType.Seeker:
+				target_cpt = cpt_a
 			self.__r_seeker = [None] * action.Action.num_actions
 			self.__d_seeker = [pm.ConditionalProbabilityTable(
-						[['T', '0', 0.9],
-						 ['T', '1', 0.077],
-						 ['T', '2', 0.022],
-						 ['F', '0', 1./3],
-						 ['F', '1', 1./3],
-						 ['F', '2', 1./3]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
+						target_cpt, [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
 			self.__s_seeker = [pm.State(self.__d_seeker[i], name='seeker_'+str(i)) for i in range(action.Action.num_actions)] 
 
 		if self._considered['blockage']:
@@ -420,7 +435,6 @@ class BayesianController(object):
 				self.__r_seeker[i] = '2'
 			elif min_dist >= 5 and min_dist < 7:
 				self.__r_seeker[i] = '1'
-
 
 class BayesianCuriousController(BayesianController):
 
