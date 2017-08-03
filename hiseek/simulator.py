@@ -9,6 +9,7 @@ import team
 import percept
 import action
 import graphics
+import agent
 
 class Simulator(object):
 	"""
@@ -41,12 +42,12 @@ class Simulator(object):
 
 		# AI setup
 		if mode_hiders == 'random':
-			self.__hider_team = team.RandomHiderTeam(num_hiders, hider_map_copy, fps, velocity, fixed_time_quanta)
+			self.__hider_team = team.RandomTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, fps, velocity, fixed_time_quanta)
 		if mode_hiders == 'bayesian':
-			self.__hider_team = team.BayesianHiderTeam(num_hiders, hider_map_copy, fps, velocity, fixed_time_quanta)
+			self.__hider_team = team.BayesianTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, fps, velocity, fixed_time_quanta)
 
 		if mode_seekers == 'random':
-			self.__seeker_team = team.RandomSeekerTeam(num_seekers, seeker_map_copy, fps, velocity, fixed_time_quanta)
+			self.__seeker_team = team.RandomTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, fps, velocity, fixed_time_quanta)
 
 		# Graphics setup
 		self.__window_width = self.__map.get_map_width()

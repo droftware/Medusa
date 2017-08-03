@@ -140,7 +140,7 @@ class BayesianAgent(Agent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager):
 		super(BayesianAgent, self).__init__(agent_type, agent_id, team, map_manager)
-		self.__controller = controller.BayesianCuriousController(map_manager, agent_type)
+		self.__controller = controller.BayesianMobileController(map_manager, agent_type)
 		self.__in_transit = False
 		self.__next_state = None
 		self.__planner = planner.BasicPlanner(self._map_manager)
