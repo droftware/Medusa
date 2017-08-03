@@ -9,6 +9,7 @@ import action
 import controller
 import planner
 import vector
+import skill
 
 class AgentType(object):
 	Hider = 0
@@ -129,43 +130,10 @@ class RandomCommanderAgent(RandomAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager):
 		super(RandomCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager)
-		self.__opening_positions = {}
-		self.__openings_created = False
+		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
 
 	def get_opening_position(self, rank, idx):
-		assert(rank < self._team.get_ranks())
-		assert(idx < self._team.get_num_rankers(rank))
-		if not self.__openings_created:
-			self.__set_opening()
-			self.__openings_created = True
-		return self.__opening_positions[(rank, idx)]
-
-	def __check_within_obstacle(self, position):
-		gamemap = self._map_manager.get_map()
-		num_polygons = gamemap.get_num_polygons()
-		for i in range(num_polygons):
-			polygon = gamemap.get_polygon(i)
-			if polygon.is_point_inside(position):
-				return True
-		return False
-
-	def __check_already_occupied(self, position):
-		for value in self.__opening_positions.values():
-			if position == value:
-				return True
-		return False
-
-	def __set_opening(self):
-		gamemap = self._map_manager.get_map()
-		max_rank = self._team.get_ranks()
-		for i in reversed(range(max_rank)):
-			for j in range(self._team.get_num_rankers(i)):
-				found_position = False
-				while not found_position:
-					position = coord.Coord(random.randint(0, gamemap.get_map_width()), random.randint(0, gamemap.get_map_height()))
-					if not self.__check_within_obstacle(position) and not self.__check_already_occupied(position):
-						self.__opening_positions[(i, j)] = position
-						found_position = True
+		return self.__skill.get_opening_position(rank, idx)
 
 
 class BayesianAgent(Agent):
@@ -282,43 +250,10 @@ class BayesianCommanderAgent(BayesianAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager):
 		super(BayesianCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager)
-		self.__opening_positions = {}
-		self.__openings_created = False
+		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
 
 	def get_opening_position(self, rank, idx):
-		assert(rank < self._team.get_ranks())
-		assert(idx < self._team.get_num_rankers(rank))
-		if not self.__openings_created:
-			self.__set_opening()
-			self.__openings_created = True
-		return self.__opening_positions[(rank, idx)]
-
-	def __check_within_obstacle(self, position):
-		gamemap = self._map_manager.get_map()
-		num_polygons = gamemap.get_num_polygons()
-		for i in range(num_polygons):
-			polygon = gamemap.get_polygon(i)
-			if polygon.is_point_inside(position):
-				return True
-		return False
-
-	def __check_already_occupied(self, position):
-		for value in self.__opening_positions.values():
-			if position == value:
-				return True
-		return False
-
-	def __set_opening(self):
-		gamemap = self._map_manager.get_map()
-		max_rank = self._team.get_ranks()
-		for i in reversed(range(max_rank)):
-			for j in range(self._team.get_num_rankers(i)):
-				found_position = False
-				while not found_position:
-					position = coord.Coord(random.randint(0, gamemap.get_map_width()), random.randint(0, gamemap.get_map_height()))
-					if not self.__check_within_obstacle(position) and not self.__check_already_occupied(position):
-						self.__opening_positions[(i, j)] = position
-						found_position = True
+		return self.__skill.get_opening_position(rank, idx)
 
 
 class PlannerAgent(Agent):
@@ -352,7 +287,6 @@ class PlannerAgent(Agent):
 			self.__select_direction()
 		else:
 			self.__select_direction()
-
 
 	def clear_temporary_state(self):
 		pass
