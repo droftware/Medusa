@@ -10,6 +10,10 @@ import controller
 import planner
 import vector
 
+class AgentType:
+	Hider = 0
+	Seeker = 1
+
 class Agent(object):
 	'''
 		An abstract base class describing the general agent functionality.
@@ -247,7 +251,7 @@ class BayesianHiderAgent(HiderAgent):
 
 	def __init__(self, agent_id, team, map_manager):
 		super(BayesianHiderAgent, self).__init__(agent_id, team, map_manager)
-		self.__controller = controller.BayesianController(map_manager)
+		self.__controller = controller.BayesianCuriousController(map_manager, AgentType.Hider)
 		self.__in_transit = False
 		self.__next_state = None
 		self.__planner = planner.BasicPlanner(self._map_manager)
@@ -336,7 +340,10 @@ class BayesianHiderAgent(HiderAgent):
 		# print('Direction vec:', str(direction_vec))
 
 		self.__controller.set_current_state(self._position, self._percept, direction_vec)
-		self._action = self.__controller.infer_action()
+		if self._stop_counter >= 3:
+			self._action = random.choice(action.Action.all_actions)
+		else:
+			self._action = self.__controller.infer_action()
 
 		# if direction_vec == None:
 		# 	self._action = random.choice(action.Action.all_actions)

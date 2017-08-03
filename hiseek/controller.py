@@ -2,6 +2,7 @@ import random
 
 import pomegranate as pm
 
+import agent
 import coord
 import percept
 import action
@@ -11,7 +12,7 @@ class BayesianController(object):
 		If sampling True, choose the action by sampling from the posterior direction distribution
 		if False, choose the action with the best posteriror probability.
 	'''
-	def __init__(self, map_manager, sampling=True):
+	def __init__(self, map_manager, agent_type, sampling=False):
 		self.__map_manager = map_manager
 		self.__position = None
 		self.__percept = None
@@ -23,8 +24,11 @@ class BayesianController(object):
 		self.__target_dots = [None] * action.Action.num_actions
 
 		# Random variables marked as true will be considered in the bayesian net
-		self.__considered = {'target':True, 'danger':True, 'obstruction':True, 'visibility':True, 
+		self._considered = {'target':True, 'danger':True, 'obstruction':True, 'visibility':True, 
 							'hider':True, 'seeker':True, 'blockage':True}
+
+		if agent_type == agent.AgentType.Seeker:
+			self._considered['danger'] = False
 
 		self.__sampling = sampling
 
@@ -36,13 +40,13 @@ class BayesianController(object):
 
 		# Random vars, probability distributions and state vars of considered variables
 		# in the bayesian net
-		if self.__considered['target']:
+		if self._considered['target']:
 			self.__r_target = [None] * action.Action.num_actions
 			self.__d_target = [None] * action.Action.num_actions
 			self.__s_target = None
 
 
-		if self.__considered['danger']:
+		if self._considered['danger']:
 			self.__r_danger = [None] * action.Action.num_actions
 			self.__d_danger = [pm.ConditionalProbabilityTable(
 					[['T', '0', 0.99],
@@ -51,7 +55,7 @@ class BayesianController(object):
 					 ['F', '1', 0.5]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
 			self.__s_danger = [pm.State(self.__d_danger[i], name='danger_'+str(i)) for i in range(action.Action.num_actions)]
 
-		if self.__considered['obstruction']:
+		if self._considered['obstruction']:
 			self.__r_obstruction = [None] * action.Action.num_actions
 			self.__d_obstruction = [pm.ConditionalProbabilityTable(
 					[['T', '0', 0.001],
@@ -64,7 +68,7 @@ class BayesianController(object):
 					 ['F', '3', 1./4]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
 			self.__s_obstruction = [pm.State(self.__d_obstruction[i], name='obstruction_'+str(i)) for i in range(action.Action.num_actions)] 
 		
-		if self.__considered['visibility']:
+		if self._considered['visibility']:
 			self.__r_visibility = [None] * action.Action.num_actions
 			self.__d_visibility = [pm.ConditionalProbabilityTable(
 						[['T', '0', 0.001],
@@ -77,7 +81,7 @@ class BayesianController(object):
 						 ['F', '3', 1./4]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
 			self.__s_visibility = [pm.State(self.__d_visibility[i], name='visibility_'+str(i)) for i in range(action.Action.num_actions)] 
 
-		if self.__considered['hider']:
+		if self._considered['hider']:
 			self.__r_hider = [None] * action.Action.num_actions
 			self.__d_hider = [pm.ConditionalProbabilityTable(
 						[['T', '0', 0.9],
@@ -88,7 +92,7 @@ class BayesianController(object):
 						 ['F', '2', 1./3]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
 			self.__s_hider = [pm.State(self.__d_hider[i], name='hider_'+str(i)) for i in range(action.Action.num_actions)] 
 
-		if self.__considered['seeker']:
+		if self._considered['seeker']:
 			self.__r_seeker = [None] * action.Action.num_actions
 			self.__d_seeker = [pm.ConditionalProbabilityTable(
 						[['T', '0', 0.9],
@@ -99,7 +103,7 @@ class BayesianController(object):
 						 ['F', '2', 1./3]], [self.__d_direction[i]]) for i in range(action.Action.num_actions)]
 			self.__s_seeker = [pm.State(self.__d_seeker[i], name='seeker_'+str(i)) for i in range(action.Action.num_actions)] 
 
-		if self.__considered['blockage']:
+		if self._considered['blockage']:
 			self.__r_blockage = [None] * action.Action.num_actions
 			self.__d_blockage = [pm.ConditionalProbabilityTable(
 						[['T', '0', 0.999999],
@@ -160,7 +164,7 @@ class BayesianController(object):
 		
 	def __set_bayesian_network(self):
 
-		if self.__considered['target']:
+		if self._considered['target']:
 			self.__set_target_probability()
 
 		# Model
@@ -171,31 +175,31 @@ class BayesianController(object):
 			self.__model.add_states(self.__s_direction[i])
 
 		for i in range(action.Action.num_actions):
-			if self.__considered['target']:
+			if self._considered['target']:
 				self.__model.add_states(self.__s_target[i])
 				self.__model.add_transition(self.__s_direction[i], self.__s_target[i])
 
-			if self.__considered['danger']:
+			if self._considered['danger']:
 				self.__model.add_states(self.__s_danger[i])
 				self.__model.add_transition(self.__s_direction[i], self.__s_danger[i])
 
-			if self.__considered['obstruction']:
+			if self._considered['obstruction']:
 				self.__model.add_states(self.__s_obstruction[i])
 				self.__model.add_transition(self.__s_direction[i], self.__s_obstruction[i])
 
-			if self.__considered['visibility']:			
+			if self._considered['visibility']:			
 				self.__model.add_states(self.__s_visibility[i])
 				self.__model.add_transition(self.__s_direction[i], self.__s_visibility[i])
 
-			if self.__considered['hider']:
+			if self._considered['hider']:
 				self.__model.add_states(self.__s_hider[i])
 				self.__model.add_transition(self.__s_direction[i], self.__s_hider[i])
 
-			if self.__considered['seeker']:
+			if self._considered['seeker']:
 				self.__model.add_states(self.__s_seeker[i])
 				self.__model.add_transition(self.__s_direction[i], self.__s_seeker[i])
 
-			if self.__considered['blockage']:
+			if self._considered['blockage']:
 				self.__model.add_states(self.__s_blockage[i])
 				self.__model.add_transition(self.__s_direction[i], self.__s_blockage[i])
 
@@ -206,19 +210,19 @@ class BayesianController(object):
 
 	def print_random_var_levels(self):
 		# print('Levels of random variables')
-		if self.__considered['target']:
+		if self._considered['target']:
 			print('Target:', self.__r_target)
-		if self.__considered['danger']:
+		if self._considered['danger']:
 			print('Danger:', self.__r_danger)
-		if self.__considered['obstruction']:
+		if self._considered['obstruction']:
 			print('Obstruction:', self.__r_obstruction)
-		if self.__considered['visibility']:
+		if self._considered['visibility']:
 			print('Visibility:', self.__r_visibility)
-		if self.__considered['hider']:
+		if self._considered['hider']:
 			print('Hider:', self.__r_hider)
-		if self.__considered['seeker']:
+		if self._considered['seeker']:
 			print('Seeker:', self.__r_seeker)
-		if self.__considered['blockage']:
+		if self._considered['blockage']:
 			print('Blockage:', self.__r_blockage)
 
 	def infer_action(self):
@@ -240,23 +244,23 @@ class BayesianController(object):
 	
 	def __set_random_var_levels(self):
 		self.__set_action_map()
-		if self.__considered['target']:
+		if self._considered['target']:
 			self.__set_target_levels()
-		if self.__considered['danger']:
+		if self._considered['danger']:
 			self.__set_danger_levels()
-		if self.__considered['obstruction']:
+		if self._considered['obstruction']:
 			self.__set_obstruction_levels()
-		if self.__considered['visibility']:
+		if self._considered['visibility']:
 			self.__set_visibility_levels()
-		if self.__considered['hider']:
+		if self._considered['hider']:
 			self.__set_hider_levels()
-		if self.__considered['seeker']:
+		if self._considered['seeker']:
 			self.__set_seeker_levels()
-		if self.__considered['blockage']:
+		if self._considered['blockage']:
 			self.__set_blockage_levels()
 
-		print('All random vars set')
-		self.print_random_var_levels()
+		# print('All random vars set')
+		# self.print_random_var_levels()
 
 
 	def __perform_bayesian_inference(self):
@@ -264,19 +268,19 @@ class BayesianController(object):
 
 		# Filling random variables
 		for i in range(action.Action.num_actions):
-			if self.__considered['target']:
+			if self._considered['target']:
 				rvar_dict['target_'+str(i)] = str(self.__r_target[i])
-			if self.__considered['danger']:
+			if self._considered['danger']:
 				rvar_dict['danger_' + str(i)] = str(self.__r_danger[i])
-			if self.__considered['visibility']:
+			if self._considered['visibility']:
 				rvar_dict['visibility_' + str(i)] = str(self.__r_visibility[i])
-			if self.__considered['obstruction']:
+			if self._considered['obstruction']:
 				rvar_dict['obstruction_' + str(i)] = str(self.__r_obstruction[i])
-			if self.__considered['hider']:
+			if self._considered['hider']:
 				rvar_dict['hider_' + str(i)] = str(self.__r_hider[i])
-			if self.__considered['seeker']:
+			if self._considered['seeker']:
 				rvar_dict['seeker_' + str(i)] = str(self.__r_seeker[i])
-			if self.__considered['blockage']:
+			if self._considered['blockage']:
 				rvar_dict['blockage_' + str(i)] = str(self.__r_blockage[i])
 
 		# print(rvar_dict)
@@ -331,7 +335,6 @@ class BayesianController(object):
 			position = self.__action_map[i]
 			level = self.__map_manager.get_visibility_level(position)
 			self.__r_visibility[i] = str(level)
-		
 
 	def __set_obstruction_levels(self):
 		'''
@@ -417,3 +420,26 @@ class BayesianController(object):
 				self.__r_seeker[i] = '2'
 			elif min_dist >= 5 and min_dist < 7:
 				self.__r_seeker[i] = '1'
+
+
+class BayesianCuriousController(BayesianController):
+
+	def __init__(self, map_manager, agent_type, sampling=True):
+		super(BayesianCuriousController, self).__init__(map_manager, sampling)
+		self._considered['target'] = False
+		self._considered['obstruction'] = False
+
+class BayesianScaredController(BayesianController):
+
+	def __init__(self, map_manager, agent_type, sampling=True):
+		super(BayesianScaredController, self).__init__(map_manager, agent_type, sampling)
+		self._considered['target'] = False
+		self._considered['visibility'] = False
+
+class BayesianMobileController(BayesianController):
+
+	def __init__(self, map_manager, agent_type, sampling=False):
+		super(BayesianMobileController, self).__init__(map_manager, agent_type, sampling)
+		self._considered['obstruction'] = False
+		self._considered['visibility'] = False
+
