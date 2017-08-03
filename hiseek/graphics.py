@@ -85,11 +85,11 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 
 	@staticmethod
 	def wrap(value, length):
-	    if value > length:
-	        value -= length
-	    if value < 0:
-	        value += length
-	    return value	
+		if value > length:
+			value -= length
+		if value < 0:
+			value += length
+		return value	
 
 	def revert_configuration(self):
 		self.x = self.__prev_x
@@ -208,6 +208,7 @@ class Graphics(pyglet.window.Window):
 		self.__seeker_image = pyglet.resource.image('seeker.png')
 		self.__num_hiders = num_hiders
 		self.__num_seekers = num_seekers
+		self.__fps_display = pyglet.clock.ClockDisplay()
 		assert(isinstance(polygon_map, gamemap.PolygonMap))
 		self.__polygon_map = polygon_map
 		self.__polygons = [] # By polygons we refer to the background obstacles only
@@ -297,8 +298,10 @@ class Graphics(pyglet.window.Window):
 
 	def on_draw(self):
 		self.clear()
-		self.__static_batch.draw()
 		self.__dynamic_batch.draw()
+		self.__static_batch.draw()
+		self.__fps_display.draw()
+
 
 	def __get_visible_players(self, visibility_polygon, ignore_hiders, ignore_seekers):
 		hider_coords = []
