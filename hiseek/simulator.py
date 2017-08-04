@@ -36,7 +36,10 @@ class Simulator(object):
 		self.__stats = statistic.Statistic(num_hiders, num_seekers)
 		self.__max_steps = max_steps
 		self.__map = gamemap.PolygonMap(map_id)
-		self.__replay_file = open('hs.replay', 'w')
+
+		self.__replay_file = open('hs1.replay', 'w')
+		self.__replay_file.write('id_' + str(map_id) + '\n')
+
 
 		hider_map_copy = copy.deepcopy(self.__map)
 		seeker_map_copy = copy.deepcopy(self.__map)
@@ -107,7 +110,7 @@ class Simulator(object):
 		for i in range(self.__num_hiders):
 			rank, idx = self.__hiders_player2agent[i]
 			if not self.__caught[rank][idx]:
-				current_percept = self.__window.get_hider_percept(i)
+				current_percept = self.__window.get_player_percept(agent.AgentType.Hider, i)
 				# print(current_percept)
 				converted_percept = self.__graphics2team_percept(current_percept)
 				self.__hider_team.set_percept(rank, idx, converted_percept)
@@ -115,7 +118,7 @@ class Simulator(object):
 	def __transfer_seeker_percepts(self):
 		for i in range(self.__num_seekers):
 			rank, idx = self.__seekers_player2agent[i]
-			current_percept = self.__window.get_seeker_percept(i)
+			current_percept = self.__window.get_player_percept(agent.AgentType.Seeker, i)
 			# print(current_percept)
 			converted_percept = self.__graphics2team_percept(current_percept)
 			self.__seeker_team.set_percept(rank, idx, converted_percept)
@@ -124,13 +127,13 @@ class Simulator(object):
 		for i in range(self.__num_hiders):
 			rank, idx = self.__hiders_player2agent[i]
 			if not self.__caught[rank][idx]:
-				current_position = self.__window.get_hider_position(i)
+				current_position = self.__window.get_player_position(agent.AgentType.Hider, i)
 				self.__hider_team.set_position(rank, idx, current_position)
 
 	def __transfer_seeker_positions(self):
 		for i in range(self.__num_seekers):
 			rank, idx = self.__seekers_player2agent[i]
-			current_position = self.__window.get_seeker_position(i)
+			current_position = self.__window.get_player_position(agent.AgentType.Seeker, i)
 			self.__seeker_team.set_position(rank, idx, current_position)
 
 	def __transfer_hider_actions(self):
@@ -140,7 +143,7 @@ class Simulator(object):
 				if not self.__caught[rank][ai_idx]:
 					graphics_idx = self.__hiders_agent2player[(rank, ai_idx)]
 					act = self.__hider_team.get_action(rank, ai_idx)
-					self.__window.set_hider_action(graphics_idx, act)
+					self.__window.set_player_action(agent.AgentType.Hider, graphics_idx, act)
 
 	def __transfer_seeker_actions(self):
 		for i in range(self.__seeker_team.get_ranks()):
@@ -148,7 +151,7 @@ class Simulator(object):
 				rank, ai_idx = i, j
 				graphics_idx = self.__seekers_agent2player[(rank, ai_idx)]
 				act = self.__seeker_team.get_action(rank, ai_idx)
-				self.__window.set_seeker_action(graphics_idx, act)
+				self.__window.set_player_action(agent.AgentType.Seeker, graphics_idx, act)
 
 	def __set_hider_openings(self):
 		for i in range(self.__hider_team.get_ranks()):
@@ -157,7 +160,7 @@ class Simulator(object):
 				graphics_idx = self.__hiders_agent2player[(rank, ai_idx)]
 				position = self.__hider_team.get_position(rank, ai_idx)
 				# print('Hider idx:', graphics_idx, 'position:', position)
-				self.__window.set_hider_position(graphics_idx ,position)
+				self.__window.set_player_position(agent.AgentType.Hider, graphics_idx, position)
 
 	def __set_seeker_openings(self):
 		for i in range(self.__seeker_team.get_ranks()):
@@ -166,7 +169,7 @@ class Simulator(object):
 				graphics_idx = self.__seekers_agent2player[(rank, ai_idx)]
 				position = self.__seeker_team.get_position(rank, ai_idx)
 				# print('Seeker idx:', graphics_idx, 'position:', position)
-				self.__window.set_seeker_position(graphics_idx, position)
+				self.__window.set_player_position(agent.AgentType.Seeker, graphics_idx, position)
 
 	def __check_hider_caught(self):
 		visible_hiders = []
@@ -184,7 +187,7 @@ class Simulator(object):
 			if not self.__caught[rank][ai_idx]:
 				self.__caught[rank][ai_idx] = True
 				self.__hider_team.set_member_inactive(rank, ai_idx)
-				self.__window.set_hider_inactive(graphics_idx)
+				self.__window.set_player_inactive(agent.AgentType.Hider, graphics_idx)
 				self.__num_caught += 1
 
 

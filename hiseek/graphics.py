@@ -9,6 +9,7 @@ import coord
 import gamemap
 import action
 import percept
+import agent
 
 class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 
@@ -35,14 +36,14 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		self.__fixed_time_quanta = fixed_time_quanta
 
 		# Visibility polygon setup
-		self.__num_rays = 10
-		self.__visibility_angle = 45
-		# self.__visibility_color = (149, 165, 166)
-		self.__visibility_color = 28, 40, 51  
-		self.__visibility_polygon = None
+		self._num_rays = 10
+		self._visibility_angle = 45
+		# self._visibility_color = (149, 165, 166)
+		self._visibility_color = 28, 40, 51  
+		self._visibility_polygon = None
 
-		self.__num_vertices = self.__num_rays + 1
-		num_triangles = self.__num_vertices - 2
+		self._num_vertices = self._num_rays + 1
+		num_triangles = self._num_vertices - 2
 		triangle_list = [0 for i in range(num_triangles * 3)]
 
 		i = 1
@@ -62,19 +63,19 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		color_list = []
 		for i in range(11):
 			# 149, 165, 166
-			color_list.append(self.__visibility_color[0])
-			color_list.append(self.__visibility_color[1])
-			color_list.append(self.__visibility_color[2])
+			color_list.append(self._visibility_color[0])
+			color_list.append(self._visibility_color[1])
+			color_list.append(self._visibility_color[2])
 		color_tuple = tuple(color_list)
  
-		self.__visibility_vertices = batch.add_indexed(self.__num_vertices, pyglet.gl.GL_TRIANGLES, background, 
+		self.__visibility_vertices = batch.add_indexed(self._num_vertices, pyglet.gl.GL_TRIANGLES, background, 
 		triangle_list,
-		('v2i', tuple([0 for i in range(self.__num_vertices * 2)])),
+		('v2i', tuple([0 for i in range(self._num_vertices * 2)])),
 		('c3B', color_tuple)
 		)
 
 	def remove(self):
-		self.__visibility_vertices.vertices = [0 for i in range(self.__num_vertices * 2)]
+		self.__visibility_vertices.vertices = [0 for i in range(self._num_vertices * 2)]
 		self.__visibility_vertices.delete
 		self.delete
 
@@ -100,11 +101,21 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		self.x = position.get_x()
 		self.y = position.get_y()
 
+	def set_position_raw(self, x, y):
+		self.x = x
+		self.y = y
+
+	def set_rotation_raw(self, rotation):
+		self.rotation = rotation
+
+	def set_visibility_polygon_raw(self, points_tuple):
+		self.__visibility_vertices.vertices = points_tuple
+
 	def get_position(self):
 		return coord.Coord(self.x, self.y)
 
 	def get_visibility_polygon(self):
-		return self.__visibility_polygon
+		return self._visibility_polygon
 
 	def get_current_coordinate(self):
 		return coord.Coord(self.x, self.y)
@@ -181,9 +192,9 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 
 
 	def __update_visibility(self):
-		self.__visibility_polygon = self.__polygon_map.get_visibility_polygon(self.get_current_coordinate(), self.rotation, self.__num_rays, self.__visibility_angle)
-		# print('Poly tuples:', self.__visibility_polygon.get_points_tuple())
-		self.__visibility_vertices.vertices = self.__visibility_polygon.get_points_tuple()
+		self._visibility_polygon = self.__polygon_map.get_visibility_polygon(self.get_current_coordinate(), self.rotation, self._num_rays, self._visibility_angle)
+		# print('Poly tuples:', self._visibility_polygon.get_points_tuple())
+		self.__visibility_vertices.vertices = self._visibility_polygon.get_points_tuple()
 		
 
 class Graphics(pyglet.window.Window):
@@ -235,67 +246,50 @@ class Graphics(pyglet.window.Window):
 			[0,1,1,2,2,0],
 			('v2i', polygon.get_points_tuple() ),)
 
+	def __type2player(self, player_type):
+		if player_type == agent.AgentType.Hider:
+			players = self.__hiders
+		elif player_type == agent.AgentType.Seeker:
+			players = self.__seekers
+		return players
 
-	def set_hider_inactive(self, hider_idx):
-		assert(hider_idx < self.__num_hiders)
-		assert(self.__hider_active[hider_idx])
-		self.__hider_active[hider_idx] = False
-		self.__hiders[hider_idx].remove()
-		self.__hiders[hider_idx] = None
+	def __type2player_active(self, player_type):
+		if player_type == agent.AgentType.Hider:
+			player_active = self.__hider_active
+		elif player_type == agent.AgentType.Seeker:
+			player_active = self.__seeker_active
+		return player_active
 
-	def set_seeker_inactive(self, seeker_idx):
-		assert(seeker_idx < self.__num_seekers)
-		assert(self.__seeker_active[seeker_idx])
-		self.__seeker_active[seeker_idx] = False
-		self.__seekers[seeker_idx].remove()
-		self.__seekers[seeker_idx] = None
 
-	def set_hider_action(self, hider_idx, act):
-		assert(hider_idx < self.__num_hiders)
-		assert(self.__hider_active[hider_idx])
-		self.__hiders[hider_idx].set_action(act)
+	def set_player_inactive(self, player_type, player_idx):
+		players = self.__type2player(player_type)
+		player_active = self.__type2player_active(player_type)
+		player_active[player_idx] = False
+		players[player_idx].remove()
+		players[player_idx] = None
 
-	def set_seeker_action(self, seeker_idx, act):
-		assert(seeker_idx < self.__num_seekers)
-		assert(self.__seeker_active[seeker_idx])
-		self.__seekers[seeker_idx].set_action(act)
+	def set_player_action(self, player_type, player_idx, act):
+		players = self.__type2player(player_type)
+		players[player_idx].set_action(act)
 
-	def get_hider_percept(self, hider_idx):
-		assert(hider_idx < self.__num_hiders)
-		assert(self.__hider_active[hider_idx])
-		return self.__hiders[hider_idx].get_percept()
+	def get_player_percept(self, player_type, player_idx):
+		players = self.__type2player(player_type)
+		return players[player_idx].get_percept()
 
-	def get_seeker_percept(self, seeker_idx):
-		assert(seeker_idx < self.__num_seekers)
-		assert(self.__seeker_active[seeker_idx])
-		return self.__seekers[seeker_idx].get_percept()
+	def set_player_position(self, player_type, player_idx, position):
+		players = self.__type2player(player_type)
+		players[player_idx].set_position(position)
 
-	def set_hider_position(self, hider_idx, position):
-		assert(hider_idx < self.__num_hiders)
-		assert(self.__hider_active[hider_idx])
-		self.__hiders[hider_idx].set_position(position)
+	def get_player_position(self, player_type, player_idx):
+		players = self.__type2player(player_type)
+		return players[player_idx].get_position()
 
-	def set_seeker_position(self, seeker_idx, position):
-		assert(seeker_idx < self.__num_seekers)
-		assert(self.__seeker_active[seeker_idx])
-		self.__seekers[seeker_idx].set_position(position)
-
-	def get_hider_position(self, hider_idx):
-		assert(hider_idx < self.__num_hiders)
-		assert(self.__hider_active[hider_idx])
-		return self.__hiders[hider_idx].get_position()
-
-	def get_seeker_position(self, seeker_idx):
-		assert(seeker_idx < self.__num_seekers)
-		assert(self.__seeker_active[seeker_idx])
-		return self.__seekers[seeker_idx].get_position()
 
 	def on_draw(self):
 		self.clear()
 		self.__dynamic_batch.draw()
 		self.__static_batch.draw()
 		self.__fps_display.draw()
-
 
 	def __get_visible_players(self, visibility_polygon, ignore_hiders, ignore_seekers):
 		hider_coords = []
@@ -408,7 +402,5 @@ class Graphics(pyglet.window.Window):
 		# print(seekers_pos_string)
 		self.__replay_file.write(hiders_pos_string+'\n')
 		self.__replay_file.write(seekers_pos_string+'\n')
-
-
 
 		self.__update_percepts()
