@@ -56,7 +56,7 @@ class Map(Grid):
 	map_list = []
 	def __init__(self, map_id):
 		map_name = 'id_' + str(map_id) + '.grid'
-		print('Path:', map_name)
+		# print('Path:', map_name)
 		assert(os.path.isfile(map_name))
 		f = open(map_name, 'r')
 		map_list = f.readlines()

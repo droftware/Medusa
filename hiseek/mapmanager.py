@@ -37,7 +37,7 @@ class BasicMapManager(object):
 			vis_file = map_name.split('.')[0] + '.visibility'
 			obs_file = map_name.split('.')[0] + '.obstruction'
 			if os.path.isfile(vis_file) and os.path.isfile(obs_file):
-				print('Loading files')
+				# print('Loading files')
 				self.__visibility = np.loadtxt(vis_file)
 				self.__obstruction = np.loadtxt(obs_file)
 			else:
