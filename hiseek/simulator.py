@@ -19,8 +19,7 @@ class Simulator(object):
 	mode_type_hiders = ['random', 'bayesian']
 	mode_type_seekers = ['random']
 
-	def __init__(self, display, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, fps, velocity, verbose, fixed_time_quanta, max_steps=1000, window_width=640, window_height=360):
-		self.__display = display
+	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, fps, velocity, verbose, fixed_time_quanta, log_flag, max_steps=1000, window_width=640, window_height=360):
 		assert(mode_hiders in Simulator.mode_type_hiders)
 		assert(mode_seekers in Simulator.mode_type_seekers)
 		self.__mode_hiders = mode_hiders
@@ -37,8 +36,16 @@ class Simulator(object):
 		self.__max_steps = max_steps
 		self.__map = gamemap.PolygonMap(map_id)
 
-		self.__replay_file = open('hs1.replay', 'w')
-		self.__replay_file.write('id_' + str(map_id) + '\n')
+		self.__log_flag = log_flag
+		self.__replay_output = None
+
+		if log_flag:
+			self.__replay_output = open(output_file, 'w')
+			self.__replay_output.write('map_id:' + str(map_id) + '\n')
+			self.__replay_output.write('num_hiders:' + str(num_hiders) + '\n')
+			self.__replay_output.write('num_seekers:' +  str(num_seekers) + '\n')
+			self.__replay_output.write('simulation:' + '\n')
+
 
 
 		hider_map_copy = copy.deepcopy(self.__map)
@@ -56,7 +63,7 @@ class Simulator(object):
 		# Graphics setup
 		self.__window_width = self.__map.get_map_width()
 		self.__window_height = self.__map.get_map_height()
-		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__replay_file, fps, velocity, self.__map, fixed_time_quanta)
+		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__log_flag, self.__replay_output, fps, velocity, self.__map, fixed_time_quanta)
 		
 		# Mapping AI agents and Graphics players for interchange of percepts and 
 		# actions
@@ -222,7 +229,8 @@ class Simulator(object):
 			print('All hiders caught')
 			# print('Total time taken:', self.__total_time)
 			# print('Total steps taken:', self.__total_time * (self.__fps))
-			self.__replay_file.close()
+			if self.__log_flag:
+				self.__replay_output.close()
 			pyglet.app.exit()
 
 	def simulate(self):
