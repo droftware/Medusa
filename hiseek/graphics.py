@@ -133,6 +133,9 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 		# Update rotation
 		# print('Reached update:',dt)
 
+		if self[key.NUM_5]:
+			return
+
 		self.dx = 0
 		self.dy = 0
 
@@ -146,6 +149,7 @@ class Player(pyglet.sprite.Sprite, key.KeyStateHandler):
 			self.rotation = action.ROTATION[self.__action]
 			flag = True
 
+		
 		if self[key.NUM_6]:
 			self.rotation = 0.1
 			flag = True 
@@ -226,10 +230,10 @@ class Graphics(pyglet.window.Window):
 		for i in range(self.__num_polygons):
 			polygon = self.__polygon_map.get_polygon(i)
 			self.__polygons.append(polygon)
-			self.__add_batch_polygon(polygon)
+			self.__add_batch_polygon(polygon, True)
 
 		self.__boundary_polygon = polygon_map.get_boundary_polygon()
-		self.__add_batch_polygon(self.__boundary_polygon)
+		self.__add_batch_polygon(self.__boundary_polygon, False)
 			
 		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, self.__polygon_map, window_width, window_height, 0, 0, 0, fps, velocity, fixed_time_quanta) for i in range(num_hiders)]
 		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, self.__polygon_map, window_width, window_height, 0, 0, 0, fps, velocity, fixed_time_quanta) for i in range(num_seekers)]
@@ -239,16 +243,32 @@ class Graphics(pyglet.window.Window):
 
 		self.push_handlers(self.__seekers[0])
 
-	def __add_batch_polygon(self, polygon):
+	def __add_batch_polygon(self, polygon, is_filled):
 		assert(polygon.get_num_vertices() == 4 or polygon.get_num_vertices() == 3)
-		if polygon.get_num_vertices() == 4:
-			self.__static_batch.add_indexed(4, pyglet.gl.GL_LINES, self.__background, 
-			[0,1,1,2,2,3,3,0],
-			('v2i', polygon.get_points_tuple()),)
-		if polygon.get_num_vertices() == 3:
-			self.__static_batch.add_indexed(3, pyglet.gl.GL_LINES, self.__background, 
-			[0,1,1,2,2,0],
-			('v2i', polygon.get_points_tuple() ),)
+		if is_filled:
+			polygon_color = 74, 35, 90 
+			color_list = []
+			for i in range(4):
+				# 149, 165, 166
+				color_list.append(polygon_color[0])
+				color_list.append(polygon_color[1])
+				color_list.append(polygon_color[2])
+			color_tuple = tuple(color_list)
+			if polygon.get_num_vertices() == 4:
+				self.__static_batch.add_indexed(4, pyglet.gl.GL_TRIANGLES, self.__background, 
+				[0,1,2,2,3,0],
+				('v2i', polygon.get_points_tuple()),
+				('c3B', color_tuple)
+				)
+		elif not is_filled:
+			if polygon.get_num_vertices() == 4:
+				self.__static_batch.add_indexed(4, pyglet.gl.GL_LINES, self.__background, 
+				[0,1,1,2,2,3,3,0],
+				('v2i', polygon.get_points_tuple()),)
+		# if polygon.get_num_vertices() == 3:
+		# 	self.__static_batch.add_indexed(3, pyglet.gl.GL_LINES, self.__background, 
+		# 	[0,1,1,2,2,0],
+		# 	('v2i', polygon.get_points_tuple() ),)
 
 	def __type2player(self, player_type):
 		if player_type == agent.AgentType.Hider:
@@ -304,7 +324,7 @@ class Graphics(pyglet.window.Window):
 		self.clear()
 		self.__dynamic_batch.draw()
 		self.__static_batch.draw()
-		self.__fps_display.draw()
+		# self.__fps_display.draw()
 
 	def __get_visible_players(self, visibility_polygon, ignore_hiders, ignore_seekers):
 		hider_coords = []
