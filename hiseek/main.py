@@ -21,7 +21,7 @@ def main():
 	parser.add_argument("-f", "--fps", type=int, default = 60, help="Frames per second to be used during simulation.")
 	parser.add_argument("-vel", "--velocity", type=int, default = 200, help="Velocity in pixels/sec of hider and seekers.")
 	parser.add_argument("-ver", "--verbose", type=int, choices = [0, 1, 2], default = 0, help="Increase output verbosity")
-	parser.add_argument("-fq", "--fixed_time_quanta", action="store_true", help="Time quanta used for updating the players distance(fixed/variable)")
+	parser.add_argument("-fq", "--fixed_time_quanta", action="store_false", help="Time quanta used for updating the players distance(fixed/variable)")
 	parser.add_argument("-nr", "--num_rays", type=int, default = 10, help="Number of rays to be used for calculating visibility region of an agent.")
 	parser.add_argument("-va", "--visibility_angle", type=int, default = 45, help="Visibility angle")
 
@@ -45,8 +45,6 @@ def main():
 	if mode_count == 0:
 		print('No mode selected, using vis_sim mode as default.')
 		args.vis_sim = True
-
-	# def __init__(self, fps, velocity, fixed_time_quanta, num_rays, visibility_angle, verbose):
 
 	conf_options = config.Configuration(int(args.fps), int(args.velocity), args.fixed_time_quanta, int(args.num_rays), int(args.visibility_angle), int(args.verbose))
 	exp = experiment.Experiment(args.visualisation, args.simulation, args.vis_sim, args.replay, args.num_runs, args.mode_hiders, args.mode_seekers, args.num_hiders, args.num_seekers, args.map_id, args.input_file, args.output_file, conf_options)
