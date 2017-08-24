@@ -24,6 +24,9 @@ def main():
 	parser.add_argument("-tq", "--time_quanta", action="store_false", help="Sets time quanta, used for updating the players distance, to variable.(fixed/variable)")
 	parser.add_argument("-nr", "--num_rays", type=int, default = 10, help="Number of rays to be used for calculating visibility region of an agent.")
 	parser.add_argument("-va", "--visibility_angle", type=int, default = 45, help="Visibility angle")
+	parser.add_argument("-hi", "--hider_image", default="wanderer.png", help="Hider's image used during visualisations.")
+	parser.add_argument("-si", "--seeker_image", default="seeker.png", help="Seeker's image used during visualisations.")
+
 
 	args = parser.parse_args()
 
@@ -46,7 +49,7 @@ def main():
 		print('No mode selected, using vis_sim mode as default.')
 		args.vis_sim = True
 
-	conf_options = config.Configuration(int(args.fps), int(args.velocity), args.time_quanta, int(args.num_rays), int(args.visibility_angle), int(args.verbose))
+	conf_options = config.Configuration(int(args.fps), int(args.velocity), args.time_quanta, int(args.num_rays), int(args.visibility_angle), int(args.verbose), args.hider_image, args.seeker_image)
 	exp = experiment.Experiment(args.visualisation, args.simulation, args.vis_sim, args.replay, args.num_runs, args.mode_hiders, args.mode_seekers, args.num_hiders, args.num_seekers, args.map_id, args.input_file, args.output_file, conf_options)
 	exp.run()
 	

@@ -95,8 +95,8 @@ class Graphics(pyglet.window.Window):
 		self.__foreground = pyglet.graphics.OrderedGroup(1)
 		self.__static_batch = pyglet.graphics.Batch()
 		self.__dynamic_batch = pyglet.graphics.Batch()
-		self.__hider_image = pyglet.resource.image('wanderer.png')
-		self.__seeker_image = pyglet.resource.image('seeker.png')
+		self.__hider_image = pyglet.resource.image(conf_options.get_hider_image())
+		self.__seeker_image = pyglet.resource.image(conf_options.get_seeker_image())
 		self.__num_hiders = num_hiders
 		self.__num_seekers = num_seekers
 		self.__fps_display = pyglet.clock.ClockDisplay()
