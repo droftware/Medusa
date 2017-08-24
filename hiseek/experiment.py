@@ -3,7 +3,7 @@ import os
 import simulator
 import statistic
 import replay
-import test
+# import test
 
 class Experiment(object):
 	"""
@@ -37,15 +37,18 @@ class Experiment(object):
 				rep.run_replay()
 			else:
 				print('Replay file does not exist')
-		elif self.__vis_sim:
-			log_flag = True
-			sim = simulator.Simulator(self.__mode_hiders, self.__mode_seekers, self.__num_hiders, self.__num_seekers, self.__map_id, self.__input_file, self.__output_file, self.__fps, self.__velocity, self.__verbose, self.__fixed_time_quanta, log_flag)
+		else:
+			if self.__vis_sim:
+				log_flag = True
+				vis_flag = True
+			elif self.__visualisation:
+				log_flag = False
+				vis_flag = True
+			elif self.__simulation:
+				log_flag = True
+				vis_flag = False
+			sim = simulator.Simulator(self.__mode_hiders, self.__mode_seekers, self.__num_hiders, self.__num_seekers, self.__map_id, self.__input_file, self.__output_file, self.__fps, self.__velocity, self.__verbose, self.__fixed_time_quanta, log_flag, vis_flag)
 			sim.simulate()
-		elif self.__visualisation:
-			log_flag = False
-			sim = simulator.Simulator(self.__mode_hiders, self.__mode_seekers, self.__num_hiders, self.__num_seekers, self.__map_id, self.__input_file, self.__output_file, self.__fps, self.__velocity, self.__verbose, self.__fixed_time_quanta, log_flag)
-			sim.simulate()
-		elif self.__simulation:
-			print('Yet to be implemented')
+
 
 				
