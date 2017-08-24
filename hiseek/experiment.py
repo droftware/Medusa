@@ -11,7 +11,7 @@ class Experiment(object):
 		tracking the statistics involved
 	"""
 
-	def __init__(self, visualisation, simulation, vis_sim, replay, num_runs, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, fps, velocity, verbose, fixed_time_quanta):
+	def __init__(self, visualisation, simulation, vis_sim, replay, num_runs, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options):
 		self.__visualisation = visualisation
 		self.__simulation = simulation
 		self.__vis_sim = vis_sim
@@ -25,15 +25,12 @@ class Experiment(object):
 		self.__map_id = map_id
 		self.__input_file = input_file
 		self.__output_file = output_file
-		self.__fps = fps
-		self.__velocity = velocity
-		self.__verbose = verbose
-		self.__fixed_time_quanta = fixed_time_quanta
+		self.__conf_options = conf_options
 
 	def run(self):
 		if self.__replay:
 			if os.path.isfile(self.__input_file):	
-				rep = replay.Replay(self.__input_file, self.__fps, self.__velocity, self.__fixed_time_quanta)
+				rep = replay.Replay(self.__input_file, self.__conf_options)
 				rep.run_replay()
 			else:
 				print('Replay file does not exist')
@@ -47,7 +44,7 @@ class Experiment(object):
 			elif self.__simulation:
 				log_flag = True
 				vis_flag = False
-			sim = simulator.Simulator(self.__mode_hiders, self.__mode_seekers, self.__num_hiders, self.__num_seekers, self.__map_id, self.__input_file, self.__output_file, self.__fps, self.__velocity, self.__verbose, self.__fixed_time_quanta, log_flag, vis_flag)
+			sim = simulator.Simulator(self.__mode_hiders, self.__mode_seekers, self.__num_hiders, self.__num_seekers, self.__map_id, self.__input_file, self.__output_file, self.__conf_options, log_flag, vis_flag)
 			sim.simulate()
 
 

@@ -122,7 +122,7 @@ class Simulator(object):
 	mode_type_hiders = ['random', 'bayesian']
 	mode_type_seekers = ['random']
 
-	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, fps, velocity, verbose, fixed_time_quanta, log_flag, vis_flag, max_steps=1000, window_width=640, window_height=360):
+	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, max_steps=1000, window_width=640, window_height=360):
 		assert(mode_hiders in Simulator.mode_type_hiders)
 		assert(mode_seekers in Simulator.mode_type_seekers)
 		self.__mode_hiders = mode_hiders
@@ -132,9 +132,15 @@ class Simulator(object):
 		self.__map_id = map_id
 		self.__input_file = input_file
 		self.__output_file = output_file
-		self.__fps = fps * 1.0
-		self.__velocity = velocity
-		self.__verbose = verbose
+
+		self.__conf_options = conf_options
+		self.__fps = self.__conf_options.get_fps()
+		self.__velocity = self.__conf_options.get_velocity()
+		self.__fixed_time_quanta = self.__conf_options.get_fixed_time_quanta()
+		self.__verbose = self.__conf_options.get_verbose()
+		self.__num_rays = self.__conf_options.get_num_rays()
+		self.__visibility_angle = self.__conf_options.get_visibility_angle()
+
 		self.__stats = statistic.Statistic(num_hiders, num_seekers)
 		self.__max_steps = max_steps
 		self.__polygon_map = gamemap.PolygonMap(map_id)
@@ -143,8 +149,7 @@ class Simulator(object):
 		self.__vis_flag = vis_flag
 		self.__replay_output_file = None
 
-		self.__num_rays = 10
-		self.__visibility_angle = 45
+
 
 		if log_flag:
 			print('Logging initiated:', output_file)
@@ -161,24 +166,21 @@ class Simulator(object):
 
 		# AI setup
 		if mode_hiders == 'random':
-			self.__hider_team = team.RandomTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, fps, velocity, fixed_time_quanta)
+			self.__hider_team = team.RandomTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
 		if mode_hiders == 'bayesian':
-			self.__hider_team = team.BayesianTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, fps, velocity, fixed_time_quanta)
+			self.__hider_team = team.BayesianTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
 
 		if mode_seekers == 'random':
-			self.__seeker_team = team.RandomTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, fps, velocity, fixed_time_quanta)
+			self.__seeker_team = team.RandomTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
 
 		# Graphics setup
 		self.__window_width = self.__polygon_map.get_map_width()
 		self.__window_height = self.__polygon_map.get_map_height()
-		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__log_flag, fps, velocity, self.__polygon_map, fixed_time_quanta, self.__num_rays, self.__visibility_angle)
-		
-
-	# def __init__(self, polygon_map, pos_x, pos_y, pos_rot, fps, velocity, fixed_time_quanta):
+		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__fps, self.__velocity, self.__polygon_map, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
 
 		# Movers setup
-		self.__hiders = [Mover(self.__polygon_map, 0, 0, 0, self.__fps, self.__velocity, fixed_time_quanta, self.__num_rays, self.__visibility_angle) for i in range(num_hiders)]
-		self.__seekers = [Mover(self.__polygon_map, 0, 0, 0, self.__fps, self.__velocity, fixed_time_quanta, self.__num_rays, self.__visibility_angle) for i in range(num_seekers)]
+		self.__hiders = [Mover(self.__polygon_map, 0, 0, 0, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle) for i in range(num_hiders)]
+		self.__seekers = [Mover(self.__polygon_map, 0, 0, 0, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle) for i in range(num_seekers)]
 
 		# Mover active list
 		self.__hiders_active = [True for i in range(num_hiders)]
