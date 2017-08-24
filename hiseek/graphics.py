@@ -89,7 +89,7 @@ class Player(pyglet.sprite.Sprite):
 
 class Graphics(pyglet.window.Window):
 
-	def __init__(self, window_width, window_height, num_hiders, num_seekers, log_flag, fps, velocity, polygon_map, fixed_time_quanta, num_rays, visibility_angle):
+	def __init__(self, window_width, window_height, num_hiders, num_seekers, fps, velocity, polygon_map, fixed_time_quanta, num_rays, visibility_angle):
 		super(Graphics, self).__init__(window_width, window_height)
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
@@ -102,7 +102,6 @@ class Graphics(pyglet.window.Window):
 		self.__num_hiders = num_hiders
 		self.__num_seekers = num_seekers
 		self.__fps_display = pyglet.clock.ClockDisplay()
-		self.__log_flag = log_flag
 		assert(isinstance(polygon_map, gamemap.PolygonMap))
 		self.__polygon_map = polygon_map
 		self.__polygons = [] # By polygons we refer to the background obstacles only
