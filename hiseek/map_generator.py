@@ -6,8 +6,8 @@ def main():
 	width = int(sys.argv[1])
 	height = int(sys.argv[2])
 	max_squares = int(sys.argv[3])
-	min_length = 40
-	max_length = 70
+	min_length = 70
+	max_length = 100
 	squares_list = []
 	num_squares = 0
 	while num_squares < max_squares:
