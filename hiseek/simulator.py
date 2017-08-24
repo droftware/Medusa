@@ -176,7 +176,7 @@ class Simulator(object):
 		# Graphics setup
 		self.__window_width = self.__polygon_map.get_map_width()
 		self.__window_height = self.__polygon_map.get_map_height()
-		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__fps, self.__velocity, self.__polygon_map, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
+		self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__polygon_map, self.__conf_options)
 
 		# Movers setup
 		self.__hiders = [Mover(self.__polygon_map, 0, 0, 0, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle) for i in range(num_hiders)]

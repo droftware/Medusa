@@ -13,8 +13,7 @@ import agent
 
 class Player(pyglet.sprite.Sprite):
 
-
-	def __init__(self, img, batch, background, foreground, polygon_map, pos_x, pos_y, pos_rot, num_rays, visibility_angle):
+	def __init__(self, img, batch, background, foreground, polygon_map, pos_x, pos_y, pos_rot, num_rays):
 		super(Player, self).__init__(img, pos_x, pos_y, batch=batch, group=foreground)
 		Player.center_anchor(img)
 		self.scale = 0.5
@@ -28,7 +27,6 @@ class Player(pyglet.sprite.Sprite):
 
 		# Visibility polygon setup
 		self._num_rays = num_rays
-		self._visibility_angle = visibility_angle
 		self._visibility_color = 28, 40, 51  
 		self._visibility_polygon = None
 
@@ -89,7 +87,7 @@ class Player(pyglet.sprite.Sprite):
 
 class Graphics(pyglet.window.Window):
 
-	def __init__(self, window_width, window_height, num_hiders, num_seekers, fps, velocity, polygon_map, fixed_time_quanta, num_rays, visibility_angle):
+	def __init__(self, window_width, window_height, num_hiders, num_seekers, polygon_map, conf_options):
 		super(Graphics, self).__init__(window_width, window_height)
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
@@ -105,6 +103,7 @@ class Graphics(pyglet.window.Window):
 		assert(isinstance(polygon_map, gamemap.PolygonMap))
 		self.__polygon_map = polygon_map
 		self.__polygons = [] # By polygons we refer to the background obstacles only
+		self.__num_rays = conf_options.get_num_rays()
 
 
 		self.__num_polygons = polygon_map.get_num_polygons()
@@ -116,8 +115,8 @@ class Graphics(pyglet.window.Window):
 		self.__boundary_polygon = polygon_map.get_boundary_polygon()
 		self.__add_batch_polygon(self.__boundary_polygon, False)
 			
-		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, self.__polygon_map, 0, 0, 0, num_rays, visibility_angle) for i in range(num_hiders)]
-		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, self.__polygon_map, 0, 0, 0, num_rays, visibility_angle) for i in range(num_seekers)]
+		self.__hiders = [Player(self.__hider_image, self.__dynamic_batch, self.__background, self.__foreground, self.__polygon_map, 0, 0, 0, self.__num_rays) for i in range(num_hiders)]
+		self.__seekers = [Player(self.__seeker_image, self.__dynamic_batch, self.__background, self.__background, self.__polygon_map, 0, 0, 0, self.__num_rays) for i in range(num_seekers)]
 		
 		self.__hider_active = [True for i in range(num_hiders)]
 		self.__seeker_active = [True for i in range(num_seekers)]
