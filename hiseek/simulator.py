@@ -332,17 +332,18 @@ class Simulator(object):
 				rank, ai_idx = i, j
 				current_percept = self.__seeker_team.get_percept(rank, ai_idx)
 				if current_percept.are_hiders_visible():
-					print('Hider caught !!')
 					visible_hiders = visible_hiders + current_percept.get_hider_uids()
 
 		for i in range(len(visible_hiders)):
 			rank, ai_idx = visible_hiders[i]
 			graphics_idx = self.__hiders_agent2player[visible_hiders[i]]
-			# print(self.__num_caught,':Hider caught:', rank, ai_idx)
+			print('')
+			print(self.__num_caught,':Hider caught:', graphics_idx)
 			if self.__hiders_active[graphics_idx]:
 				self.__hiders_active[graphics_idx] = False 
 				self.__hider_team.set_member_inactive(rank, ai_idx)
 				self.__set_mover_inactive(agent.AgentType.Hider, graphics_idx)
+				print('Hider caught !!')
 				self.__num_caught += 1
 
 	def __get_visible_players(self, visibility_polygon, ignore_hiders, ignore_seekers):
