@@ -120,7 +120,7 @@ class Simulator(object):
 	"""
 
 	mode_type_hiders = ['random', 'bayesian']
-	mode_type_seekers = ['random']
+	mode_type_seekers = ['random', 'sbandit']
 
 	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, max_steps=1000, window_width=640, window_height=360):
 		assert(mode_hiders in Simulator.mode_type_hiders)
@@ -171,6 +171,8 @@ class Simulator(object):
 			self.__hider_team = team.BayesianTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
 		if mode_seekers == 'random':
 			self.__seeker_team = team.RandomTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
+		if mode_seekers == 'sbandit':
+			self.__seeker_team = team.StochasticBanditTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
 
 		# Graphics setup
 		self.__window_width = self.__polygon_map.get_map_width()

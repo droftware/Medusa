@@ -97,7 +97,7 @@ class PolygonMap(object):
 
 	def check_boundary_collision(self, position):
 		'''
-			Retusn True if point collides with the boundary
+			Returns True if point collides with the boundary
 		'''
 		if self.__boundary_polygon.is_point_inside(position):
 			return False

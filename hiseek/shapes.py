@@ -260,7 +260,7 @@ class Square(Polygon):
 			b = self.__centre[1]
 			mid_edge_points.append(coord.Coord(a, b))
 			a = self.__centre[0]
-			b = self.centre[1] + l2 * fa
+			b = self.__centre[1] + l2 * fa
 			mid_edge_points.append(coord.Coord(a, b))
 
 		return mid_edge_points 
