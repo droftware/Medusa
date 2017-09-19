@@ -322,23 +322,25 @@ class StochasticBanditAgent(Agent):
 		self.__in_transit = False
 		self.__alpha = 0.1
 		self.__i_t = None
-		self.__x_ti = 0
+		self.__x_ti = -2
 		self.__exoloratory_steps = 0
 
 
 	def __update_ucb_params(self):
+		print('Updating for strategic point:', self.__i_t)
+		if self.__x_ti < 0:
+			print('Updating with a negative reward:', self.__x_ti)
 		self.__u_cap[self.__i_t] = self.__u_cap[self.__i_t] + (self.__x_ti - self.__u_cap[self.__i_t])*1.0/(self.__N[self.__i_t] + 1)
 		self.__N[self.__i_t] += 1 
-		self.__x_ti = 0
+		self.__x_ti = -2
 
 	def __update_ucb(self):
+		print('After update:')
 		for i in range(self.__num_strategic_points):
 			self.__UCB[i] = self.__u_cap[i] + math.sqrt(self.__alpha * math.log(self.__t)/(2*self.__N[i]))
-
+			print(i, self.__UCB[i])
 	def __set_strategic_point(self):
 		self.__i_t =  np.argmax(self.__UCB)
-		print('UCB:', self.__UCB)
-		print('Action selected:', self.__i_t)
 
 	def generate_messages(self):
 		pass
@@ -419,15 +421,18 @@ class StochasticBanditAgent(Agent):
 			else:
 				self.__exoloratory_steps -= 1
 				if self._percept.are_hiders_visible():
-					print('Reward updated')
+					print('Reward updated NOT during transit')
 					self.__x_ti = 5
 				if self.__exoloratory_steps == 0:
 					self.__update_ucb_params()
 					self.__update_ucb()
 		if self.__in_transit:
 			if self._percept.are_hiders_visible():
-					print('Reward updated')
-					self.__x_ti = 5				
+				print('Reward updated during transit')
+				self.__i_t = self._map_manager.get_closest_strategic_point(self._position)
+				self.__x_ti = 5	
+				self.__update_ucb_params()
+				self.__update_ucb()			
 
 		direction_vec = self.__select_direction()
 

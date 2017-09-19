@@ -163,8 +163,14 @@ class BasicMapManager(object):
 class StrategicPointsMapManager(BasicMapManager):
 
 	def __init__(self, mapworld, fps, velocity, offset = 10, inference_map=True):
+		'''
+			threshold: Strategic points which have a distance less than the 
+					   threshold will be merged into one.
+		'''
 		super(StrategicPointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
+		all_strtg_pts = []
 		self.__strategic_points = []
+		self.__threshold = 50
 
 		num_squares = mapworld.get_num_polygons()
 		for i in range(num_squares):
@@ -172,9 +178,32 @@ class StrategicPointsMapManager(BasicMapManager):
 			mid_edge_points = square.get_mid_edge_points(2)
 			for point in mid_edge_points:
 				if not mapworld.check_obstacle_collision(point) and not mapworld.check_boundary_collision(point):
-					self.__strategic_points.append(point)
+					all_strtg_pts.append(point)
+
+		num_all_pts = len(all_strtg_pts)
+
+		deletion_idxs = []
+		for i in range(num_all_pts):
+			if i in deletion_idxs:
+				continue
+			for j in range(i+1, num_all_pts):
+				if j in deletion_idxs:
+					continue
+				dist = all_strtg_pts[i].get_euclidean_distance(all_strtg_pts[j])
+				if dist < 50:
+					# print(i,j, dist)
+					deletion_idxs.append(j)
+
+		for i in range(num_all_pts):
+			if i not in deletion_idxs:
+				self.__strategic_points.append(all_strtg_pts[i])
+
 
 		self.__num_strategic_points = len(self.__strategic_points)
+
+
+
+
 
 		# TO DO: Merge strategic points if they are very close to each other and
 		# there is no obstacle between them
