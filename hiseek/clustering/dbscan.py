@@ -78,17 +78,18 @@ def dbscan(file_name, eps, minPts):
 						idx += 1
 
 	label = label.astype('int')
-	return label
+	return label, cluster
 
 def main():
-	file_name = 'id_3.obstruction'
+	file_name = 'id_4.obstruction'
 	eps = 100
 	minPts = 8
-	label = dbscan(file_name, eps, minPts)
+	label, num_clusters = dbscan(file_name, eps, minPts)
 	print('Clustering done')
 	np.savetxt(file_name.split('.')[0] + '.clusters', label)
 	print('File saved')
-	print(label)
+	# print(label)
+	print('Number of clusters:', num_clusters)
 
 	f, ax = plt.subplots(figsize=(label.shape[0], label.shape[1]))
 	sns.heatmap(label, annot=True, fmt="d", linewidths=.5, ax=ax)
