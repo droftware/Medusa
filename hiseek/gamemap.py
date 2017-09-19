@@ -16,6 +16,7 @@ class PolygonMap(object):
 		self.__boundary_polygon = None
 		self.__all_polygons = None # Includes all the obstacle polygons as well as boundary polygon
 		self.__map_name = 'id_' + str(map_id) + '.polygons'
+		print('Map name:', self.__map_name)
 
 		self.__expansion_factor = 2.50
 		self.__expanded_polygons = []
@@ -116,8 +117,6 @@ class PolygonMap(object):
 			if polygon.is_point_inside(position):
 				return True
 		return False
-
-
 
 
 	def get_visibility_polygon(self, current_position, current_rotation, num_rays, visibility_angle):

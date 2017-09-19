@@ -30,13 +30,14 @@ def main():
 	# for sqs in squares_list:
 	# 	print(sqs)
 
-	f = open('id_3.polygons', 'w')
+	f = open('id_4.polygons', 'w')
 	f.write(str(width)+', '+str(height) + '\n')
 	for sqs in squares_list:
 		centre = sqs.get_centre()
 		length = sqs.get_length()
 		token = 'square: ' + str(centre[0]) + ', ' + str(centre[1]) + ', ' + str(length) +'\n'
 		f.write(token)
+	f.close()
 
 
 

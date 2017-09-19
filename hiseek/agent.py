@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import copy
 import random
+import math
 
 import percept
 import message
@@ -290,6 +291,85 @@ class PlannerAgent(Agent):
 
 	def clear_temporary_state(self):
 		pass
+
+
+class StochasticBanditAgent(Agent):
+	'''
+		An agent which uses UCB to select strategic points
+	'''
+
+	def __init__(self, agent_type, agent_id, team, map_manager):
+		'''
+			u_cap[i] : Mean emprirical reward associated with each strategic point
+			N[i]: #Time strategic point i has been choosen
+			t: #Total number of time steps/#Total number of choices made
+			UCB[i]: Upper Confidence Bound associated with each strategic point
+			i_t: Currently chosen strategic point
+			x_ti: Immediate reward obtained 
+		'''
+		super(StochasticBanditAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		self.__planner = planner.BasicPlanner(self._map_manager)
+		self.__num_strategic_points = self._map_manager.get_num_strategic_points()
+		self.__u_cap = [0 for i in range(self.__num_strategic_points)]
+		self.__N = [0 for i in range(self.__num_strategic_points)]
+		self.__t = 0
+		self.__UCB = [0 for i in range(self.__num_strategic_points)]
+		self.__in_transit = False
+		self.__alpha = 0.1
+		self.__i_t = None
+		self.__x_ti = None
+		self.__exoloratory_steps = 0
+
+	def __select_path(self):
+		start_coord = self._position
+		goal_coord = self._map_manager.get_strategic_point(self.__i_t)
+		self.__planner.plan(start_coord, goal_coord)
+
+	def __update_ucb_params(self):
+		self.__u_cap[self.__i_t] = self.__u_cap[self.__i_t] + (self.__x_ti - self.__u_cap[self.__i_t])*1.0/(self.__N[self.__i_t] + 1)
+		self.__N[self.__i_t] += 1 
+
+	def __update_ucb(self):
+		for i in range(self.__num_strategic_points):
+			self.__UCB[i] = self.__u_cap[i] + math.sqrt(self.__alpha * math.log(self.__t)/(2*self.__N[i]))
+
+	def __set_strategic_point(self):
+		self.__i_t =  np.argmax(self.__UCB)
+
+	def generate_messages(self):
+		pass
+
+	def analyze_messages(self):
+		pass
+
+	def select_action(self):
+		if not self.__in_transit:
+			if self.__exoloratory_steps == 0:
+				self.__set_strategic_point()
+				self.__select_path()
+				self.__next_state = self.__planner.get_paths_next_coord()
+				if self.__next_state != None:
+					print('!! Path is valid')
+					self.__in_transit = True
+				else:
+					print('!! Path is not valid')
+					self.__in_transit = False
+
+		
+
+	def clear_temporary_state(self):
+		pass
+
+
+class StochasticBanditCommanderAgent(StochasticBanditAgent):
+
+	def __init__(self, agent_type, agent_id, team, map_manager):
+		super(RandomCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
+
+	def get_opening_position(self, rank, idx):
+		return self.__skill.get_opening_position(rank, idx)
+
 
 
 # class FidgetingAgent(Agent):

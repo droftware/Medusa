@@ -245,6 +245,26 @@ class Square(Polygon):
 		else:
 			return False
 
+	def get_mid_edge_points(self, epsilon=0):
+		'''
+			A mid-edge point is defined as a point which lies on the middle of one of the edges of a square. Since a 
+			a square has 4 edges, it will have 4 such mid-edge points
+
+			epsilon: Distance by which a mid-edge point should be distant from the edge
+		'''
+		mid_edge_points = []
+		l2 = self.__length/2 + epsilon
+		factor = [-1,1]
+		for fa in factor:
+			a = self.__centre[0] + l2 * fa
+			b = self.__centre[1]
+			mid_edge_points.append(coord.Coord(a, b))
+			a = self.__centre[0]
+			b = self.centre[1] + l2 * fa
+			mid_edge_points.append(coord.Coord(a, b))
+
+		return mid_edge_points 
+
 	def get_centre(self):
 		return self.__centre
 

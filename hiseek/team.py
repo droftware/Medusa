@@ -230,3 +230,30 @@ class BayesianTeam(Team):
 			for j in range(self.get_num_rankers(i)):
 				position = commander_member.get_opening_position(i, j)
 				self._members[i][j].set_position(position)
+
+
+class StochasticBanditTeam(Team):
+
+	ranks = 2
+
+	def __init__(self, agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta)
+		super(StochasticBanditTeam, self).__init__(agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta)
+
+		# prepare a rank 1 hierarchy member list and map managers
+		self._map_managers = [] # one map manager for one level
+		self._members = [[], []]
+		self._active = [[], []]
+
+		# assign a basic map manager to the only level
+		map_manager = mapmanager.StrategicPointsMapManager(self._mapworld, self._fps, self._velocity)
+		self._map_managers.append(map_manager)
+
+		# recruit the commander of the random team
+		agent_id = 'RH' + str(0)
+		commander_member = agent.StochasticBanditAgent(agent_type, agent_id, self, self._map_managers[0])
+		self._members[1].append(commander_member)
+		self._active[1].append(True)
+
+
+
+

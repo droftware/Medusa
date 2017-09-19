@@ -88,7 +88,7 @@ class Player(pyglet.sprite.Sprite):
 class Graphics(pyglet.window.Window):
 
 	def __init__(self, window_width, window_height, num_hiders, num_seekers, polygon_map, conf_options):
-		super(Graphics, self).__init__(window_width, window_height)
+		super(Graphics, self).__init__(window_width, window_height, caption='Hiseek: Hide and Seek simulation')
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
 		self.__background = pyglet.graphics.OrderedGroup(0)

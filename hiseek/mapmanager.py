@@ -139,7 +139,6 @@ class BasicMapManager(object):
 		return vis_level
 
 
-
 	def get_obstruction_level(self, position):
 		obs_val = self.get_obstruction_value(position)
 		obs_level = -1
@@ -160,4 +159,31 @@ class BasicMapManager(object):
 
 	def get_blockage_value(self, position):
 		return self.__mapworld.check_obstacle_collision(position)
+
+class StrategicPointsMapManager(BasicMapManager):
+
+	def __init__(self, mapworld, fps, velocity, offset = 10, inference_map=True):
+		super(StrategicPointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
+		self.__strategic_points = []
+
+		num_squares = self.__mapworld.get_num_polygons()
+		for i in range(num_squares):
+			square = self.__mapworld.get_polygon(i)
+			mid_edge_points = square.get_mid_edge_points(2)
+			for point in mid_edge_points:
+				if not self.__mapworld.check_obstacle_collision(point):
+					self.__strategic_points.append(point)
+
+		# TO DO: Merge strategic points if they are very close to each other and
+		# there is no obstacle between them
+
+	def get_num_strategic_points(self):
+		return len(self.__strategic_points)
+
+	def get_strategic_point(self, i):
+		return self.__strategic_points[i]
+
+	def get_strategic_points(self):
+		return self.__strategic_points
+
 
