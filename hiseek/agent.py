@@ -55,8 +55,8 @@ class Agent(object):
 			Simulator accepts the chosen action from the agent and updates the
 			current position accordingly
 		'''
-		# if self._position != None:
-		# 	print('Distance moved:', self._position.get_euclidean_distance(coordinate))
+		if self._position != None:
+			print('Distance moved:', self._position.get_euclidean_distance(coordinate))
 		if self._position == self._prev_position:
 			self._stop_counter += 1
 		else:
@@ -312,6 +312,9 @@ class StochasticBanditAgent(Agent):
 		super(StochasticBanditAgent, self).__init__(agent_type, agent_id, team, map_manager)
 		self.__planner = planner.BasicPlanner(self._map_manager)
 		self.__margin = 40
+		self.__num_rows = self._map_manager.get_num_rows()
+		self.__num_cols = self._map_manager.get_num_cols()
+		self.__max_cells_visible = self._map_manager.get_max_cells_visible()
 
 		self.__num_strategic_points = self._map_manager.get_num_strategic_points()
 		print('Total number of strategic points:', self.__num_strategic_points)
@@ -324,6 +327,8 @@ class StochasticBanditAgent(Agent):
 		self.__i_t = None
 		self.__x_ti = -2
 		self.__exoloratory_steps = 0
+
+		self.__micro_UCB = {}
 
 
 	def __update_ucb_params(self):
@@ -404,11 +409,12 @@ class StochasticBanditAgent(Agent):
 		# print('Returning None')
 		return None
 
-	def select_action(self):
+	def __perform_macro_exploration(self):
+		# Perform macro tasks
 		if not self.__in_transit:
 			if self.__exoloratory_steps == 0:
 				self.__t += 1
-				self.__exoloratory_steps = 3
+				self.__exoloratory_steps = 10
 				self.__set_strategic_point()
 				self.__select_path()
 				self.__next_state = self.__planner.get_paths_next_coord()
@@ -432,9 +438,37 @@ class StochasticBanditAgent(Agent):
 				self.__i_t = self._map_manager.get_closest_strategic_point(self._position)
 				self.__x_ti = 5	
 				self.__update_ucb_params()
-				self.__update_ucb()			
+				self.__update_ucb()	
 
-		direction_vec = self.__select_direction()
+		direction_vec = self.__select_direction() 
+		return direction_vec
+
+	def __create_micro_UCB_entry(self, row, col):
+		ucb = []
+		factor = [-1, 0, 1]
+		for i in factor:
+			for j in factor:
+				if i == 0 and j == 0:
+					continue
+				x,y = row + i, col + j
+
+
+
+
+	# def __perform_micro_exploration():
+	# 	row = self._position.get_x()*1.0/self._map_manager.get_num_rows()
+	# 	col = self._position.get_y()*1.0/self._map_manager.get_num_cols()
+	# 	if (row, col) not in self.__micro_UCB:
+	# 		self.__create_micro_UCB_entry(row, col)
+
+
+
+
+	def select_action(self):
+		
+		direction_vec = self.__perform_macro_exploration()
+
+		# print('Seeker position:', str(self._position))
 
 		if direction_vec == None:
 			# print('Direction vec is None')

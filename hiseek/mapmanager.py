@@ -31,6 +31,7 @@ class BasicMapManager(object):
 		self.__obstruction = None
 		self.__obstruction_penta = [0, 0, 0, 0, 0]
 		self.__visibility_penta = [0, 0, 0, 0, 0]
+		self.__max_cells_visible = 0
 
 		if inference_map:
 			map_name = mapworld.get_map_name()
@@ -72,6 +73,9 @@ class BasicMapManager(object):
 
 				np.savetxt(map_name.split('.')[0] + '.visibility',self.__visibility)
 				np.savetxt(map_name.split('.')[0] + '.obstruction', self.__obstruction)
+
+			self.__max_cells_visible = np.amax(self.__visibility)
+			print('Max cells visible:', self.__max_cells_visible)
 
 			self.__obstruction_penta[4] = np.amax(self.__obstruction)
 			self.__obstruction_penta[0] = np.amin(self.__obstruction)
@@ -159,6 +163,15 @@ class BasicMapManager(object):
 
 	def get_blockage_value(self, position):
 		return self.__mapworld.check_obstacle_collision(position)
+
+	def get_num_rows(self):
+		return self.__num_rows
+
+	def get_num_cols(self):
+		return self.__num_cols
+
+	def get_max_cells_visible(self):
+		return self.__max_cells_visible
 
 class StrategicPointsMapManager(BasicMapManager):
 
