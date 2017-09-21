@@ -92,6 +92,10 @@ class PolygonMap(object):
 	def get_boundary_polygon(self):
 		return self.__boundary_polygon
 
+	def get_bbox(self, current_position):
+		bbox = shapes.Square((current_position.get_x(), current_position.get_y()), self.__bbox_length)
+		return bbox
+
 	def get_map_name(self):
 		return self.__map_name
 
@@ -126,7 +130,7 @@ class PolygonMap(object):
 		rotation = current_rotation - visibility_angle
 		offset = (visibility_angle * 2.0)/num_rays
 
-		bbox = shapes.Square((current_position.get_x(), current_position.get_y()), self.__bbox_length)
+		bbox = self.get_bbox(current_position)
 		hits = list(self.__rtree_idx.intersection(bbox.get_rtree_bbox(), objects=True))
 		polygon_hits = [item.object for item in hits]
 
