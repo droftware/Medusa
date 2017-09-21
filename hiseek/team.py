@@ -238,7 +238,7 @@ class StochasticBanditTeam(Team):
 
 	ranks = 1
 
-	def __init__(self, agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta):
+	def __init__(self, agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta, num_rays, visibility_angle):
 		super(StochasticBanditTeam, self).__init__(agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta)
 
 		# prepare a rank 1 hierarchy member list and map managers
@@ -246,13 +246,16 @@ class StochasticBanditTeam(Team):
 		self._members = [[]]
 		self._active = [[]]
 
+		self.__num_rays = num_rays
+		self.__visibility_angle = visibility_angle
+
 		# assign a basic map manager to the only level
 		map_manager = mapmanager.StrategicPointsMapManager(self._mapworld, self._fps, self._velocity)
 		self._map_managers.append(map_manager)
 
 		# recruit the commander of the random team
 		agent_id = 'RH' + str(0)
-		commander_member = agent.StochasticBanditCommanderAgent(agent_type, agent_id, self, self._map_managers[0])
+		commander_member = agent.StochasticBanditCommanderAgent(agent_type, agent_id, self, self._map_managers[0], self.__num_rays, self.__visibility_angle)
 		self._members[0].append(commander_member)
 		self._active[0].append(True)
 
