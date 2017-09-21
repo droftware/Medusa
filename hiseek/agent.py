@@ -300,7 +300,7 @@ class StochasticBanditAgent(Agent):
 		An agent which uses UCB to select strategic points
 	'''
 
-	def __init__(self, agent_type, agent_id, team, map_manager):
+	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
 		'''
 			u_cap[i] : Mean emprirical reward associated with each strategic point
 			N[i]: #Time strategic point i has been choosen
@@ -315,8 +315,12 @@ class StochasticBanditAgent(Agent):
 		self.__num_rows = self._map_manager.get_num_rows()
 		self.__num_cols = self._map_manager.get_num_cols()
 		self.__max_cells_visible = self._map_manager.get_max_cells_visible()
-
+		self.__offset = self._map_manager.get_offset()
+		self.__micro_actions = [action.Action.NW, action.Action.N, action.Action.NE, action.Action.W, action.Action.E, action.Action.SW, action.Action.S, action.Action.SE]
 		self.__num_strategic_points = self._map_manager.get_num_strategic_points()
+		self.__num_rays = num_rays
+		self.__visibility_angle = visibility_angle
+
 		print('Total number of strategic points:', self.__num_strategic_points)
 		self.__u_cap = [0 for i in range(self.__num_strategic_points)]
 		self.__N = [1 for i in range(self.__num_strategic_points)]
@@ -446,11 +450,20 @@ class StochasticBanditAgent(Agent):
 	def __create_micro_UCB_entry(self, row, col):
 		ucb = []
 		factor = [-1, 0, 1]
+		act_idx = 0
 		for i in factor:
 			for j in factor:
 				if i == 0 and j == 0:
 					continue
-				x,y = row + i, col + j
+				x = int((row + i) * self.__offset() - self.__offset/2)
+				y = int((col + j) * self.__offset() - self.__offset/2)
+				postn = coord.Coord(x, y)
+				act = self.__micro_actions[act_idx]
+				act_idx += 1
+				rotn = action.ROTATION[act]
+				vpolygon = self._mapworld.get_visibility_polygon(postn, rotn, num_rays, visibility_angle)
+
+
 
 
 
@@ -486,8 +499,8 @@ class StochasticBanditAgent(Agent):
 
 class StochasticBanditCommanderAgent(StochasticBanditAgent):
 
-	def __init__(self, agent_type, agent_id, team, map_manager):
-		super(StochasticBanditCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager)
+	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
+		super(StochasticBanditCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
 		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
 
 	def get_opening_position(self, rank, idx):
