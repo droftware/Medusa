@@ -309,6 +309,7 @@ class StochasticBanditAgent(Agent):
 		self.__exoloratory_steps = 0
 
 		self.__micro_UCB = {}
+		self.__micro_chosen_cell = None
 
 
 	def generate_messages(self):
@@ -365,7 +366,7 @@ class StochasticBanditAgent(Agent):
 		# Perform macro tasks
 		if not self.__in_transit:
 			if self.__exoloratory_steps == 0:
-				self.__exoloratory_steps = 3
+				self.__exoloratory_steps = 5
 				self.__current_st_point = self.__macro_UCB.select_action()
 				self.__select_path(self.__current_st_point)
 				self.__next_state = self.__planner.get_paths_next_coord()
@@ -398,7 +399,7 @@ class StochasticBanditAgent(Agent):
 		return direction_vec
 
 	def __create_micro_UCB_entry(self, row, col):
-		ucb_entry = []
+		self.__micro_UCB[(row, col)] = ucb.UCB(8)
 		factor = [-1, 0, 1]
 		act_idx = 0
 		for i in factor:
@@ -409,25 +410,30 @@ class StochasticBanditAgent(Agent):
 				y = int((col + j) * self.__offset() - self.__offset/2)
 				postn = coord.Coord(x, y)
 				act = self.__micro_actions[act_idx]
-				act_idx += 1
+				
 				rotn = action.ROTATION[act]
-				vpolygon = self._mapworld.get_visibility_polygon(postn, rotn, num_rays, visibility_angle)
+				vpolygon = self._mapworld.get_visibility_polygon(postn, rotn, self.__num_rays, self.__visibility_angle)
 				common_cells = self.get_nearby_visibility_cells(postn)
 				visible_cells = 0
 				for a, b in common_cells:
 					coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
 					if vpolygon.is_point_inside(coord_obs):
 						visible_cells += 1
-				ucb_entry.append(self.__max_cells_visible * 1.0/ visible_cells)
-				self.__micro_UCB[(i,j)] = ucb
-
-
+				factor = self.__max_cells_visible * 1.0/ visible_cells
+				self.__micro_UCB[(row, col)].set_initial_average(act_idx, factor)
+				act_idx += 1
+				
 
 	# def __perform_micro_exploration():
 	# 	row = self._position.get_x()*1.0/self._map_manager.get_num_rows()
 	# 	col = self._position.get_y()*1.0/self._map_manager.get_num_cols()
-	# 	if (row, col) not in self.__micro_UCB:
+	# 	current_cell = (row, col)
+	# 	if current_cell not in self.__micro_UCB:
 	# 		self.__create_micro_UCB_entry(row, col)
+
+	# 	if self.__micro_chosen_cell != None and current_cell != self.__micro_chosen_cell:
+			
+
 
 
 
