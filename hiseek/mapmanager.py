@@ -35,20 +35,22 @@ class BasicMapManager(object):
 		self.__visibility_penta = [0, 0, 0, 0, 0]
 		self.__max_cells_visible = 0
 
+		map_name = mapworld.get_map_name().split('.')[0]
+		vis_file = map_name + '.visibility'
+		obs_file = map_name + '.obstruction'
+		idx_file = map_name + '.index'
 		if inference_map:
-			map_name = mapworld.get_map_name()
-			vis_file = map_name.split('.')[0] + '.visibility'
-			obs_file = map_name.split('.')[0] + '.obstruction'
-			if os.path.isfile(vis_file) and os.path.isfile(obs_file):
-				print('Loading files', vis_file, obs_file)
+			if os.path.isfile(vis_file) and os.path.isfile(obs_file) and os.path.isfile(idx_file+'.idx'):
+				print('Loading files', vis_file, obs_file, idx_file)
 				self.__visibility = np.loadtxt(vis_file)
 				self.__obstruction = np.loadtxt(obs_file)
+				self.__visibility_idx = rtree.index.Index(idx_file)
 			else:
 				print('Creating inferences XX')
 				self.__visibility = np.zeros((self.__num_rows, self.__num_cols))
 				self.__obstruction = np.zeros((self.__num_rows, self.__num_cols))
-				print('Visibility shape:', self.__visibility.shape)
-				self.__visibility_idx = rtree.index.Index()
+				# print('Visibility shape:', self.__visibility.shape)
+				self.__visibility_idx = rtree.index.Index(idx_file)
 				print('Entered map manager')
 				id_counter = 0 
 				for i in range(self.__num_rows):
@@ -63,8 +65,8 @@ class BasicMapManager(object):
 							x_max = position.get_x() + self.__offset
 							y_max = position.get_y()
 							bound_box = (x_min, y_min, x_max, y_max)
-							print(bound_box)
-							print(type(self.__visibility_idx))
+							# print(bound_box)
+							# print(type(self.__visibility_idx))
 							self.__visibility_idx.insert(id_counter, bound_box, obj=(i, j))
 							id_counter += 1
 
@@ -78,8 +80,8 @@ class BasicMapManager(object):
 						if self.__visibility[i, j] != -1:
 							visibility_polygon = self.get_360_visibility_polygon(coord_vis)
 							bbox = self.__mapworld.get_bbox(coord_vis).get_rtree_bbox()
-							common_boxes = [n.object for n in self.__visibility_idx.intersection(bbox, objects=True)]
-							print('Common boxes for:',i,j, len(common_boxes))
+							common_boxes = [box.object for box in self.__visibility_idx.intersection(bbox, objects=True)]
+							# print('Common boxes for:',i,j, len(common_boxes))
 							for a,b in common_boxes:
 								coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
 								if visibility_polygon.is_point_inside(coord_obs):
@@ -88,6 +90,7 @@ class BasicMapManager(object):
 
 				np.savetxt(map_name.split('.')[0] + '.visibility',self.__visibility)
 				np.savetxt(map_name.split('.')[0] + '.obstruction', self.__obstruction)
+				self.__visibility_idx.close()
 
 			self.__max_cells_visible = np.amax(self.__visibility)
 			print('Max cells visible:', self.__max_cells_visible)
@@ -261,6 +264,12 @@ class StrategicPointsMapManager(BasicMapManager):
 				min_pt = i
 				min_dist = dist
 		return min_pt
+
+	def get_nearby_visibility_cells(self, current_position):
+		bbox = self.__mapworld.get_bbox(current_position).get_rtree_bbox()
+		nearby_cells = [box.object for box in self.__visibility_idx.intersection(bbox, objects=True)]
+		return nearby_cells
+
 
 
 

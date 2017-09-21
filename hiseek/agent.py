@@ -13,6 +13,7 @@ import controller
 import planner
 import vector
 import skill
+import ucb
 
 class AgentType(object):
 	Hider = 0
@@ -55,8 +56,8 @@ class Agent(object):
 			Simulator accepts the chosen action from the agent and updates the
 			current position accordingly
 		'''
-		if self._position != None:
-			print('Distance moved:', self._position.get_euclidean_distance(coordinate))
+		# if self._position != None:
+		# 	print('Distance moved:', self._position.get_euclidean_distance(coordinate))
 		if self._position == self._prev_position:
 			self._stop_counter += 1
 		else:
@@ -322,34 +323,33 @@ class StochasticBanditAgent(Agent):
 		self.__visibility_angle = visibility_angle
 
 		print('Total number of strategic points:', self.__num_strategic_points)
-		self.__u_cap = [0 for i in range(self.__num_strategic_points)]
-		self.__N = [1 for i in range(self.__num_strategic_points)]
-		self.__t = 1
-		self.__UCB = [0 for i in range(self.__num_strategic_points)]
+		self.__macro_UCB = ucb.UCB(self.__num_strategic_points)
+		self.__macro_hider_observed = False
+
+		self.__current_st_point = None
+
 		self.__in_transit = False
-		self.__alpha = 0.1
-		self.__i_t = None
-		self.__x_ti = -2
 		self.__exoloratory_steps = 0
 
 		self.__micro_UCB = {}
 
 
-	def __update_ucb_params(self):
-		print('Updating for strategic point:', self.__i_t)
-		if self.__x_ti < 0:
-			print('Updating with a negative reward:', self.__x_ti)
-		self.__u_cap[self.__i_t] = self.__u_cap[self.__i_t] + (self.__x_ti - self.__u_cap[self.__i_t])*1.0/(self.__N[self.__i_t] + 1)
-		self.__N[self.__i_t] += 1 
-		self.__x_ti = -2
+	# def __update_ucb_params(self):
+	# 	print('Updating for strategic point:', self.__i_t)
+	# 	if self.__x_ti < 0:
+	# 		print('Updating with a negative reward:', self.__x_ti)
+	# 	self.__u_cap[self.__i_t] = self.__u_cap[self.__i_t] + (self.__x_ti - self.__u_cap[self.__i_t])*1.0/(self.__N[self.__i_t] + 1)
+	# 	self.__N[self.__i_t] += 1 
+	# 	self.__x_ti = -2
 
-	def __update_ucb(self):
-		print('After update:')
-		for i in range(self.__num_strategic_points):
-			self.__UCB[i] = self.__u_cap[i] + math.sqrt(self.__alpha * math.log(self.__t)/(2*self.__N[i]))
-			print(i, self.__UCB[i])
-	def __set_strategic_point(self):
-		self.__i_t =  np.argmax(self.__UCB)
+	# def __update_ucb(self):
+	# 	print('After update:')
+	# 	for i in range(self.__num_strategic_points):
+	# 		self.__UCB[i] = self.__u_cap[i] + math.sqrt(self.__alpha * math.log(self.__t)/(2*self.__N[i]))
+	# 		print(i, self.__UCB[i])
+
+	# def __set_strategic_point(self):
+	# 	self.__i_t =  np.argmax(self.__UCB)
 
 	def generate_messages(self):
 		pass
@@ -357,9 +357,9 @@ class StochasticBanditAgent(Agent):
 	def analyze_messages(self):
 		pass
 
-	def __select_path(self):
+	def __select_path(self, strategic_point):
 		start_coord = self._position
-		goal_coord = self._map_manager.get_strategic_point(self.__i_t)
+		goal_coord = self._map_manager.get_strategic_point(strategic_point)
 		self.__planner.plan(start_coord, goal_coord)
 	
 	def __select_closest_action(self, direction_vec):
@@ -409,7 +409,6 @@ class StochasticBanditAgent(Agent):
 				direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
 				direction_vec.normalize()
 				return direction_vec
-
 		# print('Returning None')
 		return None
 
@@ -417,10 +416,11 @@ class StochasticBanditAgent(Agent):
 		# Perform macro tasks
 		if not self.__in_transit:
 			if self.__exoloratory_steps == 0:
-				self.__t += 1
-				self.__exoloratory_steps = 10
-				self.__set_strategic_point()
-				self.__select_path()
+				# self.__t += 1
+				self.__exoloratory_steps = 3
+				# self.__set_strategic_point()
+				self.__current_st_point = self.__macro_UCB.select_action()
+				self.__select_path(self.__current_st_point)
 				self.__next_state = self.__planner.get_paths_next_coord()
 				if self.__next_state != None:
 					print('!! Path is valid')
@@ -432,23 +432,31 @@ class StochasticBanditAgent(Agent):
 				self.__exoloratory_steps -= 1
 				if self._percept.are_hiders_visible():
 					print('Reward updated NOT during transit')
-					self.__x_ti = 5
+					# self.__x_ti = 5
+					self.__macro_hider_observed = True
 				if self.__exoloratory_steps == 0:
-					self.__update_ucb_params()
-					self.__update_ucb()
+					if self.__macro_hider_observed == True:
+						reward = 5
+						self.__macro_hider_observed = False
+					else:
+						reward = -1
+					# self.__update_ucb_params()
+					# self.__update_ucb()
+					self.__macro_UCB.update(self.__current_st_point, reward)
 		if self.__in_transit:
 			if self._percept.are_hiders_visible():
 				print('Reward updated during transit')
-				self.__i_t = self._map_manager.get_closest_strategic_point(self._position)
-				self.__x_ti = 5	
-				self.__update_ucb_params()
-				self.__update_ucb()	
+				closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
+				reward = 5	
+				self.__macro_UCB.update(closest_st_point, reward)
+				# self.__update_ucb_params()
+				# self.__update_ucb()	
 
 		direction_vec = self.__select_direction() 
 		return direction_vec
 
 	def __create_micro_UCB_entry(self, row, col):
-		ucb = []
+		ucb_entry = []
 		factor = [-1, 0, 1]
 		act_idx = 0
 		for i in factor:
@@ -462,6 +470,15 @@ class StochasticBanditAgent(Agent):
 				act_idx += 1
 				rotn = action.ROTATION[act]
 				vpolygon = self._mapworld.get_visibility_polygon(postn, rotn, num_rays, visibility_angle)
+				common_cells = self.get_nearby_visibility_cells(postn)
+				visible_cells = 0
+				for a, b in common_cells:
+					coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
+					if vpolygon.is_point_inside(coord_obs):
+						visible_cells += 1
+				ucb_entry.append(self.__max_cells_visible * 1.0/ visible_cells)
+				self.__micro_UCB[(i,j)] = ucb
+
 
 
 
