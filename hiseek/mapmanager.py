@@ -21,7 +21,7 @@ class BasicMapManager(object):
 									therfore lesser the obstruction
 	'''
 	def __init__(self, mapworld, fps, velocity, offset = 10, inference_map=True):
-		self.__mapworld = mapworld
+		self._mapworld = mapworld
 		self.__offset = offset
 		self.__num_rows = int(math.ceil((mapworld.get_map_width() * 1.0)/offset))
 		self.__num_cols = int(math.ceil((mapworld.get_map_height() * 1.0)/offset))
@@ -30,7 +30,7 @@ class BasicMapManager(object):
 		self.__velocity = velocity
 		self.__visibility = None
 		self.__obstruction = None
-		self.__visibility_idx = None
+		self._visibility_idx = None
 		self.__obstruction_penta = [0, 0, 0, 0, 0]
 		self.__visibility_penta = [0, 0, 0, 0, 0]
 		self.__max_cells_visible = 0
@@ -44,19 +44,19 @@ class BasicMapManager(object):
 				print('Loading files', vis_file, obs_file, idx_file)
 				self.__visibility = np.loadtxt(vis_file)
 				self.__obstruction = np.loadtxt(obs_file)
-				self.__visibility_idx = rtree.index.Index(idx_file)
+				self._visibility_idx = rtree.index.Index(idx_file)
 			else:
 				print('Creating inferences XX')
 				self.__visibility = np.zeros((self.__num_rows, self.__num_cols))
 				self.__obstruction = np.zeros((self.__num_rows, self.__num_cols))
 				# print('Visibility shape:', self.__visibility.shape)
-				self.__visibility_idx = rtree.index.Index(idx_file)
+				self._visibility_idx = rtree.index.Index(idx_file)
 				print('Entered map manager')
 				id_counter = 0 
 				for i in range(self.__num_rows):
 					for j in range(self.__num_cols):
 						position = coord.Coord(i * self.__offset, j * self.__offset)
-						if self.__mapworld.check_obstacle_collision(position):
+						if self._mapworld.check_obstacle_collision(position):
 							self.__visibility[i, j] = -1
 							self.__obstruction[i, j] = -1
 						else:
@@ -66,8 +66,8 @@ class BasicMapManager(object):
 							y_max = position.get_y()
 							bound_box = (x_min, y_min, x_max, y_max)
 							# print(bound_box)
-							# print(type(self.__visibility_idx))
-							self.__visibility_idx.insert(id_counter, bound_box, obj=(i, j))
+							# print(type(self._visibility_idx))
+							self._visibility_idx.insert(id_counter, bound_box, obj=(i, j))
 							id_counter += 1
 
 				# print('Filled all obstacles')
@@ -79,8 +79,8 @@ class BasicMapManager(object):
 						coord_vis = coord.Coord(i * self.__offset, j * self.__offset)
 						if self.__visibility[i, j] != -1:
 							visibility_polygon = self.get_360_visibility_polygon(coord_vis)
-							bbox = self.__mapworld.get_bbox(coord_vis).get_rtree_bbox()
-							common_boxes = [box.object for box in self.__visibility_idx.intersection(bbox, objects=True)]
+							bbox = self._mapworld.get_bbox(coord_vis).get_rtree_bbox()
+							common_boxes = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
 							# print('Common boxes for:',i,j, len(common_boxes))
 							for a,b in common_boxes:
 								coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
@@ -90,7 +90,7 @@ class BasicMapManager(object):
 
 				np.savetxt(map_name.split('.')[0] + '.visibility',self.__visibility)
 				np.savetxt(map_name.split('.')[0] + '.obstruction', self.__obstruction)
-				self.__visibility_idx.close()
+				self._visibility_idx.close()
 
 			self.__max_cells_visible = np.amax(self.__visibility)
 			print('Max cells visible:', self.__max_cells_visible)
@@ -108,10 +108,10 @@ class BasicMapManager(object):
 			self.__visibility_penta[3] = (self.__visibility_penta[2] + self.__visibility_penta[4])/2.
 
 	def get_map(self):
-		return self.__mapworld
+		return self._mapworld
 
 	def get_visibility_polygon(self, current_position, current_rotation, num_rays, visibility_angle):
-		return self.__mapworld.get_visibility_polygon(current_position, current_rotation, num_rays, visibility_angle)
+		return self._mapworld.get_visibility_polygon(current_position, current_rotation, num_rays, visibility_angle)
 
 	def get_360_visibility_polygon(self, position, num_rays=100):
 		return self.get_visibility_polygon(position, 0, num_rays, 180)
@@ -183,7 +183,7 @@ class BasicMapManager(object):
 		return obs_level
 
 	def get_blockage_value(self, position):
-		return self.__mapworld.check_obstacle_collision(position)
+		return self._mapworld.check_obstacle_collision(position)
 
 	def get_num_rows(self):
 		return self.__num_rows
@@ -266,8 +266,8 @@ class StrategicPointsMapManager(BasicMapManager):
 		return min_pt
 
 	def get_nearby_visibility_cells(self, current_position):
-		bbox = self.__mapworld.get_bbox(current_position).get_rtree_bbox()
-		nearby_cells = [box.object for box in self.__visibility_idx.intersection(bbox, objects=True)]
+		bbox = self._mapworld.get_bbox(current_position).get_rtree_bbox()
+		nearby_cells = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
 		return nearby_cells
 
 

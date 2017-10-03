@@ -402,40 +402,38 @@ class StochasticBanditAgent(Agent):
 		self.__micro_UCB[(row, col)] = ucb.UCB(8)
 		factor = [-1, 0, 1]
 		act_idx = 0
+
 		for i in factor:
 			for j in factor:
 				if i == 0 and j == 0:
 					continue
-				x = int((row + i) * self.__offset() - self.__offset/2)
-				y = int((col + j) * self.__offset() - self.__offset/2)
+				x = int((row + i) * self.__offset - self.__offset/2)
+				y = int((col + j) * self.__offset - self.__offset/2)
 				postn = coord.Coord(x, y)
 				act = self.__micro_actions[act_idx]
 				
 				rotn = action.ROTATION[act]
-				vpolygon = self._mapworld.get_visibility_polygon(postn, rotn, self.__num_rays, self.__visibility_angle)
-				common_cells = self.get_nearby_visibility_cells(postn)
+				vpolygon = self._map_manager.get_visibility_polygon(postn, rotn, self.__num_rays, self.__visibility_angle)
+				common_cells = self._map_manager.get_nearby_visibility_cells(postn)
 				visible_cells = 0
 				for a, b in common_cells:
 					coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
 					if vpolygon.is_point_inside(coord_obs):
 						visible_cells += 1
-				factor = self.__max_cells_visible * 1.0/ visible_cells
-				self.__micro_UCB[(row, col)].set_initial_average(act_idx, factor)
+				avg_val = self.__max_cells_visible * 1.0/ visible_cells
+				self.__micro_UCB[(row, col)].set_initial_average(act_idx, avg_val)
 				act_idx += 1
 				
 
-	# def __perform_micro_exploration():
-	# 	row = self._position.get_x()*1.0/self._map_manager.get_num_rows()
-	# 	col = self._position.get_y()*1.0/self._map_manager.get_num_cols()
-	# 	current_cell = (row, col)
-	# 	if current_cell not in self.__micro_UCB:
-	# 		self.__create_micro_UCB_entry(row, col)
+	def __perform_micro_exploration(self):
+		row = self._position.get_x()*1.0/self._map_manager.get_num_rows()
+		col = self._position.get_y()*1.0/self._map_manager.get_num_cols()
+		current_cell = (row, col)
+		if current_cell not in self.__micro_UCB:
+			self.__create_micro_UCB_entry(row, col)
 
-	# 	if self.__micro_chosen_cell != None and current_cell != self.__micro_chosen_cell:
+		# if self.__micro_chosen_cell != None and current_cell != self.__micro_chosen_cell:
 			
-
-
-
 
 
 	def select_action(self):
@@ -446,6 +444,7 @@ class StochasticBanditAgent(Agent):
 
 		if direction_vec == None:
 			# print('Direction vec is None')
+			self.__perform_micro_exploration()
 			self._action = random.choice(action.Action.all_actions)
 		else:
 			if self._stop_counter >= 3:
