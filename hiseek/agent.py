@@ -289,7 +289,8 @@ class StochasticBanditAgent(Agent):
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
 		super(StochasticBanditAgent, self).__init__(agent_type, agent_id, team, map_manager)
 		self.__planner = planner.BasicPlanner(self._map_manager)
-		self.__margin = 40
+		self.__margin = 10
+		self.__short_margin = 10
 		self.__num_rows = self._map_manager.get_num_rows()
 		self.__num_cols = self._map_manager.get_num_cols()
 		self.__max_cells_visible = self._map_manager.get_max_cells_visible()
@@ -305,9 +306,10 @@ class StochasticBanditAgent(Agent):
 
 		self.__current_st_point = None
 
-		self.__in_transit = False
+		self.__in_long_transit = False
 		self.__exploratory_steps = 0
 
+		self.__in_short_transit = False
 		self.__micro_UCB = {}
 		self.__micro_idx2cell = [(-1,-1), (-1,0), (-1,1), (0,-1), (0,1), (1,-1), (1,0), (1,1)]
 		self.__micro_chosen_cell = None
@@ -344,42 +346,53 @@ class StochasticBanditAgent(Agent):
 		return max_action
 
 	def __select_direction(self):
-		if self.__in_transit:
+		if self.__in_long_transit:
 			# Decides wether the next_state needs to change or not
 			if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
-				# print('!! Reached the next state, finding next state ...')
+				# print('!! Reached the next state, finding next state ...', str(self.__next_state))
 				self.__next_state = self.__planner.get_paths_next_coord()
 				if self.__next_state == None:
 					# Agent reached its destination
 
 					# print(' Goal reached !!! , no appropriate Next state')
-					self.__in_transit = False
-
-			# If the next state is vaid, calculate the vector and return
-			if self.__next_state != None:
-				# print(' next state is valid, finding and returning the direction vec ...')
-				direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
-				direction_vec.normalize()
-				return direction_vec
+					self.__in_long_transit = False
 		else:
 			if self.__exploratory_steps > 0:
+				if self.__in_short_transit:
+					print('In state 1:', self._position.get_euclidean_distance(self.__next_state))
+					print('Current position:', str(self._position))
+					print('Action:', self._action)
+					if self._position.get_euclidean_distance(self.__next_state) <= self.__short_margin:
+						print('Setting short transit to False')
+						self.__in_short_transit = False
+
+
+			# If the next state is vaid, calculate the vector and return
+		if self.__next_state != None:
+			# print(' next state is valid, finding and returning the direction vec ...')
+			direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
+			direction_vec.normalize()
+			return direction_vec
+		# else:
+		# 	if self.__exploratory_steps > 0:
 
 		return None
 
 	def __perform_macro_exploration(self):
 		# Perform macro tasks
-		if not self.__in_transit:
+		if not self.__in_long_transit:
 			if self.__exploratory_steps == 0:
 				self.__exploratory_steps = 5
+				self.__in_short_transit = False
 				self.__current_st_point = self.__macro_UCB.select_action()
 				self.__select_path(self.__current_st_point)
 				self.__next_state = self.__planner.get_paths_next_coord()
 				if self.__next_state != None:
 					print('!! Path is valid')
-					self.__in_transit = True
+					self.__in_long_transit = True
 				else:
 					print('!! Path is not valid')
-					self.__in_transit = False
+					self.__in_long_transit = False
 			else:
 				self.__exploratory_steps -= 1
 				if self._percept.are_hiders_visible():
@@ -392,7 +405,7 @@ class StochasticBanditAgent(Agent):
 					else:
 						reward = -1
 					self.__macro_UCB.update(self.__current_st_point, reward)
-		if self.__in_transit:
+		if self.__in_long_transit:
 			if self._percept.are_hiders_visible():
 				print('Reward updated during transit')
 				closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
@@ -403,6 +416,7 @@ class StochasticBanditAgent(Agent):
 		return direction_vec
 
 	def __create_micro_UCB_entry(self, row, col):
+		print('Creating micro UCB for:', row, col)
 		self.__micro_UCB[(row, col)] = ucb.UCB(8)
 		factor = [-1, 0, 1]
 		act_idx = 0
@@ -414,36 +428,56 @@ class StochasticBanditAgent(Agent):
 				x = int((row + i) * self.__offset - self.__offset/2)
 				y = int((col + j) * self.__offset - self.__offset/2)
 				postn = coord.Coord(x, y)
-				act = self.__micro_actions[act_idx]
-				
-				rotn = action.ROTATION[act]
-				vpolygon = self._map_manager.get_visibility_polygon(postn, rotn, self.__num_rays, self.__visibility_angle)
-				common_cells = self._map_manager.get_nearby_visibility_cells(postn)
-				visible_cells = 0
-				for a, b in common_cells:
-					coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
-					if vpolygon.is_point_inside(coord_obs):
-						visible_cells += 1
-				avg_val = self.__max_cells_visible * 1.0/ visible_cells
+				avg_val = 0
+				if self._map_manager.get_blockage_value(postn):
+					avg_val = 0
+				else:
+					act = self.__micro_actions[act_idx]
+					rotn = action.ROTATION[act]
+					vpolygon = self._map_manager.get_visibility_polygon(postn, rotn, self.__num_rays, self.__visibility_angle)
+					common_cells = self._map_manager.get_nearby_visibility_cells(postn)
+					visible_cells = 0
+					for a, b in common_cells:
+						coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
+						if vpolygon.is_point_inside(coord_obs):
+							visible_cells += 1
+					if visible_cells == 0:
+						avg_val = 0
+					else:
+						avg_val = self.__max_cells_visible * 1.0/ visible_cells
+				print('For idx:', act_idx, 'avg value:', avg_val)
 				self.__micro_UCB[(row, col)].set_initial_average(act_idx, avg_val)
 				act_idx += 1
+		self.__micro_UCB[(row, col)].set_initial_bounds()
+		# print('Micro UCB:',row,col,str(self.__micro_UCB[(row, col)]))
 				
 
 	def __perform_micro_exploration(self):
-		if not self.__in_transit:
+		if not self.__in_long_transit:
 			if self.__exploratory_steps > 0:
-				print('Performed')
-				row = self._position.get_x()*1.0/self._map_manager.get_num_rows()
-				col = self._position.get_y()*1.0/self._map_manager.get_num_cols()
-				current_cell = (row, col)
-				if current_cell not in self.__micro_UCB:
-					self.__create_micro_UCB_entry(row, col)
-				chosen_idx = self.__micro_UCB[(row, col)].select_action()
-				a, b = self.__micro_idx2cell[chosen_idx]
-				# self.__micro_chosen_cell = (row + a, col + b)
-				x = int((row + a) * self.__offset - self.__offset/2)
-				y = int((col + b) * self.__offset - self.__offset/2)
-				self.__next_state = coord.Coord(x, y)
+				print('Enter 2')
+				if not self.__in_short_transit:
+					print('Performed 3')
+					row = int(self._position.get_x()/self.__offset)
+					col = int(self._position.get_y()/self.__offset)
+					current_cell = (row, col)
+					if current_cell not in self.__micro_UCB:
+						self.__create_micro_UCB_entry(row, col)
+					print('Micro UCB created:', row, col, str(self.__micro_UCB[(row, col)]))
+					chosen_idx = self.__micro_UCB[(row, col)].select_action()
+					print('Chosen idx:', chosen_idx)
+					a, b = self.__micro_idx2cell[chosen_idx]
+					# self.__micro_chosen_cell = (row + a, col + b)
+					x = int((row + a) * self.__offset - self.__offset/2)
+					y = int((col + b) * self.__offset - self.__offset/2)
+					self.__next_state = coord.Coord(x, y)
+					print('Obstacle Collision:', self._map_manager.get_blockage_value(self.__next_state))
+					print('Row,Col:',row, col)
+					print('a,b:',a,b,'Current position:', str(self._position), 'Next state set:', str(self.__next_state),'Euclidean distance:',self._position.get_euclidean_distance(self.__next_state))
+					self.__in_short_transit = True
+
+		direction_vec = self.__select_direction() 
+		return direction_vec
 
 
 

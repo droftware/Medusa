@@ -22,6 +22,17 @@ class UCB(object):
 		if self.__N[action] == 1:
 			self.__u_cap[action] = average
 
+	def set_initial_bounds(self):
+		flag = True
+		for i in range(self.__num_actions):
+			if self.__N[i] != 1:
+				flag = False
+				break
+		if flag:
+			self.__t = self.__num_actions
+			self.__update_ucb()
+
+
 	def select_action(self):
 		self.__t += 1
 		action =  np.argmax(self.__UCB)
@@ -32,16 +43,18 @@ class UCB(object):
 		self.__update_ucb()
 		
 	def __update_ucb_params(self, action, reward):
-		print('Updating for strategic point:', action)
+		# print('Updating for strategic point:', action)
 		if reward < 0:
 			print('Updating with a negative reward:', reward)
 		self.__u_cap[action] = self.__u_cap[action] + (reward - self.__u_cap[action])*1.0/(self.__N[action] + 1)
 		self.__N[action] += 1 
 
 	def __update_ucb(self):
-		print('After update:')
+		# print('After update:')
 		for i in range(self.__num_actions):
 			self.__UCB[i] = self.__u_cap[i] + math.sqrt(self.__alpha * math.log(self.__t)/(2*self.__N[i]))
-			print(i, self.__UCB[i])
+			# print(i, self.__UCB[i])
 
+	def __str__(self):
+		return str(self.__UCB)
 
