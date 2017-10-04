@@ -306,9 +306,10 @@ class StochasticBanditAgent(Agent):
 		self.__current_st_point = None
 
 		self.__in_transit = False
-		self.__exoloratory_steps = 0
+		self.__exploratory_steps = 0
 
 		self.__micro_UCB = {}
+		self.__micro_idx2cell = [(-1,-1), (-1,0), (-1,1), (0,-1), (0,1), (1,-1), (1,0), (1,1)]
 		self.__micro_chosen_cell = None
 
 
@@ -360,13 +361,16 @@ class StochasticBanditAgent(Agent):
 				direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
 				direction_vec.normalize()
 				return direction_vec
+		else:
+			if self.__exploratory_steps > 0:
+
 		return None
 
 	def __perform_macro_exploration(self):
 		# Perform macro tasks
 		if not self.__in_transit:
-			if self.__exoloratory_steps == 0:
-				self.__exoloratory_steps = 5
+			if self.__exploratory_steps == 0:
+				self.__exploratory_steps = 5
 				self.__current_st_point = self.__macro_UCB.select_action()
 				self.__select_path(self.__current_st_point)
 				self.__next_state = self.__planner.get_paths_next_coord()
@@ -377,11 +381,11 @@ class StochasticBanditAgent(Agent):
 					print('!! Path is not valid')
 					self.__in_transit = False
 			else:
-				self.__exoloratory_steps -= 1
+				self.__exploratory_steps -= 1
 				if self._percept.are_hiders_visible():
 					print('Reward updated NOT during transit')
 					self.__macro_hider_observed = True
-				if self.__exoloratory_steps == 0:
+				if self.__exploratory_steps == 0:
 					if self.__macro_hider_observed == True:
 						reward = 5
 						self.__macro_hider_observed = False
@@ -426,11 +430,23 @@ class StochasticBanditAgent(Agent):
 				
 
 	def __perform_micro_exploration(self):
-		row = self._position.get_x()*1.0/self._map_manager.get_num_rows()
-		col = self._position.get_y()*1.0/self._map_manager.get_num_cols()
-		current_cell = (row, col)
-		if current_cell not in self.__micro_UCB:
-			self.__create_micro_UCB_entry(row, col)
+		if not self.__in_transit:
+			if self.__exploratory_steps > 0:
+				print('Performed')
+				row = self._position.get_x()*1.0/self._map_manager.get_num_rows()
+				col = self._position.get_y()*1.0/self._map_manager.get_num_cols()
+				current_cell = (row, col)
+				if current_cell not in self.__micro_UCB:
+					self.__create_micro_UCB_entry(row, col)
+				chosen_idx = self.__micro_UCB[(row, col)].select_action()
+				a, b = self.__micro_idx2cell[chosen_idx]
+				# self.__micro_chosen_cell = (row + a, col + b)
+				x = int((row + a) * self.__offset - self.__offset/2)
+				y = int((col + b) * self.__offset - self.__offset/2)
+				self.__next_state = coord.Coord(x, y)
+
+
+
 
 		# if self.__micro_chosen_cell != None and current_cell != self.__micro_chosen_cell:
 			
@@ -440,11 +456,14 @@ class StochasticBanditAgent(Agent):
 		
 		direction_vec = self.__perform_macro_exploration()
 
+		if direction_vec == None:
+			print('Performing micro exploration')
+			direction_vec = self.__perform_micro_exploration()
+
 		# print('Seeker position:', str(self._position))
 
 		if direction_vec == None:
 			# print('Direction vec is None')
-			self.__perform_micro_exploration()
 			self._action = random.choice(action.Action.all_actions)
 		else:
 			if self._stop_counter >= 3:
