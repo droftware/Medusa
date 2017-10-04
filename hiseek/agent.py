@@ -290,7 +290,6 @@ class StochasticBanditAgent(Agent):
 		super(StochasticBanditAgent, self).__init__(agent_type, agent_id, team, map_manager)
 		self.__planner = planner.BasicPlanner(self._map_manager)
 		self.__margin = 10
-		self.__short_margin = 10
 		self.__num_rows = self._map_manager.get_num_rows()
 		self.__num_cols = self._map_manager.get_num_cols()
 		self.__max_cells_visible = self._map_manager.get_max_cells_visible()
@@ -308,11 +307,13 @@ class StochasticBanditAgent(Agent):
 
 		self.__in_long_transit = False
 		self.__exploratory_steps = 0
+		self.__MAX_EXPLORATORY_STEPS = 5
 
 		self.__in_short_transit = False
 		self.__micro_UCB = {}
 		self.__micro_idx2cell = [(-1,-1), (-1,0), (-1,1), (0,-1), (0,1), (1,-1), (1,0), (1,1)]
-		self.__micro_chosen_cell = None
+		self.__micro_chosen_idx = None
+		self.__micro_hider_observed = False
 
 
 	def generate_messages(self):
@@ -360,11 +361,12 @@ class StochasticBanditAgent(Agent):
 			if self.__exploratory_steps > 0:
 				if self.__in_short_transit:
 					print('In state 1:', self._position.get_euclidean_distance(self.__next_state))
-					print('Current position:', str(self._position))
-					print('Action:', self._action)
-					if self._position.get_euclidean_distance(self.__next_state) <= self.__short_margin:
+					# print('Current position:', str(self._position))
+					# print('Action:', self._action)
+					if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
 						print('Setting short transit to False')
 						self.__in_short_transit = False
+						self.__next_state = None
 
 
 			# If the next state is vaid, calculate the vector and return
@@ -376,44 +378,53 @@ class StochasticBanditAgent(Agent):
 		# else:
 		# 	if self.__exploratory_steps > 0:
 
-		return None
+	def __initiate_long_transit(self):
+		self.__exploratory_steps = self.__MAX_EXPLORATORY_STEPS
+		self.__in_short_transit = False
+		self.__current_st_point = self.__macro_UCB.select_action()
+		self.__select_path(self.__current_st_point)
+		self.__next_state = self.__planner.get_paths_next_coord()
+		if self.__next_state != None:
+			print('!! Path is valid')
+			self.__in_long_transit = True
+		else:
+			print('!! Path is not valid')
+			self.__in_long_transit = False
 
-	def __perform_macro_exploration(self):
+	def __update_long_transit(self):
+		if self._percept.are_hiders_visible():
+			print('macro_Reward updated during transit')
+			closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
+			macro_reward = 5	
+			self.__macro_UCB.update(closest_st_point, macro_reward)	
+
+	def __update_exploratory_behavior(self):
+		self.__exploratory_steps -= 1
+		if self._percept.are_hiders_visible():
+			print('Reward updated NOT during transit')
+			self.__macro_hider_observed = True
+		if self.__exploratory_steps == 0:
+			if self.__macro_hider_observed == True:
+				macro_reward = 5
+				self.__macro_hider_observed = False
+			else:
+				macro_reward = -1
+			self.__macro_UCB.update(self.__current_st_point, macro_reward)
+
+
+
+	def __update_macro_exploration(self):
 		# Perform macro tasks
+		# print('@ Performing MACRO')
 		if not self.__in_long_transit:
 			if self.__exploratory_steps == 0:
-				self.__exploratory_steps = 5
-				self.__in_short_transit = False
-				self.__current_st_point = self.__macro_UCB.select_action()
-				self.__select_path(self.__current_st_point)
-				self.__next_state = self.__planner.get_paths_next_coord()
-				if self.__next_state != None:
-					print('!! Path is valid')
-					self.__in_long_transit = True
-				else:
-					print('!! Path is not valid')
-					self.__in_long_transit = False
+				self.__initiate_long_transit()
 			else:
-				self.__exploratory_steps -= 1
-				if self._percept.are_hiders_visible():
-					print('Reward updated NOT during transit')
-					self.__macro_hider_observed = True
-				if self.__exploratory_steps == 0:
-					if self.__macro_hider_observed == True:
-						reward = 5
-						self.__macro_hider_observed = False
-					else:
-						reward = -1
-					self.__macro_UCB.update(self.__current_st_point, reward)
+				self.__update_exploratory_behavior()
 		if self.__in_long_transit:
-			if self._percept.are_hiders_visible():
-				print('Reward updated during transit')
-				closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
-				reward = 5	
-				self.__macro_UCB.update(closest_st_point, reward)	
+			self.__update_long_transit()
 
-		direction_vec = self.__select_direction() 
-		return direction_vec
+
 
 	def __create_micro_UCB_entry(self, row, col):
 		print('Creating micro UCB for:', row, col)
@@ -445,54 +456,76 @@ class StochasticBanditAgent(Agent):
 						avg_val = 0
 					else:
 						avg_val = self.__max_cells_visible * 1.0/ visible_cells
-				print('For idx:', act_idx, 'avg value:', avg_val)
+				# print('For idx:', act_idx, 'avg value:', avg_val)
 				self.__micro_UCB[(row, col)].set_initial_average(act_idx, avg_val)
 				act_idx += 1
 		self.__micro_UCB[(row, col)].set_initial_bounds()
 		# print('Micro UCB:',row,col,str(self.__micro_UCB[(row, col)]))
 				
 
-	def __perform_micro_exploration(self):
+	def __create_micro_exploration(self):
+		print('* Performing Micro')
 		if not self.__in_long_transit:
 			if self.__exploratory_steps > 0:
-				print('Enter 2')
 				if not self.__in_short_transit:
-					print('Performed 3')
+					print('Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
 					row = int(self._position.get_x()/self.__offset)
 					col = int(self._position.get_y()/self.__offset)
-					current_cell = (row, col)
-					if current_cell not in self.__micro_UCB:
+					self.__micro_current_cell = (row, col)
+					if self.__micro_current_cell not in self.__micro_UCB:
 						self.__create_micro_UCB_entry(row, col)
-					print('Micro UCB created:', row, col, str(self.__micro_UCB[(row, col)]))
-					chosen_idx = self.__micro_UCB[(row, col)].select_action()
-					print('Chosen idx:', chosen_idx)
-					a, b = self.__micro_idx2cell[chosen_idx]
-					# self.__micro_chosen_cell = (row + a, col + b)
+					# print('Micro UCB created:', row, col, str(self.__micro_UCB[(row, col)]))
+					self.__micro_chosen_idx = self.__micro_UCB[(row, col)].select_action()
+					# print('Chosen idx:', self.__micro_chosen_idx)
+					a, b = self.__micro_idx2cell[self.__micro_chosen_idx]
 					x = int((row + a) * self.__offset - self.__offset/2)
 					y = int((col + b) * self.__offset - self.__offset/2)
 					self.__next_state = coord.Coord(x, y)
-					print('Obstacle Collision:', self._map_manager.get_blockage_value(self.__next_state))
-					print('Row,Col:',row, col)
-					print('a,b:',a,b,'Current position:', str(self._position), 'Next state set:', str(self.__next_state),'Euclidean distance:',self._position.get_euclidean_distance(self.__next_state))
+					# print('Obstacle Collision:', self._map_manager.get_blockage_value(self.__next_state))
+					print('Current position:', str(self._position), 'Next state set:', str(self.__next_state),'Euclidean distance:',self._position.get_euclidean_distance(self.__next_state))
 					self.__in_short_transit = True
+					self.__micro_hider_observed = False
+				
+
 
 		direction_vec = self.__select_direction() 
 		return direction_vec
 
+	def __update_micro_exploration(self):
+		if not self.__in_long_transit:
+			print('E1')
+			if self.__exploratory_steps >= 0:
+				print('E2')
+				if not self.__in_short_transit:
+					print('Short transit ENDS')
+				# 	if self.__exploratory_steps != self.__MAX_EXPLORATORY_STEPS:
+				# 		print('E4')
+				# 		micro_reward = 0
+				# 		if self.__micro_hider_observed:
+				# 			micro_reward = 10
+				# 		else:
+				# 			micro_reward = -5
+				# 		print('Updating micro UCB', self.__micro_current_cell, 'with reward = ', micro_reward)
+				# 		self.__micro_UCB[self.__micro_prev_cell].update(self.__micro_chosen_idx, micro_reward)	
+				if self.__in_short_transit:
+					print('E5')
 
-
-
-		# if self.__micro_chosen_cell != None and current_cell != self.__micro_chosen_cell:
-			
+					if self._percept.are_hiders_visible():
+						print('&&& Short transit hider observed')
+						self.__micro_hider_observed = True
+					else:
+						print('&&& Short transit hider NOT observed')
 
 
 	def select_action(self):
 		
-		direction_vec = self.__perform_macro_exploration()
+		self.__update_macro_exploration()
+		direction_vec = self.__select_direction() 
 
 		if direction_vec == None:
-			print('Performing micro exploration')
-			direction_vec = self.__perform_micro_exploration()
+			direction_vec = self.__create_micro_exploration()
+		
+		self.__update_micro_exploration()
 
 		# print('Seeker position:', str(self._position))
 
