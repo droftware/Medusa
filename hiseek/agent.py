@@ -281,15 +281,16 @@ class PlannerAgent(Agent):
 		pass
 
 
-class SBanditSeekerAgent(Agent):
+class UCBAggressiveAgent(Agent):
 	'''
 		An agent which uses stochastic UCB to select strategic points
 	'''
 
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
-		super(SBanditSeekerAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		super(UCBAggressiveAgent, self).__init__(agent_type, agent_id, team, map_manager)
 		self.__planner = planner.BasicPlanner(self._map_manager)
 		self.__margin = 10
+		self.__next_state = None
 		self.__num_rows = self._map_manager.get_num_rows()
 		self.__num_cols = self._map_manager.get_num_cols()
 		self.__max_cells_visible = self._map_manager.get_max_cells_visible()
@@ -515,14 +516,112 @@ class SBanditSeekerAgent(Agent):
 
 
 
-class SBanditCommanderSeekerAgent(SBanditSeekerAgent):
+class UCBAggressiveCommanderAgent(UCBAggressiveAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
-		super(SBanditCommanderSeekerAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
+		super(UCBAggressiveCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
 		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
 
 	def get_opening_position(self, rank, idx):
 		return self.__skill.get_opening_position(rank, idx)
+
+
+class UCBPassiveAgent(Agent):
+	'''
+		An agent which uses stochastic UCB to select strategic points
+	'''
+
+	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
+		super(UCBPassiveAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		self.__planner = planner.BasicPlanner(self._map_manager)
+		self.__margin = 10
+		self.__next_state = None
+		self.__num_rows = self._map_manager.get_num_rows()
+		self.__num_cols = self._map_manager.get_num_cols()
+		self.__max_cells_visible = self._map_manager.get_max_cells_visible()
+		self.__offset = self._map_manager.get_offset()
+		self.__micro_actions = [action.Action.NW, action.Action.N, action.Action.NE, action.Action.W, action.Action.E, action.Action.SW, action.Action.S, action.Action.SE]
+		self.__num_strategic_points = self._map_manager.get_num_strategic_points()
+		self.__num_rays = num_rays
+		self.__visibility_angle = visibility_angle
+
+		print('Total number of strategic points:', self.__num_strategic_points)
+		self.__macro_UCB = ucb.UCB(self.__num_strategic_points)
+		self.__macro_hider_observed = False
+
+		self.__current_st_point = None
+
+		self.__in_long_transit = False
+		self.__exploratory_steps = 0
+		self.__MAX_EXPLORATORY_STEPS = 5
+
+	def generate_messages(self):
+		pass
+
+	def analyze_messages(self):
+		pass
+
+	def __select_closest_action(self, direction_vec):
+		max_cos_prod = -1 * float('inf')
+		max_action = 0
+		# print('*** Selecting action')
+		for i in range(action.Action.num_actions):
+			if i == action.Action.ST:
+				continue
+			action_vec = action.VECTOR[i]
+			action_vec.normalize()
+			direction_vec.normalize()
+			cos_prod = direction_vec.dot_product(action_vec)
+			
+			if cos_prod >= max_cos_prod:
+				# print('Changing min')
+				max_cos_prod = cos_prod
+				max_action = i
+		# print('Action choosen:', action.Action.action2string[max_action])
+		return max_action
+
+
+	def __select_direction(self):
+		# If the next state is vaid, calculate the vector and return
+		if self.__next_state != None:
+			# print(' next state is valid, finding and returning the direction vec ...')
+			direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
+			direction_vec.normalize()
+			return direction_vec
+		
+		return None
+
+	def __update_exploration(self):
+		pass
+
+	def select_action(self):
+		
+		self.__update_exploration()
+		direction_vec = self.__select_direction() 
+
+		if direction_vec == None:
+			print('@ Direction vec is None, action chosen randomly')
+			self._action = random.choice(action.Action.all_actions)
+		else:
+			if self._stop_counter >= 3:
+				print('@ Agent got stuck, action chosen randomly')
+				self._action = random.choice(action.Action.all_actions)
+			else:
+				self._action = self.__select_closest_action(direction_vec)
+
+	def clear_temporary_state(self):
+		pass
+
+class UCBPassiveCommanderAgent(UCBPassiveAgent):
+
+	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
+		super(UCBPassiveCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
+		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
+
+	def get_opening_position(self, rank, idx):
+		return self.__skill.get_opening_position(rank, idx)
+
+
 
 
 
