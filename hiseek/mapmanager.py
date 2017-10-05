@@ -265,15 +265,22 @@ class StrategicPointsMapManager(BasicMapManager):
 	def get_strategic_points(self):
 		return self.__strategic_points
 
-	def get_closest_strategic_point(self, point):
-		min_pt = 0
-		min_dist = float("Inf")
-		for i in range(self.__num_strategic_points):
-			st_pt = self.__strategic_points[i] 
-			dist = point.get_euclidean_distance(st_pt)
-			if dist < min_dist:
-				min_pt = i
-				min_dist = dist
+	def get_closest_strategic_point(self, point, num_points = 1):
+		cx = point.get_x()
+		cy = point.get_y()
+		bound_box = (cx, cy, cx, cy)
+		closest_st_pts = list(self.__strategic_pts_idx.nearest(bound_box, num_points))
+		print('Closest points:', closest_st_pts)
+		if len(closest_st_pts) != num_points:
+			closest_st_pts = list(np.random.choice(closest_st_pts, num_points, replace=False))
+		return closest_st_pts
+
+		# for i in range(self.__num_strategic_points):
+		# 	st_pt = self.__strategic_points[i] 
+		# 	dist = point.get_euclidean_distance(st_pt)
+		# 	if dist < min_dist:
+		# 		min_pt = i
+		# 		min_dist = dist
 		return min_pt
 
 	def get_nearby_visibility_cells(self, current_position):
