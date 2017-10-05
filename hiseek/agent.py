@@ -363,72 +363,73 @@ class UCBAggressiveAgent(Agent):
 		self.__current_st_point = self.__macro_UCB.select_action()
 		self.__select_path(self.__current_st_point)
 		self.__next_state = self.__planner.get_paths_next_coord()
-		print('* Starting Long transit from:', str(self._position))
-		print('* Next state:', str(self.__next_state))
+		# print('* Starting Long transit from:', str(self._position))
+		# print('* Next state:', str(self.__next_state))
 		if self.__next_state != None:
-			print('* long transits path is valid')
+			# print('* long transits path is valid')
 			self.__in_long_transit = True
 		else:
-			print('* long transits path is NOT valid')
+			# print('* long transits path is NOT valid')
 			self.__in_long_transit = False
 
 	def __update_long_transit(self):
 		if self._percept.are_hiders_visible():
 			closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
+			closest_st_point = closest_st_point[0]
 			macro_reward = 10
 			self.__macro_UCB.update(closest_st_point, macro_reward)	
-			print('* Hider visible during long transit')
-			print('* Updating macro UCB for st pt:', closest_st_point)
+			# print('* Hider visible during long transit')
+			# print('* Updating macro UCB for st pt:', closest_st_point)
 
 				# Decides wether the next_state needs to change or not
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
 			self.__next_state = self.__planner.get_paths_next_coord()
-			print('* State reached, changing to next state:', str(self.__next_state))
+			# print('* State reached, changing to next state:', str(self.__next_state))
 			if self.__next_state == None:
 				# Agent reached its destination
-				print('* Long transit completed')
+				# print('* Long transit completed')
 				self.__in_long_transit = False
 
 	def __update_short_transit(self):
 		self.__exploratory_steps -= 1
 		if self._percept.are_hiders_visible():
-			print('# Hider visible during short transit')
+			# print('# Hider visible during short transit')
 			self.__macro_hider_observed = True
 			self.__micro_hider_observed = True
 		if self.__exploratory_steps == 0:
-			print('* Long transit completed')
+			# print('* Long transit completed')
 			if self.__macro_hider_observed == True:
 				macro_reward = 10
-				print('* Since hider was observed, macro reward:', macro_reward)
+				# print('* Since hider was observed, macro reward:', macro_reward)
 				self.__macro_hider_observed = False
 			else:
 				macro_reward = -5
-				print('* Since hider was NOT observed, macro reward:', macro_reward)
+				# print('* Since hider was NOT observed, macro reward:', macro_reward)
 
-			print('* Updating macro UCB for st pt:', self.__current_st_point)
+			# print('* Updating macro UCB for st pt:', self.__current_st_point)
 			self.__macro_UCB.update(self.__current_st_point, macro_reward)
 
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
-			print('# Short transit completed')
+			# print('# Short transit completed')
 			self.__in_short_transit = False
 			self.__next_state = None
 
 			if self.__micro_hider_observed == True:
 				micro_reward = 10
 				self.__micro_hider_observed = False
-				print('# Since hider was observed, micro reward:', micro_reward)
+				# print('# Since hider was observed, micro reward:', micro_reward)
 			else:
 				micro_reward = -5
-				print('# Since hider was NOT observed, micro reward:', micro_reward)
-			print('# Updating micro UCB for cell:', self.__micro_current_cell, 'for chosen idx:', self.__micro_chosen_idx)
-			print()
+				# print('# Since hider was NOT observed, micro reward:', micro_reward)
+			# print('# Updating micro UCB for cell:', self.__micro_current_cell, 'for chosen idx:', self.__micro_chosen_idx)
+			# print()
 			self.__micro_UCB[self.__micro_current_cell].update(self.__micro_chosen_idx, micro_reward)
 
 
 	def __initiate_short_transit(self):
 		self.__exploratory_steps -= 1
 		print()
-		print('# Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
+		# print('# Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
 		self.__micro_current_cell = self._map_manager.get_cell_from_coord(self._position)
 		if self.__micro_current_cell not in self.__micro_UCB:
 			self.__create_micro_UCB_entry(self.__micro_current_cell)
@@ -438,7 +439,7 @@ class UCBAggressiveAgent(Agent):
 		y = int((self.__micro_current_cell[1] + b) * self.__offset - self.__offset/2)
 		self.__next_state = coord.Coord(x, y)
 		# print('Obstacle Collision:', self._map_manager.get_blockage_value(self.__next_state))
-		print('# Next state set:', str(self.__next_state),'Euclidean distance:',self._position.get_euclidean_distance(self.__next_state))
+		# print('# Next state set:', str(self.__next_state),'Euclidean distance:',self._position.get_euclidean_distance(self.__next_state))
 		self.__in_short_transit = True
 		self.__micro_hider_observed = False
 
@@ -460,7 +461,7 @@ class UCBAggressiveAgent(Agent):
 	def __create_micro_UCB_entry(self, cell):
 		row = cell[0]
 		col = cell[1]
-		print('# Creating micro UCB for:', row, col)
+		# print('# Creating micro UCB for:', row, col)
 		self.__micro_UCB[(row, col)] = ucb.UCB(8)
 		factor = [-1, 0, 1]
 		act_idx = 0
@@ -486,9 +487,8 @@ class UCBAggressiveAgent(Agent):
 						if vpolygon.is_point_inside(coord_obs):
 							visible_cells += 1
 					if visible_cells == 0:
-						avg_val = 0
-					else:
-						avg_val = self.__max_cells_visible * 1.0/ visible_cells
+						visible_cells = 1
+					avg_val = self.__max_cells_visible * 1.0/ visible_cells
 				# print('For idx:', act_idx, 'avg value:', avg_val)
 				self.__micro_UCB[(row, col)].set_initial_average(act_idx, avg_val)
 				act_idx += 1
@@ -502,11 +502,11 @@ class UCBAggressiveAgent(Agent):
 		direction_vec = self.__select_direction() 
 
 		if direction_vec == None:
-			print('@ Direction vec is None, action chosen randomly')
+			# print('@ Direction vec is None, action chosen randomly')
 			self._action = random.choice(action.Action.all_actions)
 		else:
 			if self._stop_counter >= 3:
-				print('@ Agent got stuck, action chosen randomly')
+				# print('@ Agent got stuck, action chosen randomly')
 				self._action = random.choice(action.Action.all_actions)
 			else:
 				self._action = self.__select_closest_action(direction_vec)
@@ -544,15 +544,28 @@ class UCBPassiveAgent(Agent):
 		self.__num_rays = num_rays
 		self.__visibility_angle = visibility_angle
 
-		print('Total number of strategic points:', self.__num_strategic_points)
 		self.__macro_UCB = ucb.UCB(self.__num_strategic_points)
-		self.__macro_hider_observed = False
+		self.__macro_seeker_observed = False
+
+		for i in range(self.__num_strategic_points):
+			strategic_point = self._map_manager.get_strategic_point(i)
+			vpolygon = self._map_manager.get_360_visibility_polygon(strategic_point, self.__num_rays)
+			common_cells = self._map_manager.get_nearby_visibility_cells(strategic_point)
+			visible_cells = 0
+			for a, b in common_cells:
+				coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
+				if vpolygon.is_point_inside(coord_obs):
+					visible_cells += 1
+			if visible_cells == 0:
+				visible_cells = 1
+			avg_val = self.__max_cells_visible * 1.0/ visible_cells
+			self.__macro_UCB.set_initial_average(i, avg_val)
 
 		self.__current_st_point = None
 
 		self.__in_long_transit = False
-		self.__exploratory_steps = 0
-		self.__MAX_EXPLORATORY_STEPS = 5
+		self.__waiting_steps = 0
+		self.__MAX_WAITING_STEPS = 15
 
 	def generate_messages(self):
 		pass
@@ -599,11 +612,11 @@ class UCBPassiveAgent(Agent):
 		direction_vec = self.__select_direction() 
 
 		if direction_vec == None:
-			print('@ Direction vec is None, action chosen randomly')
+			# print('@ Direction vec is None, action chosen randomly')
 			self._action = random.choice(action.Action.all_actions)
 		else:
 			if self._stop_counter >= 3:
-				print('@ Agent got stuck, action chosen randomly')
+				# print('@ Agent got stuck, action chosen randomly')
 				self._action = random.choice(action.Action.all_actions)
 			else:
 				self._action = self.__select_closest_action(direction_vec)
