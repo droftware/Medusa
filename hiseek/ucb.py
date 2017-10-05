@@ -37,12 +37,12 @@ class UCB(object):
 
 	def select_action(self):
 		self.__t += 1
-		print('UCB:', self.__UCB)
+		# print('UCB:', self.__UCB)
 		actions =  np.argwhere(self.__UCB == np.amax(self.__UCB))
 		actions = actions.flatten()
-		print('Max actions:', actions)
+		# print('Max actions:', actions)
 		action = np.random.choice(actions)
-		print('Action picked:', action)
+		# print('Action picked:', action)
 		return action
 
 	def update(self, action, reward):
