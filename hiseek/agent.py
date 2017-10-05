@@ -540,7 +540,6 @@ class UCBPassiveAgent(Agent):
 		self.__num_cols = self._map_manager.get_num_cols()
 		self.__max_cells_visible = self._map_manager.get_max_cells_visible()
 		self.__offset = self._map_manager.get_offset()
-		self.__micro_actions = [action.Action.NW, action.Action.N, action.Action.NE, action.Action.W, action.Action.E, action.Action.SW, action.Action.S, action.Action.SE]
 		self.__num_strategic_points = self._map_manager.get_num_strategic_points()
 		self.__num_rays = num_rays
 		self.__visibility_angle = visibility_angle

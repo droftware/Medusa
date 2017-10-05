@@ -214,6 +214,7 @@ class StrategicPointsMapManager(BasicMapManager):
 		all_strtg_pts = []
 		self.__strategic_points = []
 		self.__threshold = 50
+		self.__strategic_pts_idx = rtree.index.Index()
 
 		num_squares = mapworld.get_num_polygons()
 		for i in range(num_squares):
@@ -237,16 +238,20 @@ class StrategicPointsMapManager(BasicMapManager):
 					# print(i,j, dist)
 					deletion_idxs.append(j)
 
+		j = 0
 		for i in range(num_all_pts):
 			if i not in deletion_idxs:
+				print(j,'St pt', str(all_strtg_pts[i]))
 				self.__strategic_points.append(all_strtg_pts[i])
+				cx = all_strtg_pts[i].get_x()
+				cy = all_strtg_pts[i].get_y()
+				bound_box = (cx, cy, cx, cy)
+				self.__strategic_pts_idx.insert(j, bound_box, obj=j)
+				j += 1
 
 
 		self.__num_strategic_points = len(self.__strategic_points)
-
-
-
-
+		print('Number of strategic points:', self.__num_strategic_points)
 
 		# TO DO: Merge strategic points if they are very close to each other and
 		# there is no obstacle between them
