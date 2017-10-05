@@ -307,7 +307,7 @@ class StochasticBanditAgent(Agent):
 
 		self.__in_long_transit = False
 		self.__exploratory_steps = 0
-		self.__MAX_EXPLORATORY_STEPS = 5
+		self.__MAX_EXPLORATORY_STEPS = 20
 
 		self.__in_short_transit = False
 		self.__micro_UCB = {}
@@ -393,6 +393,7 @@ class StochasticBanditAgent(Agent):
 		if self._percept.are_hiders_visible():
 			print('Reward updated NOT during transit')
 			self.__macro_hider_observed = True
+			self.__micro_hider_observed = True
 		if self.__exploratory_steps == 0:
 			if self.__macro_hider_observed == True:
 				macro_reward = 5
@@ -405,6 +406,14 @@ class StochasticBanditAgent(Agent):
 			print('Setting short transit to False')
 			self.__in_short_transit = False
 			self.__next_state = None
+
+			if self.__micro_hider_observed == True:
+				micro_reward = 10
+				self.__micro_hider_observed = False
+			else:
+				micro_reward = -5
+			self.__micro_UCB[self.__micro_current_cell].update(self.__micro_chosen_idx, micro_reward)
+
 
 	def __initiate_short_transit(self):
 		print('Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
@@ -433,7 +442,6 @@ class StochasticBanditAgent(Agent):
 					self.__update_short_transit()
 		if self.__in_long_transit:
 			self.__update_long_transit()
-
 
 
 	def __create_micro_UCB_entry(self, cell):
@@ -475,40 +483,10 @@ class StochasticBanditAgent(Agent):
 		# print('Micro UCB:',row,col,str(self.__micro_UCB[(row, col)]))
 				
 
-	def __update_micro_exploration(self):
-		if not self.__in_long_transit:
-			print('E1')
-			if self.__exploratory_steps >= 0:
-				print('E2')
-				if not self.__in_short_transit:
-					print('Short transit ENDS')
-				# 	if self.__exploratory_steps != self.__MAX_EXPLORATORY_STEPS:
-				# 		print('E4')
-				# 		micro_reward = 0
-				# 		if self.__micro_hider_observed:
-				# 			micro_reward = 10
-				# 		else:
-				# 			micro_reward = -5
-				# 		print('Updating micro UCB', self.__micro_current_cell, 'with reward = ', micro_reward)
-				# 		self.__micro_UCB[self.__micro_prev_cell].update(self.__micro_chosen_idx, micro_reward)	
-				if self.__in_short_transit:
-					print('E5')
-
-					if self._percept.are_hiders_visible():
-						print('&&& Short transit hider observed')
-						self.__micro_hider_observed = True
-					else:
-						print('&&& Short transit hider NOT observed')
-
-
 	def select_action(self):
 		
 		self.__update_exploration()
 		direction_vec = self.__select_direction() 
-		
-		# self.__update_micro_exploration()
-
-		# print('Seeker position:', str(self._position))
 
 		if direction_vec == None:
 			# print('Direction vec is None')
