@@ -281,13 +281,13 @@ class PlannerAgent(Agent):
 		pass
 
 
-class StochasticBanditAgent(Agent):
+class SBanditSeekerAgent(Agent):
 	'''
-		An agent which uses UCB to select strategic points
+		An agent which uses stochastic UCB to select strategic points
 	'''
 
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
-		super(StochasticBanditAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		super(SBanditSeekerAgent, self).__init__(agent_type, agent_id, team, map_manager)
 		self.__planner = planner.BasicPlanner(self._map_manager)
 		self.__margin = 10
 		self.__num_rows = self._map_manager.get_num_rows()
@@ -378,7 +378,6 @@ class StochasticBanditAgent(Agent):
 			self.__macro_UCB.update(closest_st_point, macro_reward)	
 			print('* Hider visible during long transit')
 			print('* Updating macro UCB for st pt:', closest_st_point)
-			print('********** Macro UCB:', str(self.__macro_UCB))
 
 				# Decides wether the next_state needs to change or not
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
@@ -516,10 +515,10 @@ class StochasticBanditAgent(Agent):
 
 
 
-class StochasticBanditCommanderAgent(StochasticBanditAgent):
+class SBanditCommanderSeekerAgent(SBanditSeekerAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
-		super(StochasticBanditCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
+		super(SBanditCommanderSeekerAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
 		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
 
 	def get_opening_position(self, rank, idx):
