@@ -29,6 +29,7 @@ class Vector2D(object):
 			Makes the length of the vector to 1
 		'''
 		mag = self.get_magnitude()
+		assert(mag != 0)
 		self.__x = self.__x * 1.0 / mag
 		self.__y = self.__y * 1.0 / mag
 		self.__magnitude = 1.0

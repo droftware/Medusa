@@ -398,7 +398,7 @@ class StochasticBanditAgent(Agent):
 			macro_reward = 5	
 			self.__macro_UCB.update(closest_st_point, macro_reward)	
 
-	def __update_exploratory_behavior(self):
+	def __update_short_transit(self):
 		self.__exploratory_steps -= 1
 		if self._percept.are_hiders_visible():
 			print('Reward updated NOT during transit')
@@ -411,22 +411,41 @@ class StochasticBanditAgent(Agent):
 				macro_reward = -1
 			self.__macro_UCB.update(self.__current_st_point, macro_reward)
 
+	def __initiate_short_transit(self):
+		print('Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
+		self.__micro_current_cell = self._map_manager.get_cell_from_coord(self._position)
+		if self.__micro_current_cell not in self.__micro_UCB:
+			self.__create_micro_UCB_entry(self.__micro_current_cell)
+		self.__micro_chosen_idx = self.__micro_UCB[self.__micro_current_cell].select_action()
+		a, b = self.__micro_idx2cell[self.__micro_chosen_idx]
+		x = int((self.__micro_current_cell[0] + a) * self.__offset - self.__offset/2)
+		y = int((self.__micro_current_cell[1] + b) * self.__offset - self.__offset/2)
+		self.__next_state = coord.Coord(x, y)
+		# print('Obstacle Collision:', self._map_manager.get_blockage_value(self.__next_state))
+		print('Current position:', str(self._position), 'Next state set:', str(self.__next_state),'Euclidean distance:',self._position.get_euclidean_distance(self.__next_state))
+		self.__in_short_transit = True
+		self.__micro_hider_observed = False
 
 
-	def __update_macro_exploration(self):
+	def __update_exploration(self):
 		# Perform macro tasks
 		# print('@ Performing MACRO')
 		if not self.__in_long_transit:
 			if self.__exploratory_steps == 0:
 				self.__initiate_long_transit()
 			else:
-				self.__update_exploratory_behavior()
+				if not self.__in_short_transit:
+					self.__initiate_short_transit()
+				else:
+					self.__update_short_transit()
 		if self.__in_long_transit:
 			self.__update_long_transit()
 
 
 
-	def __create_micro_UCB_entry(self, row, col):
+	def __create_micro_UCB_entry(self, cell):
+		row = cell[0]
+		col = cell[1]
 		print('Creating micro UCB for:', row, col)
 		self.__micro_UCB[(row, col)] = ucb.UCB(8)
 		factor = [-1, 0, 1]
@@ -463,34 +482,6 @@ class StochasticBanditAgent(Agent):
 		# print('Micro UCB:',row,col,str(self.__micro_UCB[(row, col)]))
 				
 
-	def __create_micro_exploration(self):
-		print('* Performing Micro')
-		if not self.__in_long_transit:
-			if self.__exploratory_steps > 0:
-				if not self.__in_short_transit:
-					print('Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
-					row = int(self._position.get_x()/self.__offset)
-					col = int(self._position.get_y()/self.__offset)
-					self.__micro_current_cell = (row, col)
-					if self.__micro_current_cell not in self.__micro_UCB:
-						self.__create_micro_UCB_entry(row, col)
-					# print('Micro UCB created:', row, col, str(self.__micro_UCB[(row, col)]))
-					self.__micro_chosen_idx = self.__micro_UCB[(row, col)].select_action()
-					# print('Chosen idx:', self.__micro_chosen_idx)
-					a, b = self.__micro_idx2cell[self.__micro_chosen_idx]
-					x = int((row + a) * self.__offset - self.__offset/2)
-					y = int((col + b) * self.__offset - self.__offset/2)
-					self.__next_state = coord.Coord(x, y)
-					# print('Obstacle Collision:', self._map_manager.get_blockage_value(self.__next_state))
-					print('Current position:', str(self._position), 'Next state set:', str(self.__next_state),'Euclidean distance:',self._position.get_euclidean_distance(self.__next_state))
-					self.__in_short_transit = True
-					self.__micro_hider_observed = False
-				
-
-
-		direction_vec = self.__select_direction() 
-		return direction_vec
-
 	def __update_micro_exploration(self):
 		if not self.__in_long_transit:
 			print('E1')
@@ -519,13 +510,10 @@ class StochasticBanditAgent(Agent):
 
 	def select_action(self):
 		
-		self.__update_macro_exploration()
+		self.__update_exploration()
 		direction_vec = self.__select_direction() 
-
-		if direction_vec == None:
-			direction_vec = self.__create_micro_exploration()
 		
-		self.__update_micro_exploration()
+		# self.__update_micro_exploration()
 
 		# print('Seeker position:', str(self._position))
 

@@ -197,6 +197,12 @@ class BasicMapManager(object):
 	def get_offset(self):
 		return self.__offset
 
+	def get_cell_from_coord(self, postn):
+		row = int(postn.get_x()/self.__offset)
+		col = int(postn.get_y()/self.__offset)
+		return (row, col)
+
+
 class StrategicPointsMapManager(BasicMapManager):
 
 	def __init__(self, mapworld, fps, velocity, offset = 10, inference_map=True):
