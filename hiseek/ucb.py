@@ -1,4 +1,5 @@
 import math
+import time
 
 import numpy as np
 
@@ -11,6 +12,7 @@ class UCB(object):
 			t: #Total number of time steps/#Total number of choices made
 			UCB[i]: Upper Confidence Bound associated with each strategic point
 		'''
+		np.random.seed(int(time.time()))
 		self.__num_actions = num_actions
 		self.__u_cap = [0 for i in range(self.__num_actions)]
 		self.__N = [1 for i in range(self.__num_actions)]
@@ -35,7 +37,12 @@ class UCB(object):
 
 	def select_action(self):
 		self.__t += 1
-		action =  np.argmax(self.__UCB)
+		print('UCB:', self.__UCB)
+		actions =  np.argwhere(self.__UCB == np.amax(self.__UCB))
+		actions = actions.flatten()
+		print('Max actions:', actions)
+		action = np.random.choice(actions)
+		print('Action picked:', action)
 		return action
 
 	def update(self, action, reward):
