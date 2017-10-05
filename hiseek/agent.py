@@ -307,7 +307,7 @@ class StochasticBanditAgent(Agent):
 
 		self.__in_long_transit = False
 		self.__exploratory_steps = 0
-		self.__MAX_EXPLORATORY_STEPS = 20
+		self.__MAX_EXPLORATORY_STEPS = 5
 
 		self.__in_short_transit = False
 		self.__micro_UCB = {}
@@ -374,10 +374,11 @@ class StochasticBanditAgent(Agent):
 	def __update_long_transit(self):
 		if self._percept.are_hiders_visible():
 			closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
-			macro_reward = 5	
+			macro_reward = 10
 			self.__macro_UCB.update(closest_st_point, macro_reward)	
 			print('* Hider visible during long transit')
 			print('* Updating macro UCB for st pt:', closest_st_point)
+			print('********** Macro UCB:', str(self.__macro_UCB))
 
 				# Decides wether the next_state needs to change or not
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
@@ -397,11 +398,11 @@ class StochasticBanditAgent(Agent):
 		if self.__exploratory_steps == 0:
 			print('* Long transit completed')
 			if self.__macro_hider_observed == True:
-				macro_reward = 5
+				macro_reward = 10
 				print('* Since hider was observed, macro reward:', macro_reward)
 				self.__macro_hider_observed = False
 			else:
-				macro_reward = -1
+				macro_reward = -5
 				print('* Since hider was NOT observed, macro reward:', macro_reward)
 
 			print('* Updating macro UCB for st pt:', self.__current_st_point)
