@@ -44,8 +44,8 @@ class UCB(object):
 		
 	def __update_ucb_params(self, action, reward):
 		# print('Updating for strategic point:', action)
-		if reward < 0:
-			print('Updating with a negative reward:', reward)
+		# if reward < 0:
+			# print('Updating with a negative reward:', reward)
 		self.__u_cap[action] = self.__u_cap[action] + (reward - self.__u_cap[action])*1.0/(self.__N[action] + 1)
 		self.__N[action] += 1 
 

@@ -356,67 +356,78 @@ class StochasticBanditAgent(Agent):
 		
 		return None
 
-
 	def __initiate_long_transit(self):
 		self.__exploratory_steps = self.__MAX_EXPLORATORY_STEPS
 		self.__in_short_transit = False
 		self.__current_st_point = self.__macro_UCB.select_action()
 		self.__select_path(self.__current_st_point)
 		self.__next_state = self.__planner.get_paths_next_coord()
+		print('* Starting Long transit from:', str(self._position))
+		print('* Next state:', str(self.__next_state))
 		if self.__next_state != None:
-			print('!! Path is valid')
+			print('* long transits path is valid')
 			self.__in_long_transit = True
 		else:
-			print('!! Path is not valid')
+			print('* long transits path is NOT valid')
 			self.__in_long_transit = False
 
 	def __update_long_transit(self):
 		if self._percept.are_hiders_visible():
-			print('macro_Reward updated during transit')
 			closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
 			macro_reward = 5	
 			self.__macro_UCB.update(closest_st_point, macro_reward)	
+			print('* Hider visible during long transit')
+			print('* Updating macro UCB for st pt:', closest_st_point)
 
 				# Decides wether the next_state needs to change or not
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
-			# print('!! Reached the next state, finding next state ...', str(self.__next_state))
 			self.__next_state = self.__planner.get_paths_next_coord()
+			print('* State reached, changing to next state:', str(self.__next_state))
 			if self.__next_state == None:
 				# Agent reached its destination
-				# print(' Goal reached !!! , no appropriate Next state')
+				print('* Long transit completed')
 				self.__in_long_transit = False
 
 	def __update_short_transit(self):
-		print('In state 1:', self._position.get_euclidean_distance(self.__next_state))
-
 		self.__exploratory_steps -= 1
 		if self._percept.are_hiders_visible():
-			print('Reward updated NOT during transit')
+			print('# Hider visible during short transit')
 			self.__macro_hider_observed = True
 			self.__micro_hider_observed = True
 		if self.__exploratory_steps == 0:
+			print('* Long transit completed')
 			if self.__macro_hider_observed == True:
 				macro_reward = 5
+				print('* Since hider was observed, macro reward:', macro_reward)
 				self.__macro_hider_observed = False
 			else:
 				macro_reward = -1
+				print('* Since hider was NOT observed, macro reward:', macro_reward)
+
+			print('* Updating macro UCB for st pt:', self.__current_st_point)
 			self.__macro_UCB.update(self.__current_st_point, macro_reward)
 
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
-			print('Setting short transit to False')
+			print('# Short transit completed')
 			self.__in_short_transit = False
 			self.__next_state = None
 
 			if self.__micro_hider_observed == True:
 				micro_reward = 10
 				self.__micro_hider_observed = False
+				print('# Since hider was observed, micro reward:', micro_reward)
 			else:
 				micro_reward = -5
+				print('# Since hider was NOT observed, micro reward:', micro_reward)
+			print('# Updating micro UCB for cell:', self.__micro_current_cell, 'for chosen idx:', self.__micro_chosen_idx)
+			print()
 			self.__micro_UCB[self.__micro_current_cell].update(self.__micro_chosen_idx, micro_reward)
 
 
 	def __initiate_short_transit(self):
-		print('Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
+		self.__exploratory_steps -= 1
+		print()
+		print('# Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
 		self.__micro_current_cell = self._map_manager.get_cell_from_coord(self._position)
 		if self.__micro_current_cell not in self.__micro_UCB:
 			self.__create_micro_UCB_entry(self.__micro_current_cell)
@@ -426,12 +437,13 @@ class StochasticBanditAgent(Agent):
 		y = int((self.__micro_current_cell[1] + b) * self.__offset - self.__offset/2)
 		self.__next_state = coord.Coord(x, y)
 		# print('Obstacle Collision:', self._map_manager.get_blockage_value(self.__next_state))
-		print('Current position:', str(self._position), 'Next state set:', str(self.__next_state),'Euclidean distance:',self._position.get_euclidean_distance(self.__next_state))
+		print('# Next state set:', str(self.__next_state),'Euclidean distance:',self._position.get_euclidean_distance(self.__next_state))
 		self.__in_short_transit = True
 		self.__micro_hider_observed = False
 
 
 	def __update_exploration(self):
+		# print('$$ Exploratory steps:', self.__exploratory_steps)
 		if not self.__in_long_transit:
 			if self.__exploratory_steps == 0:
 				self.__initiate_long_transit()
@@ -447,7 +459,7 @@ class StochasticBanditAgent(Agent):
 	def __create_micro_UCB_entry(self, cell):
 		row = cell[0]
 		col = cell[1]
-		print('Creating micro UCB for:', row, col)
+		print('# Creating micro UCB for:', row, col)
 		self.__micro_UCB[(row, col)] = ucb.UCB(8)
 		factor = [-1, 0, 1]
 		act_idx = 0
@@ -489,10 +501,11 @@ class StochasticBanditAgent(Agent):
 		direction_vec = self.__select_direction() 
 
 		if direction_vec == None:
-			# print('Direction vec is None')
+			print('@ Direction vec is None, action chosen randomly')
 			self._action = random.choice(action.Action.all_actions)
 		else:
 			if self._stop_counter >= 3:
+				print('@ Agent got stuck, action chosen randomly')
 				self._action = random.choice(action.Action.all_actions)
 			else:
 				self._action = self.__select_closest_action(direction_vec)
