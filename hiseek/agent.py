@@ -347,36 +347,15 @@ class StochasticBanditAgent(Agent):
 		return max_action
 
 	def __select_direction(self):
-		if self.__in_long_transit:
-			# Decides wether the next_state needs to change or not
-			if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
-				# print('!! Reached the next state, finding next state ...', str(self.__next_state))
-				self.__next_state = self.__planner.get_paths_next_coord()
-				if self.__next_state == None:
-					# Agent reached its destination
-
-					# print(' Goal reached !!! , no appropriate Next state')
-					self.__in_long_transit = False
-		else:
-			if self.__exploratory_steps > 0:
-				if self.__in_short_transit:
-					print('In state 1:', self._position.get_euclidean_distance(self.__next_state))
-					# print('Current position:', str(self._position))
-					# print('Action:', self._action)
-					if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
-						print('Setting short transit to False')
-						self.__in_short_transit = False
-						self.__next_state = None
-
-
-			# If the next state is vaid, calculate the vector and return
+		# If the next state is vaid, calculate the vector and return
 		if self.__next_state != None:
 			# print(' next state is valid, finding and returning the direction vec ...')
 			direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
 			direction_vec.normalize()
 			return direction_vec
-		# else:
-		# 	if self.__exploratory_steps > 0:
+		
+		return None
+
 
 	def __initiate_long_transit(self):
 		self.__exploratory_steps = self.__MAX_EXPLORATORY_STEPS
@@ -398,7 +377,18 @@ class StochasticBanditAgent(Agent):
 			macro_reward = 5	
 			self.__macro_UCB.update(closest_st_point, macro_reward)	
 
+				# Decides wether the next_state needs to change or not
+		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
+			# print('!! Reached the next state, finding next state ...', str(self.__next_state))
+			self.__next_state = self.__planner.get_paths_next_coord()
+			if self.__next_state == None:
+				# Agent reached its destination
+				# print(' Goal reached !!! , no appropriate Next state')
+				self.__in_long_transit = False
+
 	def __update_short_transit(self):
+		print('In state 1:', self._position.get_euclidean_distance(self.__next_state))
+
 		self.__exploratory_steps -= 1
 		if self._percept.are_hiders_visible():
 			print('Reward updated NOT during transit')
@@ -410,6 +400,11 @@ class StochasticBanditAgent(Agent):
 			else:
 				macro_reward = -1
 			self.__macro_UCB.update(self.__current_st_point, macro_reward)
+
+		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
+			print('Setting short transit to False')
+			self.__in_short_transit = False
+			self.__next_state = None
 
 	def __initiate_short_transit(self):
 		print('Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
@@ -428,8 +423,6 @@ class StochasticBanditAgent(Agent):
 
 
 	def __update_exploration(self):
-		# Perform macro tasks
-		# print('@ Performing MACRO')
 		if not self.__in_long_transit:
 			if self.__exploratory_steps == 0:
 				self.__initiate_long_transit()
