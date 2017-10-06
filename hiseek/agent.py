@@ -300,7 +300,7 @@ class UCBAggressiveAgent(Agent):
 		self.__num_rays = num_rays
 		self.__visibility_angle = visibility_angle
 
-		print('Total number of strategic points:', self.__num_strategic_points)
+		# print('Total number of strategic points:', self.__num_strategic_points)
 		self.__macro_UCB = ucb.UCB(self.__num_strategic_points)
 		self.__macro_hider_observed = False
 
@@ -428,7 +428,7 @@ class UCBAggressiveAgent(Agent):
 
 	def __initiate_short_transit(self):
 		self.__exploratory_steps -= 1
-		print()
+		# print()
 		# print('# Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
 		self.__micro_current_cell = self._map_manager.get_cell_from_coord(self._position)
 		if self.__micro_current_cell not in self.__micro_UCB:
@@ -560,10 +560,12 @@ class UCBPassiveAgent(Agent):
 				visible_cells = 1
 			avg_val = self.__max_cells_visible * 1.0/ visible_cells
 			self.__macro_UCB.set_initial_average(i, avg_val)
+		self.__macro_UCB.set_initial_bounds()
+		print('Hider macro UCB:', str(self.__macro_UCB))
 
 		self.__current_st_point = None
 
-		self.__in_long_transit = False
+		self.__in_transit = False
 		self.__waiting_steps = 0
 		self.__MAX_WAITING_STEPS = 15
 
@@ -603,8 +605,48 @@ class UCBPassiveAgent(Agent):
 		
 		return None
 
+	def __initiate_transit(self):
+		self.__in_transit = False
+		self.__waiting_steps = self.__MAX_WAITING_STEPS
+		self.__current_st_point = self.__macro_UCB.select_action()
+		self.__next_state = self._map_manager.get_strategic_point(self.__current_st_point)
+
+	def __update_transit(self):
+		if self._percept.are_seeker_visible():
+			closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
+			closest_st_point = closest_st_point[0]
+			macro_reward = -10
+			self.__macro_UCB.update(closest_st_point, macro_reward)	
+
+				# Decides wether the next_state needs to change or not
+		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
+			self.__in_transit = False
+
+	def __update_waiting(self):
+		self.__waiting_steps -= 1
+		if self.__transit_trigger_condition():
+			if self.__waiting_steps == 0:
+				macro_reward = -5
+			elif self._percept.are_seekers_visible():
+				macro_reward = -10
+			self.__macro_UCB.update(self.__current_st_point, macro_reward)
+			self.__in_transit = True
+
+	def __transit_trigger_condition(self):
+		if self.__waiting_steps == 0 or self._percept.are_seekers_visible():
+			return True
+		else:
+			return False
+
 	def __update_exploration(self):
-		pass
+		# print('$$ Exploratory steps:', self.__exploratory_steps)
+		if not self.__in_transit:
+			if self.__waiting_steps > 0:
+				self.__update_waiting()
+			if self.__transit_trigger_condition():
+				self.__initiate_transit()
+		if self.__in_transit:
+			self.__update_long_transit()
 
 	def select_action(self):
 		
