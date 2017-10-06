@@ -509,6 +509,7 @@ class Simulator(object):
 		# update the time
 		# print('dt:', dt)
 		self.__total_time += dt
+		
 
 		# extract percept from simulation layer and send to AI layer
 		self.__transfer_hider_percepts()

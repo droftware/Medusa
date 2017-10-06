@@ -553,6 +553,11 @@ class UCBPassiveAgent(Agent):
 	def analyze_messages(self):
 		pass
 
+	def __select_path(self, strategic_point):
+		start_coord = self._position
+		goal_coord = self._map_manager.get_strategic_point(strategic_point)
+		self.__planner.plan(start_coord, goal_coord)
+
 	def __select_closest_action(self, direction_vec):
 		max_cos_prod = -1 * float('inf')
 		max_action = 0
@@ -587,7 +592,6 @@ class UCBPassiveAgent(Agent):
 	def __initiate_transit(self):
 		print()
 		print('* Initiating transit')
-		self.__in_transit = True
 		self.__waiting_steps = self.__MAX_WAITING_STEPS
 		possible_strategic_points = self._map_manager.get_closest_strategic_point(self._position, self.__ST_CONSIDERATION + 1)
 		# print('Strategic points under consideration:', possible_strategic_points)
@@ -597,7 +601,17 @@ class UCBPassiveAgent(Agent):
 		print('Current strategic point:', self.__current_st_point)
 		self.__current_st_point = self.__macro_UCB.get_greatest_actions(1, possible_strategic_points)[0]
 		print('New strategic point:', self.__current_st_point)
-		self.__next_state = self._map_manager.get_strategic_point(self.__current_st_point)
+
+		self.__select_path(self.__current_st_point)
+		self.__next_state = self.__planner.get_paths_next_coord()
+		# print('* Starting Long transit from:', str(self._position))
+		# print('* Next state:', str(self.__next_state))
+		if self.__next_state != None:
+			# print('* long transits path is valid')
+			self.__in_transit = True
+		else:
+			# print('* long transits path is NOT valid')
+			self.__in_transit = False
 		print('* Current state', str(self._position),'Next state:', str(self.__next_state))
 
 	def __update_transit(self):
@@ -614,7 +628,12 @@ class UCBPassiveAgent(Agent):
 				# Decides wether the next_state needs to change or not
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
 			print('* Reached target ')
-			self.__in_transit = False
+			self.__next_state = self.__planner.get_paths_next_coord()
+			if self.__next_state == None:
+				# Agent reached its destination
+				# print('* Long transit completed')
+				self.__in_transit = False
+
 
 	def __update_waiting(self):
 		print('* Waiting...(update)')
