@@ -34,8 +34,22 @@ class UCB(object):
 			self.__t = self.__num_actions
 			self.__update_ucb()
 
+	def get_greatest_actions(self, num_actions=1, consideration=None):
+		'''
+			consideration: List of actions which should be considered during maximum UCB selection
+							, if None, all the actions are considered
+		'''
+		considered_actions = []
+		if consideration != None:
+			considered_actions = consideration
+		else:
+			considered_actions = range(self.__num_actions)
+		greatest_arms = sorted(considered_actions, key=lambda k: self.__UCB[k], reverse=True)
+		greatest_arms = greatest_arms[0:num_actions]
+		return greatest_arms
 
-	def select_action(self):
+	def select_action(self, consideration = None):
+
 		self.__t += 1
 		# print('UCB:', self.__UCB)
 		actions =  np.argwhere(self.__UCB == np.amax(self.__UCB))

@@ -241,7 +241,7 @@ class StrategicPointsMapManager(BasicMapManager):
 		j = 0
 		for i in range(num_all_pts):
 			if i not in deletion_idxs:
-				print(j,'St pt', str(all_strtg_pts[i]))
+				# print(j,'St pt', str(all_strtg_pts[i]))
 				self.__strategic_points.append(all_strtg_pts[i])
 				cx = all_strtg_pts[i].get_x()
 				cy = all_strtg_pts[i].get_y()
@@ -251,7 +251,7 @@ class StrategicPointsMapManager(BasicMapManager):
 
 
 		self.__num_strategic_points = len(self.__strategic_points)
-		print('Number of strategic points:', self.__num_strategic_points)
+		# print('Number of strategic points:', self.__num_strategic_points)
 
 		# TO DO: Merge strategic points if they are very close to each other and
 		# there is no obstacle between them
@@ -270,7 +270,7 @@ class StrategicPointsMapManager(BasicMapManager):
 		cy = point.get_y()
 		bound_box = (cx, cy, cx, cy)
 		closest_st_pts = list(self.__strategic_pts_idx.nearest(bound_box, num_points))
-		print('Closest points:', closest_st_pts)
+		# print('Closest points:', closest_st_pts)
 		if len(closest_st_pts) != num_points:
 			closest_st_pts = list(np.random.choice(closest_st_pts, num_points, replace=False))
 		return closest_st_pts

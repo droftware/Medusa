@@ -1,8 +1,9 @@
 from abc import ABCMeta, abstractmethod
-
 import random
 
 import coord
+
+import numpy as np
 
 class Skill(object):
 
@@ -56,11 +57,12 @@ class RandomOpeningSkill(Skill):
 						found_position = True
 
 class UCBOpeningSkill(Skill):
-	def __init__(self, agent_type, team, map_manager, macro_UCB):
+	def __init__(self, agent_type, team, map_manager, macro_UCB, randomOpening=False):
 		super(UCBOpeningSkill, self).__init__(agent_type, team, map_manager)
 		self.__macro_UCB = macro_UCB
 		self.__opening_positions = {}
 		self.__openings_created = False
+		self.__randomOpening = randomOpening
 
 
 	def get_opening_position(self, rank, idx):
@@ -77,7 +79,10 @@ class UCBOpeningSkill(Skill):
 		num_agents = self._team.get_num_agents()
 		num_strategic_points = self._map_manager.get_num_strategic_points()
 		if num_agents <= num_strategic_points:
-			opening_points = self.__macro_UCB.get_greatest_actions(num_agents)
+			if self.__randomOpening:
+				opening_points = np.random.choice(num_strategic_points, num_agents, replace=False)
+			else:
+				opening_points = self.__macro_UCB.get_greatest_actions(num_agents)
 		else:
 			opening_points = np.random.choice(num_strategic_points, num_agents)
 		st_idx = 0
@@ -86,6 +91,6 @@ class UCBOpeningSkill(Skill):
 					strategic_point = opening_points[st_idx]
 					position = self._map_manager.get_strategic_point(strategic_point)
 					self.__opening_positions[(i, j)] = position
-					print('Opening position:', str(position))
+					# print('Opening position:', str(position))
 					st_idx += 1
 					

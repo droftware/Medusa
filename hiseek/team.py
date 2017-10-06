@@ -310,7 +310,7 @@ class UCBPassiveTeam(Team):
 			avg_val = max_cells_visible * 1.0/ visible_cells
 			macro_UCB.set_initial_average(i, avg_val)
 		macro_UCB.set_initial_bounds()
-		print('Hider macro UCB:', str(macro_UCB))
+		# print('Hider macro UCB:', str(macro_UCB))
 
 		# recruit the commander of the random team
 		agent_id = 'RH' + str(0)

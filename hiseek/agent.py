@@ -544,7 +544,8 @@ class UCBPassiveAgent(Agent):
 
 		self.__in_transit = False
 		self.__waiting_steps = 0
-		self.__MAX_WAITING_STEPS = 30
+		self.__MAX_WAITING_STEPS = 10
+		self.__ST_CONSIDERATION = 4 #Nearest st pts to consider during UCB st point selection
 
 	def generate_messages(self):
 		pass
@@ -575,44 +576,61 @@ class UCBPassiveAgent(Agent):
 		# If the next state is vaid, calculate the vector and return
 		if self._position != self.__next_state and self.__next_state != None:
 			# print(' next state is valid, finding and returning the direction vec ...')
-			print('Next state:', str(self.__next_state), 'Current position:', str(self._position))
+			# print('Next state:', str(self.__next_state), 'Current position:', str(self._position))
 			direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
-			print('Direction vec:', str(direction_vec))
+			# print('Direction vec:', str(direction_vec))
 			direction_vec.normalize()
 			return direction_vec
 		
 		return None
 
 	def __initiate_transit(self):
-		print('initiating transit')
+		print()
+		print('* Initiating transit')
 		self.__in_transit = True
 		self.__waiting_steps = self.__MAX_WAITING_STEPS
-		self.__current_st_point = self.__macro_UCB.select_action()
+		possible_strategic_points = self._map_manager.get_closest_strategic_point(self._position, self.__ST_CONSIDERATION + 1)
+		# print('Strategic points under consideration:', possible_strategic_points)
+		if self.__current_st_point in possible_strategic_points:
+			possible_strategic_points.remove(self.__current_st_point)
+		print('Strategic points after elimination', possible_strategic_points)
+		print('Current strategic point:', self.__current_st_point)
+		self.__current_st_point = self.__macro_UCB.get_greatest_actions(1, possible_strategic_points)[0]
+		print('New strategic point:', self.__current_st_point)
 		self.__next_state = self._map_manager.get_strategic_point(self.__current_st_point)
-		print('Next state:', str(self.__next_state))
+		print('* Current state', str(self._position),'Next state:', str(self.__next_state))
 
 	def __update_transit(self):
-		print('Entered update transit')
+		print('* Update transit, current position:', str(self._position),'final destination:', str(self.__next_state))
 		if self._percept.are_seekers_visible():
-			print('Seekers are visible')
 			closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
 			closest_st_point = closest_st_point[0]
-			macro_reward = -10
-			self.__macro_UCB.update(closest_st_point, macro_reward)	
+			macro_reward = -20
+			self.__macro_UCB.update(closest_st_point, macro_reward)
+			print('* Seekers are visible updating st pt', closest_st_point,' with reward:', macro_reward)
+			print('* UCB Status:', str(self.__macro_UCB))
+
 
 				# Decides wether the next_state needs to change or not
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
-			print('Reached target ')
+			print('* Reached target ')
 			self.__in_transit = False
 
 	def __update_waiting(self):
+		print('* Waiting...(update)')
 		self.__waiting_steps -= 1
 		if self.__transit_trigger_condition():
 			if self._percept.are_seekers_visible():
-				macro_reward = -10
+				macro_reward = -20
+				print('* Seeker visible, macro reward:', macro_reward)
+
 			elif self.__waiting_steps == 0:
-				macro_reward = -5
+				macro_reward = -10
+				print('* Waiting steps ended, since no seeker visible, updating UCB at', self.__current_st_point ,'with reward:', macro_reward)
+			print('Updating macro UCB for st point:', self.__current_st_point)
 			self.__macro_UCB.update(self.__current_st_point, macro_reward)
+			print('* UCB Status:', str(self.__macro_UCB))
+
 			self.__in_transit = True
 
 	def __transit_trigger_condition(self):
@@ -622,20 +640,18 @@ class UCBPassiveAgent(Agent):
 			return False
 
 	def __update_exploration(self):
-		# print('$$ Exploratory steps:', self.__exploratory_steps)
+		print('$$ Waiting steps:', self.__waiting_steps)
 		if not self.__in_transit:
-			print('Not in transit')
 			if self.__waiting_steps > 0:
 				self.__update_waiting()
 			if self.__transit_trigger_condition():
 				self.__initiate_transit()
-		if self.__in_transit:
+		elif self.__in_transit:
 			self.__update_transit()
 
 	def select_action(self):
 		
 		self.__update_exploration()
-		print('*Next state:', str(self.__next_state))
 		direction_vec = self.__select_direction() 
 
 
@@ -660,7 +676,7 @@ class UCBPassiveCommanderAgent(UCBPassiveAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager, macro_UCB, num_rays, visibility_angle):
 		super(UCBPassiveCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, macro_UCB, num_rays, visibility_angle)
-		self.__skill = skill.UCBOpeningSkill(agent_type, team, map_manager, macro_UCB)
+		self.__skill = skill.UCBOpeningSkill(agent_type, team, map_manager, macro_UCB, randomOpening=True)
 
 	def get_opening_position(self, rank, idx):
 		return self.__skill.get_opening_position(rank, idx)
