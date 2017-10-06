@@ -597,10 +597,10 @@ class UCBPassiveAgent(Agent):
 		# print('Strategic points under consideration:', possible_strategic_points)
 		if self.__current_st_point in possible_strategic_points:
 			possible_strategic_points.remove(self.__current_st_point)
-		print('Strategic points after elimination', possible_strategic_points)
-		print('Current strategic point:', self.__current_st_point)
+		# print('Strategic points after elimination', possible_strategic_points)
+		# print('Current strategic point:', self.__current_st_point)
 		self.__current_st_point = self.__macro_UCB.get_greatest_actions(1, possible_strategic_points)[0]
-		print('New strategic point:', self.__current_st_point)
+		# print('New strategic point:', self.__current_st_point)
 
 		self.__select_path(self.__current_st_point)
 		self.__next_state = self.__planner.get_paths_next_coord()
@@ -615,7 +615,7 @@ class UCBPassiveAgent(Agent):
 		print('* Current state', str(self._position),'Next state:', str(self.__next_state))
 
 	def __update_transit(self):
-		print('* Update transit, current position:', str(self._position),'final destination:', str(self.__next_state))
+		print('* Update transit, current position:', str(self._position))
 		if self._percept.are_seekers_visible():
 			closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
 			closest_st_point = closest_st_point[0]
@@ -646,11 +646,9 @@ class UCBPassiveAgent(Agent):
 			elif self.__waiting_steps == 0:
 				macro_reward = -10
 				print('* Waiting steps ended, since no seeker visible, updating UCB at', self.__current_st_point ,'with reward:', macro_reward)
-			print('Updating macro UCB for st point:', self.__current_st_point)
+			print('* Updating macro UCB for st point:', self.__current_st_point)
 			self.__macro_UCB.update(self.__current_st_point, macro_reward)
 			print('* UCB Status:', str(self.__macro_UCB))
-
-			self.__in_transit = True
 
 	def __transit_trigger_condition(self):
 		if self.__waiting_steps == 0 or self._percept.are_seekers_visible():
@@ -661,10 +659,10 @@ class UCBPassiveAgent(Agent):
 	def __update_exploration(self):
 		print('$$ Waiting steps:', self.__waiting_steps)
 		if not self.__in_transit:
-			if self.__waiting_steps > 0:
-				self.__update_waiting()
 			if self.__transit_trigger_condition():
 				self.__initiate_transit()
+			elif self.__waiting_steps > 0:
+				self.__update_waiting()
 		elif self.__in_transit:
 			self.__update_transit()
 
