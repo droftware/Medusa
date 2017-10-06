@@ -349,7 +349,7 @@ class UCBAggressiveAgent(Agent):
 
 	def __select_direction(self):
 		# If the next state is vaid, calculate the vector and return
-		if self.__next_state != None:
+		if self._position != self.__next_state and self.__next_state != None:
 			# print(' next state is valid, finding and returning the direction vec ...')
 			direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
 			direction_vec.normalize()
@@ -531,43 +531,20 @@ class UCBPassiveAgent(Agent):
 		An agent which uses stochastic UCB to select strategic points
 	'''
 
-	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
+	def __init__(self, agent_type, agent_id, team, map_manager, macro_UCB, num_rays, visibility_angle):
 		super(UCBPassiveAgent, self).__init__(agent_type, agent_id, team, map_manager)
 		self.__planner = planner.BasicPlanner(self._map_manager)
 		self.__margin = 10
 		self.__next_state = None
-		self.__num_rows = self._map_manager.get_num_rows()
-		self.__num_cols = self._map_manager.get_num_cols()
-		self.__max_cells_visible = self._map_manager.get_max_cells_visible()
-		self.__offset = self._map_manager.get_offset()
-		self.__num_strategic_points = self._map_manager.get_num_strategic_points()
-		self.__num_rays = num_rays
-		self.__visibility_angle = visibility_angle
 
-		self.__macro_UCB = ucb.UCB(self.__num_strategic_points)
+		self.__macro_UCB = macro_UCB
 		self.__macro_seeker_observed = False
-
-		for i in range(self.__num_strategic_points):
-			strategic_point = self._map_manager.get_strategic_point(i)
-			vpolygon = self._map_manager.get_360_visibility_polygon(strategic_point, self.__num_rays)
-			common_cells = self._map_manager.get_nearby_visibility_cells(strategic_point)
-			visible_cells = 0
-			for a, b in common_cells:
-				coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
-				if vpolygon.is_point_inside(coord_obs):
-					visible_cells += 1
-			if visible_cells == 0:
-				visible_cells = 1
-			avg_val = self.__max_cells_visible * 1.0/ visible_cells
-			self.__macro_UCB.set_initial_average(i, avg_val)
-		self.__macro_UCB.set_initial_bounds()
-		print('Hider macro UCB:', str(self.__macro_UCB))
 
 		self.__current_st_point = None
 
 		self.__in_transit = False
 		self.__waiting_steps = 0
-		self.__MAX_WAITING_STEPS = 15
+		self.__MAX_WAITING_STEPS = 30
 
 	def generate_messages(self):
 		pass
@@ -594,25 +571,30 @@ class UCBPassiveAgent(Agent):
 		# print('Action choosen:', action.Action.action2string[max_action])
 		return max_action
 
-
 	def __select_direction(self):
 		# If the next state is vaid, calculate the vector and return
-		if self.__next_state != None:
+		if self._position != self.__next_state and self.__next_state != None:
 			# print(' next state is valid, finding and returning the direction vec ...')
+			print('Next state:', str(self.__next_state), 'Current position:', str(self._position))
 			direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
+			print('Direction vec:', str(direction_vec))
 			direction_vec.normalize()
 			return direction_vec
 		
 		return None
 
 	def __initiate_transit(self):
-		self.__in_transit = False
+		print('initiating transit')
+		self.__in_transit = True
 		self.__waiting_steps = self.__MAX_WAITING_STEPS
 		self.__current_st_point = self.__macro_UCB.select_action()
 		self.__next_state = self._map_manager.get_strategic_point(self.__current_st_point)
+		print('Next state:', str(self.__next_state))
 
 	def __update_transit(self):
-		if self._percept.are_seeker_visible():
+		print('Entered update transit')
+		if self._percept.are_seekers_visible():
+			print('Seekers are visible')
 			closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
 			closest_st_point = closest_st_point[0]
 			macro_reward = -10
@@ -620,15 +602,16 @@ class UCBPassiveAgent(Agent):
 
 				# Decides wether the next_state needs to change or not
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
+			print('Reached target ')
 			self.__in_transit = False
 
 	def __update_waiting(self):
 		self.__waiting_steps -= 1
 		if self.__transit_trigger_condition():
-			if self.__waiting_steps == 0:
-				macro_reward = -5
-			elif self._percept.are_seekers_visible():
+			if self._percept.are_seekers_visible():
 				macro_reward = -10
+			elif self.__waiting_steps == 0:
+				macro_reward = -5
 			self.__macro_UCB.update(self.__current_st_point, macro_reward)
 			self.__in_transit = True
 
@@ -641,21 +624,28 @@ class UCBPassiveAgent(Agent):
 	def __update_exploration(self):
 		# print('$$ Exploratory steps:', self.__exploratory_steps)
 		if not self.__in_transit:
+			print('Not in transit')
 			if self.__waiting_steps > 0:
 				self.__update_waiting()
 			if self.__transit_trigger_condition():
 				self.__initiate_transit()
 		if self.__in_transit:
-			self.__update_long_transit()
+			self.__update_transit()
 
 	def select_action(self):
 		
 		self.__update_exploration()
+		print('*Next state:', str(self.__next_state))
 		direction_vec = self.__select_direction() 
+
 
 		if direction_vec == None:
 			# print('@ Direction vec is None, action chosen randomly')
 			self._action = random.choice(action.Action.all_actions)
+			# if self._position != self.__next_state:
+				# self._action = random.choice(action.Action.all_actions)
+			# else:
+				# self.action = action.Action.ST
 		else:
 			if self._stop_counter >= 3:
 				# print('@ Agent got stuck, action chosen randomly')
@@ -668,9 +658,9 @@ class UCBPassiveAgent(Agent):
 
 class UCBPassiveCommanderAgent(UCBPassiveAgent):
 
-	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
-		super(UCBPassiveCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
-		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
+	def __init__(self, agent_type, agent_id, team, map_manager, macro_UCB, num_rays, visibility_angle):
+		super(UCBPassiveCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, macro_UCB, num_rays, visibility_angle)
+		self.__skill = skill.UCBOpeningSkill(agent_type, team, map_manager, macro_UCB)
 
 	def get_opening_position(self, rank, idx):
 		return self.__skill.get_opening_position(rank, idx)

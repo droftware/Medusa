@@ -54,3 +54,38 @@ class RandomOpeningSkill(Skill):
 					if not self.__check_within_obstacle(position) and not self.__check_already_occupied(position):
 						self.__opening_positions[(i, j)] = position
 						found_position = True
+
+class UCBOpeningSkill(Skill):
+	def __init__(self, agent_type, team, map_manager, macro_UCB):
+		super(UCBOpeningSkill, self).__init__(agent_type, team, map_manager)
+		self.__macro_UCB = macro_UCB
+		self.__opening_positions = {}
+		self.__openings_created = False
+
+
+	def get_opening_position(self, rank, idx):
+		assert(rank < self._team.get_ranks())
+		assert(idx < self._team.get_num_rankers(rank))
+		if not self.__openings_created:
+			self.__set_opening()
+			self.__openings_created = True
+		return self.__opening_positions[(rank, idx)]
+
+	def __set_opening(self):
+		max_rank = self._team.get_ranks()
+		opening_points = []
+		num_agents = self._team.get_num_agents()
+		num_strategic_points = self._map_manager.get_num_strategic_points()
+		if num_agents <= num_strategic_points:
+			opening_points = self.__macro_UCB.get_greatest_actions(num_agents)
+		else:
+			opening_points = np.random.choice(num_strategic_points, num_agents)
+		st_idx = 0
+		for i in reversed(range(max_rank)):
+			for j in range(self._team.get_num_rankers(i)):
+					strategic_point = opening_points[st_idx]
+					position = self._map_manager.get_strategic_point(strategic_point)
+					self.__opening_positions[(i, j)] = position
+					print('Opening position:', str(position))
+					st_idx += 1
+					

@@ -1,9 +1,11 @@
 from abc import ABCMeta, abstractmethod
-
+import copy
 
 import message
 import agent
 import mapmanager
+import coord
+import ucb
 
 class Team(object):
 	'''
@@ -39,6 +41,13 @@ class Team(object):
 	
 	def create_agent_messenger(self, agent_id):
 		return self._team_messenger.create_agent_messenger(agent_id)
+
+	def get_num_agents(self):
+		'''
+			Returns the total number of agents present in the team.
+		'''
+		return self._num_agents
+
 
 	def get_ranks(self):
 		return self.ranks
@@ -280,20 +289,41 @@ class UCBPassiveTeam(Team):
 		self.__num_rays = num_rays
 		self.__visibility_angle = visibility_angle
 
-		# assign a basic map manager to the only level
 		map_manager = mapmanager.StrategicPointsMapManager(self._mapworld, self._fps, self._velocity)
 		self._map_managers.append(map_manager)
+		num_strategic_points = self._map_managers[0].get_num_strategic_points()
+		macro_UCB = ucb.UCB(num_strategic_points)
+		offset = self._map_managers[0].get_offset()
+		max_cells_visible = self._map_managers[0].get_max_cells_visible()
+
+		for i in range(num_strategic_points):
+			strategic_point = self._map_managers[0].get_strategic_point(i)
+			vpolygon = self._map_managers[0].get_360_visibility_polygon(strategic_point, self.__num_rays)
+			common_cells = self._map_managers[0].get_nearby_visibility_cells(strategic_point)
+			visible_cells = 0
+			for a, b in common_cells:
+				coord_obs = coord.Coord(a * offset, b * offset)
+				if vpolygon.is_point_inside(coord_obs):
+					visible_cells += 1
+			if visible_cells == 0:
+				visible_cells = 1
+			avg_val = max_cells_visible * 1.0/ visible_cells
+			macro_UCB.set_initial_average(i, avg_val)
+		macro_UCB.set_initial_bounds()
+		print('Hider macro UCB:', str(macro_UCB))
 
 		# recruit the commander of the random team
 		agent_id = 'RH' + str(0)
-		commander_member = agent.UCBPassiveCommanderAgent(agent_type, agent_id, self, self._map_managers[0], self.__num_rays, self.__visibility_angle)
+		cm_ucb = copy.deepcopy(macro_UCB)
+		commander_member = agent.UCBPassiveCommanderAgent(agent_type, agent_id, self, self._map_managers[0], cm_ucb, self.__num_rays, self.__visibility_angle)
 		self._members[1].append(commander_member)
 		self._active[1].append(True)
 
 		# recruit agents for the team
 		for i in range(self._num_agents - 1):
 			agent_id = 'RH' + str(i)
-			member = agent.UCBPassiveAgent(agent_type, agent_id, self, self._map_managers[0], self.__num_rays, self.__visibility_angle)
+			m_ucb = copy.deepcopy(macro_UCB)
+			member = agent.UCBPassiveAgent(agent_type, agent_id, self, self._map_managers[0], m_ucb, self.__num_rays, self.__visibility_angle)
 			self._members[0].append(member)
 			self._active[0].append(True)
 
