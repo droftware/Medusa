@@ -189,4 +189,4 @@ class Graphics(pyglet.window.Window):
 		self.clear()
 		self.__dynamic_batch.draw()
 		self.__static_batch.draw()
-		self.__fps_display.draw()
+		# self.__fps_display.draw()
