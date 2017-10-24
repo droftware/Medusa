@@ -281,12 +281,73 @@ class StrategicPointsMapManager(BasicMapManager):
 		# 	if dist < min_dist:
 		# 		min_pt = i
 		# 		min_dist = dist
-		return min_pt
+		# return min_pt
 
 	def get_nearby_visibility_cells(self, current_position):
 		bbox = self._mapworld.get_bbox(current_position).get_rtree_bbox()
 		nearby_cells = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
 		return nearby_cells
+
+
+class CoveragePointsMapManager(StrategicPointsMapManager):
+
+	def __init__(self, mapworld, fps, velocity, offset = 10, inference_map=True):
+		super(CoveragePointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
+		self.__direction = 8
+		map_name = self._mapworld.get_map_name().split('.')[0]
+		cov_file = map_name + '.coverage'
+
+		if os.path.isfile(cov_file):
+			print('Loading files', cov_file)
+			self.__coverage = np.loadtxt(cov_file)
+		else:
+			print('Creating coverage file')
+			self.__coverage = np.zeros((self.__num_rows, self.__num_cols, self.__direction))
+			# print('Visibility shape:', self.__visibility.shape)
+			print('Entered map manager')
+			id_counter = 0 
+			for i in range(self.__num_rows):
+				for j in range(self.__num_cols):
+					position = coord.Coord(i * self.__offset, j * self.__offset)
+					if self._mapworld.check_obstacle_collision(position):
+						self.__visibility[i, j] = -1
+						self.__obstruction[i, j] = -1
+					else:
+						x_min = position.get_x()
+						y_min = position.get_y() - self.__offset
+						x_max = position.get_x() + self.__offset
+						y_max = position.get_y()
+						bound_box = (x_min, y_min, x_max, y_max)
+						# print(bound_box)
+						# print(type(self._visibility_idx))
+						self._visibility_idx.insert(id_counter, bound_box, obj=(i, j))
+						id_counter += 1
+
+			# print('Filled all obstacles')
+			# print(self.__visibility)
+
+			for i in range(self.__num_rows):
+				for j in range(self.__num_cols):
+					print('Analyzing:',i,j)
+					coord_vis = coord.Coord(i * self.__offset, j * self.__offset)
+					if self.__visibility[i, j] != -1:
+						visibility_polygon = self.get_360_visibility_polygon(coord_vis)
+						bbox = self._mapworld.get_bbox(coord_vis).get_rtree_bbox()
+						common_boxes = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
+						# print('Common boxes for:',i,j, len(common_boxes))
+						for a,b in common_boxes:
+							coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
+							if visibility_polygon.is_point_inside(coord_obs):
+								self.__visibility[i, j] += 1
+								self.__obstruction[a, b] += 1
+
+			np.savetxt(map_name.split('.')[0] + '.visibility',self.__visibility)
+			np.savetxt(map_name.split('.')[0] + '.obstruction', self.__obstruction)
+			self._visibility_idx.close()
+
+
+
+
 
 
 

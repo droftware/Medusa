@@ -64,6 +64,8 @@ class Agent(object):
 			self._stop_counter = 0
 		self._prev_position = self._position
 		self._position = coordinate
+		print('Position set:', str(self._position))
+		
 
 
 	def get_position(self):
