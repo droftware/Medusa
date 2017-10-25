@@ -49,7 +49,7 @@ class Player(pyglet.sprite.Sprite):
 			j += 1
 
 		color_list = []
-		for i in range(11):
+		for i in range(self._num_vertices):
 			# 149, 165, 166
 			color_list.append(self._visibility_color[0])
 			color_list.append(self._visibility_color[1])
