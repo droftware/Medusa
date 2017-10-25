@@ -259,7 +259,9 @@ class UCBAggressiveTeam(Team):
 		self.__visibility_angle = visibility_angle
 
 		# assign a basic map manager to the only level
-		map_manager = mapmanager.StrategicPointsMapManager(self._mapworld, self._fps, self._velocity)
+		# map_manager = mapmanager.StrategicPointsMapManager(self._mapworld, self._fps, self._velocity)
+		map_manager = mapmanager.CoveragePointsMapManager(self._mapworld, self._fps, self._velocity, self.__num_rays, self.__visibility_angle)
+
 		self._map_managers.append(map_manager)
 
 		# recruit the commander of the random team
@@ -289,7 +291,8 @@ class UCBPassiveTeam(Team):
 		self.__num_rays = num_rays
 		self.__visibility_angle = visibility_angle
 
-		map_manager = mapmanager.StrategicPointsMapManager(self._mapworld, self._fps, self._velocity)
+		# map_manager = mapmanager.StrategicPointsMapManager(self._mapworld, self._fps, self._velocity)
+		map_manager = mapmanager.CoveragePointsMapManager(self._mapworld, self._fps, self._velocity, self.__num_rays, self.__visibility_angle)
 		self._map_managers.append(map_manager)
 		num_strategic_points = self._map_managers[0].get_num_strategic_points()
 		macro_UCB = ucb.UCB(num_strategic_points)

@@ -113,7 +113,7 @@ class BasicMapManager(object):
 	def get_visibility_polygon(self, current_position, current_rotation, num_rays, visibility_angle):
 		return self._mapworld.get_visibility_polygon(current_position, current_rotation, num_rays, visibility_angle)
 
-	def get_360_visibility_polygon(self, position, num_rays=100):
+	def get_360_visibility_polygon(self, position, num_rays=10):
 		return self.get_visibility_polygon(position, 0, num_rays, 180)
 
 	def __get_position_index(self, position):
@@ -308,6 +308,19 @@ class StrategicPoint(coord.Coord):
 		self.__common_strategic_points = []
 		self.__num_cells_common = []
 
+	def set_visible_cells_set(self, visible_cells_set):
+		self.__visible_cells_set = visible_cells_set
+
+	def get_visible_cells_set(self):
+		return self.__visible_cells_set
+
+	def set_common_strategic_point(self, stpoint, num_cells):
+		self.__common_strategic_points.append(stpoint)
+		self.__num_cells_common.append(num_cells)
+
+	def __str__(self):
+		point_string = '('+ str(self.get_x()) + ':' + str(self.get_y()) + '); ' + 'Number of common strategic points:' + str(len(self.__common_strategic_points)) +' Number common cells:' + str(self.__num_cells_common) 
+		return point_string
 
 class CoveragePointsMapManager(StrategicPointsMapManager):
 
@@ -315,20 +328,47 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		super(CoveragePointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
 
 		self.__strategic_point_cells = [self.get_cell_from_coord(stp) for stp in self._strategic_points]
-		self.__strategic_visibility_list = [[] for stp in self._strategic_points]
-
+		# self.__strategic_visibility= [[] for stp in self._strategic_points]
+		strategic_visibility = []
 
 		for i in range(self._num_strategic_points):
 			stp = self._strategic_points[i]
 			visibility_polygon = self.get_360_visibility_polygon(stp)
+			print('')
+			del strategic_visibility[:]
+			print('Strategic point:', stp.get_x(), stp.get_y())
+			print('Visibility polygon:', str(visibility_polygon))
 			bbox = self._mapworld.get_bbox(stp).get_rtree_bbox()
+			# print('BBOX:', bbox)
 			common_boxes = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
-			# print('Common boxes for:',i,j, len(common_boxes))
+			# print('Common boxes for point:', stp.get_x(), stp.get_y(),len(common_boxes))
 			for a,b in common_boxes:
 				box_coord = self.get_coord_from_cell(a, b)
+				# print('Box coord:', str(box_coord))
 				if visibility_polygon.is_point_inside(box_coord):
-					self.__strategic_visibility[i].append((a,b))
+					# self.__strategic_visibility[i].append((a,b))
+					strategic_visibility.append((a,b))
+			# print('Actually visible:', len(strategic_visibility))
+			# print('Cells:', strategic_visibility)
+			stp.set_visible_cells_set(set(strategic_visibility))
 
+		# self.__strategic_visibility_set = [set(self.__strategic_visibility[i]) for i in range(self._num_strategic_points)]
 
-		self.__strategic_visibility_set = [set(self.__strategic_visibility[i]) for i in range(self._num_strategic_points)]
+		#Finding common cells
+		for i in range(self._num_strategic_points):
+			for j in range(i+1, self._num_strategic_points):
+				pt1 = self._strategic_points[i]
+				pt2 = self._strategic_points[j]
+				visible_cells1 = pt1.get_visible_cells_set()
+				visible_cells2 = pt2.get_visible_cells_set()
+				common_cells = visible_cells1.intersection(visible_cells2)
+				num_common_cells = len(common_cells)
+				if num_common_cells > 1:
+					pt1.set_common_strategic_point(pt2, num_common_cells)
+					pt2.set_common_strategic_point(pt1, num_common_cells)
+
+		#Printing strategic points
+		for i in range(self._num_strategic_points):
+			print('Strategic Point:',i, str(self._strategic_points[i]))
+
 
