@@ -472,9 +472,7 @@ class UCBAggressiveAgent(Agent):
 			for j in factor:
 				if i == 0 and j == 0:
 					continue
-				x = int((row + i) * self.__offset - self.__offset/2)
-				y = int((col + j) * self.__offset - self.__offset/2)
-				postn = coord.Coord(x, y)
+				postn = self._map_manager.get_coord_from_cell(row + i, col + j)
 				avg_val = 0
 				if self._map_manager.get_blockage_value(postn):
 					avg_val = 0

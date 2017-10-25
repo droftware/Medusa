@@ -28,11 +28,11 @@ class BasicMapManager(object):
 		self.__fps = fps
 		self.__dt = 1.0/fps
 		self.__velocity = velocity
-		self.__visibility = None
-		self.__obstruction = None
+		self._visibility = None
+		self._obstruction = None
 		self._visibility_idx = None
-		self.__obstruction_penta = [0, 0, 0, 0, 0]
-		self.__visibility_penta = [0, 0, 0, 0, 0]
+		self._obstruction_penta = [0, 0, 0, 0, 0]
+		self._visibility_penta = [0, 0, 0, 0, 0]
 		self.__max_cells_visible = 0
 
 		map_name = mapworld.get_map_name().split('.')[0]
@@ -42,14 +42,14 @@ class BasicMapManager(object):
 		if inference_map:
 			if os.path.isfile(vis_file) and os.path.isfile(obs_file) and os.path.isfile(idx_file+'.idx'):
 				print('Loading files', vis_file, obs_file, idx_file)
-				self.__visibility = np.loadtxt(vis_file)
-				self.__obstruction = np.loadtxt(obs_file)
+				self._visibility = np.loadtxt(vis_file)
+				self._obstruction = np.loadtxt(obs_file)
 				self._visibility_idx = rtree.index.Index(idx_file)
 			else:
 				print('Creating inferences XX')
-				self.__visibility = np.zeros((self.__num_rows, self.__num_cols))
-				self.__obstruction = np.zeros((self.__num_rows, self.__num_cols))
-				# print('Visibility shape:', self.__visibility.shape)
+				self._visibility = np.zeros((self.__num_rows, self.__num_cols))
+				self._obstruction = np.zeros((self.__num_rows, self.__num_cols))
+				# print('Visibility shape:', self._visibility.shape)
 				self._visibility_idx = rtree.index.Index(idx_file)
 				print('Entered map manager')
 				id_counter = 0 
@@ -57,8 +57,8 @@ class BasicMapManager(object):
 					for j in range(self.__num_cols):
 						position = coord.Coord(i * self.__offset, j * self.__offset)
 						if self._mapworld.check_obstacle_collision(position):
-							self.__visibility[i, j] = -1
-							self.__obstruction[i, j] = -1
+							self._visibility[i, j] = -1
+							self._obstruction[i, j] = -1
 						else:
 							x_min = position.get_x()
 							y_min = position.get_y() - self.__offset
@@ -71,13 +71,13 @@ class BasicMapManager(object):
 							id_counter += 1
 
 				# print('Filled all obstacles')
-				# print(self.__visibility)
+				# print(self._visibility)
 
 				for i in range(self.__num_rows):
 					for j in range(self.__num_cols):
 						print('Analyzing:',i,j)
 						coord_vis = coord.Coord(i * self.__offset, j * self.__offset)
-						if self.__visibility[i, j] != -1:
+						if self._visibility[i, j] != -1:
 							visibility_polygon = self.get_360_visibility_polygon(coord_vis)
 							bbox = self._mapworld.get_bbox(coord_vis).get_rtree_bbox()
 							common_boxes = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
@@ -85,27 +85,27 @@ class BasicMapManager(object):
 							for a,b in common_boxes:
 								coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
 								if visibility_polygon.is_point_inside(coord_obs):
-									self.__visibility[i, j] += 1
-									self.__obstruction[a, b] += 1
+									self._visibility[i, j] += 1
+									self._obstruction[a, b] += 1
 
-				np.savetxt(map_name.split('.')[0] + '.visibility',self.__visibility)
-				np.savetxt(map_name.split('.')[0] + '.obstruction', self.__obstruction)
+				np.savetxt(map_name.split('.')[0] + '.visibility',self._visibility)
+				np.savetxt(map_name.split('.')[0] + '.obstruction', self._obstruction)
 				self._visibility_idx.close()
 
-			self.__max_cells_visible = np.amax(self.__visibility)
+			self.__max_cells_visible = np.amax(self._visibility)
 			print('Max cells visible:', self.__max_cells_visible)
 
-			self.__obstruction_penta[4] = np.amax(self.__obstruction)
-			self.__obstruction_penta[0] = np.amin(self.__obstruction)
-			self.__obstruction_penta[2] = np.mean(self.__obstruction)
-			self.__obstruction_penta[1] = (self.__obstruction_penta[0] + self.__obstruction_penta[2])/2.
-			self.__obstruction_penta[3] = (self.__obstruction_penta[2] + self.__obstruction_penta[4])/2.
+			self._obstruction_penta[4] = np.amax(self._obstruction)
+			self._obstruction_penta[0] = np.amin(self._obstruction)
+			self._obstruction_penta[2] = np.mean(self._obstruction)
+			self._obstruction_penta[1] = (self._obstruction_penta[0] + self._obstruction_penta[2])/2.
+			self._obstruction_penta[3] = (self._obstruction_penta[2] + self._obstruction_penta[4])/2.
 
-			self.__visibility_penta[4] = np.amax(self.__visibility)
-			self.__visibility_penta[0] = np.amin(self.__visibility)
-			self.__visibility_penta[2] = np.mean(self.__visibility)
-			self.__visibility_penta[1] = (self.__visibility_penta[0] + self.__visibility_penta[2])/2.
-			self.__visibility_penta[3] = (self.__visibility_penta[2] + self.__visibility_penta[4])/2.
+			self._visibility_penta[4] = np.amax(self._visibility)
+			self._visibility_penta[0] = np.amin(self._visibility)
+			self._visibility_penta[2] = np.mean(self._visibility)
+			self._visibility_penta[1] = (self._visibility_penta[0] + self._visibility_penta[2])/2.
+			self._visibility_penta[3] = (self._visibility_penta[2] + self._visibility_penta[4])/2.
 
 	def get_map(self):
 		return self._mapworld
@@ -123,11 +123,11 @@ class BasicMapManager(object):
 
 	def get_visibility_value(self, position):
 		row, col = self.__get_position_index(position)
-		return self.__visibility[row, col]
+		return self._visibility[row, col]
 
 	def get_obstruction_value(self, position):
 		row, col = self.__get_position_index(position)
-		return self.__obstruction[row, col]
+		return self._obstruction[row, col]
 
 	def get_action_map(self, position):
 		results = {}
@@ -149,16 +149,16 @@ class BasicMapManager(object):
 		vis_val = self.get_visibility_value(position)
 		vis_level = None
 		# print()
-		# print('visibility penta:', self.__visibility_penta)
+		# print('visibility penta:', self._visibility_penta)
 		if vis_val == -1:
 			vis_level = 0
-		elif vis_val >= self.__visibility_penta[0] and vis_val < self.__visibility_penta[1]:
+		elif vis_val >= self._visibility_penta[0] and vis_val < self._visibility_penta[1]:
 			vis_level = 0
-		elif vis_val >= self.__visibility_penta[1] and vis_val < self.__visibility_penta[2]:
+		elif vis_val >= self._visibility_penta[1] and vis_val < self._visibility_penta[2]:
 			vis_level = 1
-		elif vis_val >= self.__visibility_penta[2] and vis_val < self.__visibility_penta[3]:
+		elif vis_val >= self._visibility_penta[2] and vis_val < self._visibility_penta[3]:
 			vis_level = 2
-		elif vis_val >= self.__visibility_penta[3] and vis_val <= self.__visibility_penta[4]:
+		elif vis_val >= self._visibility_penta[3] and vis_val <= self._visibility_penta[4]:
 			vis_level = 3
 		# print('Position:', str(position), 'Visibility value:', vis_val, 'Vis level:', vis_level)
 		return vis_level
@@ -168,16 +168,16 @@ class BasicMapManager(object):
 		obs_val = self.get_obstruction_value(position)
 		obs_level = -1
 		# print()
-		# print('obstruction penta:', self.__obstruction_penta)
+		# print('obstruction penta:', self._obstruction_penta)
 		if obs_val == -1:
 			obs_level = 0
-		elif obs_val >= self.__obstruction_penta[0] and obs_val < self.__obstruction_penta[1]:
+		elif obs_val >= self._obstruction_penta[0] and obs_val < self._obstruction_penta[1]:
 			obs_level = 3
-		elif obs_val >= self.__obstruction_penta[1] and obs_val < self.__obstruction_penta[2]:
+		elif obs_val >= self._obstruction_penta[1] and obs_val < self._obstruction_penta[2]:
 			obs_level = 2
-		elif obs_val >= self.__obstruction_penta[2] and obs_val < self.__obstruction_penta[3]:
+		elif obs_val >= self._obstruction_penta[2] and obs_val < self._obstruction_penta[3]:
 			obs_level = 1
-		elif obs_val >= self.__obstruction_penta[3] and obs_val <= self.__obstruction_penta[4]:
+		elif obs_val >= self._obstruction_penta[3] and obs_val <= self._obstruction_penta[4]:
 			obs_level = 0
 		# print('Position:', str(position), 'Obstruction value:', obs_val, 'Obs level:', obs_level)
 		return obs_level
@@ -201,6 +201,16 @@ class BasicMapManager(object):
 		row = int(postn.get_x()/self.__offset)
 		col = int(postn.get_y()/self.__offset)
 		return (row, col)
+
+	def get_coord_from_cell(self, row, col):
+		'''
+			Retruns the cell corresponding to the cell
+			The coordinate returned is the mid point of the cell
+		'''
+		x = int(row * self.__offset - self.__offset/2)
+		y = int(col * self.__offset - self.__offset/2)
+		cell_coord = coord.Coord(x, y)
+		return cell_coord
 
 
 class StrategicPointsMapManager(BasicMapManager):
@@ -291,61 +301,10 @@ class StrategicPointsMapManager(BasicMapManager):
 
 class CoveragePointsMapManager(StrategicPointsMapManager):
 
-	def __init__(self, mapworld, fps, velocity, offset = 10, inference_map=True):
+	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
 		super(CoveragePointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
-		self.__direction = 8
-		map_name = self._mapworld.get_map_name().split('.')[0]
-		cov_file = map_name + '.coverage'
 
-		if os.path.isfile(cov_file):
-			print('Loading files', cov_file)
-			self.__coverage = np.loadtxt(cov_file)
-		else:
-			print('Creating coverage file')
-			self.__coverage = np.zeros((self.__num_rows, self.__num_cols, self.__direction))
-			# print('Visibility shape:', self.__visibility.shape)
-			print('Entered map manager')
-			id_counter = 0 
-			for i in range(self.__num_rows):
-				for j in range(self.__num_cols):
-					position = coord.Coord(i * self.__offset, j * self.__offset)
-					if self._mapworld.check_obstacle_collision(position):
-						self.__visibility[i, j] = -1
-						self.__obstruction[i, j] = -1
-					else:
-						x_min = position.get_x()
-						y_min = position.get_y() - self.__offset
-						x_max = position.get_x() + self.__offset
-						y_max = position.get_y()
-						bound_box = (x_min, y_min, x_max, y_max)
-						# print(bound_box)
-						# print(type(self._visibility_idx))
-						self._visibility_idx.insert(id_counter, bound_box, obj=(i, j))
-						id_counter += 1
-
-			# print('Filled all obstacles')
-			# print(self.__visibility)
-
-			for i in range(self.__num_rows):
-				for j in range(self.__num_cols):
-					print('Analyzing:',i,j)
-					coord_vis = coord.Coord(i * self.__offset, j * self.__offset)
-					if self.__visibility[i, j] != -1:
-						visibility_polygon = self.get_360_visibility_polygon(coord_vis)
-						bbox = self._mapworld.get_bbox(coord_vis).get_rtree_bbox()
-						common_boxes = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
-						# print('Common boxes for:',i,j, len(common_boxes))
-						for a,b in common_boxes:
-							coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
-							if visibility_polygon.is_point_inside(coord_obs):
-								self.__visibility[i, j] += 1
-								self.__obstruction[a, b] += 1
-
-			np.savetxt(map_name.split('.')[0] + '.visibility',self.__visibility)
-			np.savetxt(map_name.split('.')[0] + '.obstruction', self.__obstruction)
-			self._visibility_idx.close()
-
-
+		
 
 
 

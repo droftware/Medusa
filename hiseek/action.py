@@ -23,6 +23,7 @@ class Action:
 	ST = 16
 
 	all_actions = [E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW, N, NNE, NE, ENE, ST]
+	major_actions = [N, NE, E, SE, S, SW, W, NW]
 	num_actions = len(all_actions)
 
 	action2string = {}
