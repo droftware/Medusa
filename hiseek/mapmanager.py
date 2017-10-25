@@ -222,7 +222,7 @@ class StrategicPointsMapManager(BasicMapManager):
 		'''
 		super(StrategicPointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
 		all_strtg_pts = []
-		self.__strategic_points = []
+		self._strategic_points = []
 		self.__threshold = 50
 		self.__strategic_pts_idx = rtree.index.Index()
 
@@ -252,7 +252,9 @@ class StrategicPointsMapManager(BasicMapManager):
 		for i in range(num_all_pts):
 			if i not in deletion_idxs:
 				# print(j,'St pt', str(all_strtg_pts[i]))
-				self.__strategic_points.append(all_strtg_pts[i])
+				st_pt = StrategicPoint(all_strtg_pts[i].get_x(), all_strtg_pts[i].get_y())
+				# self._strategic_points.append(all_strtg_pts[i])
+				self._strategic_points.append(st_pt)	
 				cx = all_strtg_pts[i].get_x()
 				cy = all_strtg_pts[i].get_y()
 				bound_box = (cx, cy, cx, cy)
@@ -260,20 +262,20 @@ class StrategicPointsMapManager(BasicMapManager):
 				j += 1
 
 
-		self.__num_strategic_points = len(self.__strategic_points)
-		# print('Number of strategic points:', self.__num_strategic_points)
+		self._num_strategic_points = len(self._strategic_points)
+		# print('Number of strategic points:', self._num_strategic_points)
 
 		# TO DO: Merge strategic points if they are very close to each other and
 		# there is no obstacle between them
 
 	def get_num_strategic_points(self):
-		return self.__num_strategic_points
+		return self._num_strategic_points
 
 	def get_strategic_point(self, i):
-		return self.__strategic_points[i]
+		return self._strategic_points[i]
 
 	def get_strategic_points(self):
-		return self.__strategic_points
+		return self._strategic_points
 
 	def get_closest_strategic_point(self, point, num_points = 1):
 		cx = point.get_x()
@@ -285,8 +287,8 @@ class StrategicPointsMapManager(BasicMapManager):
 			closest_st_pts = list(np.random.choice(closest_st_pts, num_points, replace=False))
 		return closest_st_pts
 
-		# for i in range(self.__num_strategic_points):
-		# 	st_pt = self.__strategic_points[i] 
+		# for i in range(self._num_strategic_points):
+		# 	st_pt = self._strategic_points[i] 
 		# 	dist = point.get_euclidean_distance(st_pt)
 		# 	if dist < min_dist:
 		# 		min_pt = i
@@ -299,15 +301,34 @@ class StrategicPointsMapManager(BasicMapManager):
 		return nearby_cells
 
 
+class StrategicPoint(coord.Coord):
+	def __init__(self, x, y):
+		super(StrategicPoint, self).__init__(x, y)
+		self.__visible_cells_set = None
+		self.__common_strategic_points = []
+		self.__num_cells_common = []
+
+
 class CoveragePointsMapManager(StrategicPointsMapManager):
 
 	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
 		super(CoveragePointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
 
-		
+		self.__strategic_point_cells = [self.get_cell_from_coord(stp) for stp in self._strategic_points]
+		self.__strategic_visibility_list = [[] for stp in self._strategic_points]
 
 
+		for i in range(self._num_strategic_points):
+			stp = self._strategic_points[i]
+			visibility_polygon = self.get_360_visibility_polygon(stp)
+			bbox = self._mapworld.get_bbox(stp).get_rtree_bbox()
+			common_boxes = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
+			# print('Common boxes for:',i,j, len(common_boxes))
+			for a,b in common_boxes:
+				box_coord = self.get_coord_from_cell(a, b)
+				if visibility_polygon.is_point_inside(box_coord):
+					self.__strategic_visibility[i].append((a,b))
 
 
-
+		self.__strategic_visibility_set = [set(self.__strategic_visibility[i]) for i in range(self._num_strategic_points)]
 
