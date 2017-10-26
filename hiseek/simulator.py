@@ -158,9 +158,8 @@ class Simulator(object):
 			self.__replay_output_file.write('num_seekers:' +  str(num_seekers) + '\n')
 			self.__replay_output_file.write('simulation:' + '\n')
 
-
-		hider_map_copy = copy.deepcopy(self.__polygon_map)
-		seeker_map_copy = copy.deepcopy(self.__polygon_map)
+		hider_map_copy = gamemap.PolygonMap(map_id)
+		seeker_map_copy = gamemap.PolygonMap(map_id)
 
 		# AI setup
 		if mode_hiders == 'random':
