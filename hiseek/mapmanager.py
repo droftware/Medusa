@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 import rtree
+import networkx as nx
 
 import gamemap
 import coord
@@ -305,9 +306,16 @@ class StrategicPoint(coord.Coord):
 	def __init__(self, x, y, unique_id):
 		super(StrategicPoint, self).__init__(x, y)
 		self.__id = unique_id
+		self._covered = False
 		self.__visible_cells_set = None
 		self.__common_strategic_points = []
 		self.__num_cells_common = []
+
+	def mark_covered(self):
+		self._covered = True
+
+	def is_covered(self):
+		return self._covered
 
 	def set_visible_cells_set(self, visible_cells_set):
 		self.__visible_cells_set = visible_cells_set
@@ -323,15 +331,30 @@ class StrategicPoint(coord.Coord):
 		point_string = '('+ str(self.get_x()) + ':' + str(self.get_y()) + '); ' + 'Common strategic points:' + str(self.__common_strategic_points) +' Number common cells:' + str(self.__num_cells_common) 
 		return point_string
 
+class CoveragePoint(coord.Coord):
+	def __init__(self, x, y, unique_id):
+		super(CoveragePoint, self).__init__(x, y)
+		self.__id = unique_id
+
+
 class CoveragePointsMapManager(StrategicPointsMapManager):
 
 	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
 		super(CoveragePointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
-
-		self.__strategic_point_cells = [self.get_cell_from_coord(stp) for stp in self._strategic_points]
+		self.__visibility_graph = nx.Graph()
+		self.__coverage_points = []
+		# self.__strategic_point_cells = [self.get_cell_from_coord(stp) for stp in self._strategic_points]
 		# self.__strategic_visibility= [[] for stp in self._strategic_points]
-		strategic_visibility = []
+		self.__add_visibility_nodes()
+		# self.__strategic_visibility_set = [set(self.__strategic_visibility[i]) for i in range(self._num_strategic_points)]
+		self.__add_visibility_edges()
+		
+		self.__print_nodes()
 
+		self.__find_coverage_points()
+
+	def __add_visibility_nodes(self):
+		strategic_visibility = []
 		for i in range(self._num_strategic_points):
 			stp = self._strategic_points[i]
 			visibility_polygon = self.get_360_visibility_polygon(stp)
@@ -352,9 +375,9 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			# print('Actually visible:', len(strategic_visibility))
 			# print('Cells:', strategic_visibility)
 			stp.set_visible_cells_set(set(strategic_visibility))
+			self.__visibility_graph.add_node(i)
 
-		# self.__strategic_visibility_set = [set(self.__strategic_visibility[i]) for i in range(self._num_strategic_points)]
-
+	def __add_visibility_edges(self):
 		#Finding common cells
 		for i in range(self._num_strategic_points):
 			for j in range(i+1, self._num_strategic_points):
@@ -365,10 +388,82 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				common_cells = visible_cells1.intersection(visible_cells2)
 				num_common_cells = len(common_cells)
 				if num_common_cells > 1:
+					self.__visibility_graph.add_edge(i, j)
 					pt1.set_common_strategic_point(j, num_common_cells)
 					pt2.set_common_strategic_point(i, num_common_cells)
 
+	def __print_nodes(self):
 		#Printing strategic points
 		for i in range(self._num_strategic_points):
-			print('Strategic Point:',i, str(self._strategic_points[i]))
+			# print('Strategic Point:',i, str(self._strategic_points[i]))
+			print('St pt:', i,'points adjacent to it:', list(self.__visibility_graph.neighbors(i)))
+		# print('Number of nodes:', self.__visibility_graph.number_of_nodes())
+		# print('Nodes:', list(self.__visibility_graph.nodes()))
+		# print('Number of edges:', self.__visibility_graph.number_of_edges())
+		# print('Edges:', list(self.__visibility_graph.edges()))
+
+	def __get_cliques_coverage_point(self, clique):
+		coverage_point = None
+		cid = clique[0]
+		cst_pt = self._strategic_points[cid]
+		if len(clique) > 1:
+			cvisible_cells = cst_pt.get_visible_cells_set()
+			coverage_point = None
+			for cell in cvisible_cells:
+				cell_coord = self.get_coord_from_cell(cell[0], cell[1])
+				visibility_polygon = self.get_360_visibility_polygon(cell_coord, 100)
+				all_flag = True
+				for node in clique:
+					cst_adj_pt = self._strategic_points[node]
+					if not visibility_polygon.is_point_inside(cst_adj_pt):
+						all_flag = False
+						break
+
+				if all_flag == True:
+					coverage_point = cell_coord
+					break
+		else:
+			coverage_point = cst_pt
+		return coverage_point
+
+	def __mark_cliques_nodes(self, clique):
+		for node in clique:
+			cst_pt = self._strategic_points[node]
+			if not cst_pt.is_covered():
+				print('Marking node:', node)
+				cst_pt.mark_covered()
+
+	def __check_all_marked(self, clique):
+		for node in clique:
+			cst_pt = self._strategic_points[node]
+			if not cst_pt.is_covered():
+				print('Node:', node,' is not marked')
+				return False
+		return True
+
+	def __find_coverage_points(self):
+		print('Cliques:')
+		cliques = list(nx.find_cliques(self.__visibility_graph))
+		cliques.sort(key=len, reverse=True)
+		print('Total number of maximal cliques:', len(cliques))
+		for clique in (cliques):
+			print(clique)
+			# all_marked = self.__check_all_marked(clique)
+			# if not all_marked:
+			# print('X Not all nodes where marked')
+			coverage_point = self.__get_cliques_coverage_point(clique)
+			assert(coverage_point != None)
+			# self.__mark_cliques_nodes(clique)
+			print('Coverage point:', str(coverage_point))
+			self.__coverage_points.append(coverage_point)
+			# else:
+			# 	print('* All marked')
+
+
+
+
+
+
+
+
 
