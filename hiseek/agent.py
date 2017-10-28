@@ -64,7 +64,7 @@ class Agent(object):
 			self._stop_counter = 0
 		self._prev_position = self._position
 		self._position = coordinate
-		print('Position set:', str(self._position))
+		# print('Position set:', str(self._position))
 		
 
 
@@ -362,16 +362,18 @@ class UCBAggressiveAgent(Agent):
 	def __initiate_long_transit(self):
 		self.__exploratory_steps = self.__MAX_EXPLORATORY_STEPS
 		self.__in_short_transit = False
+		print('S: Select action')
 		self.__current_st_point = self.__macro_UCB.select_action()
+		print('S: Strategic point selected:', self.__current_st_point)
 		self.__select_path(self.__current_st_point)
 		self.__next_state = self.__planner.get_paths_next_coord()
-		# print('* Starting Long transit from:', str(self._position))
-		# print('* Next state:', str(self.__next_state))
+		print('S Starting Long transit from:', str(self._position))
+		print('S Next state:', str(self.__next_state))
 		if self.__next_state != None:
-			# print('* long transits path is valid')
+			print('S long transits path is valid')
 			self.__in_long_transit = True
 		else:
-			# print('* long transits path is NOT valid')
+			print('S long transits path is NOT valid')
 			self.__in_long_transit = False
 
 	def __update_long_transit(self):
@@ -380,39 +382,39 @@ class UCBAggressiveAgent(Agent):
 			closest_st_point = closest_st_point[0]
 			macro_reward = 10
 			self.__macro_UCB.update(closest_st_point, macro_reward)	
-			# print('* Hider visible during long transit')
-			# print('* Updating macro UCB for st pt:', closest_st_point)
+			print('S Hider visible during long transit')
+			print('S Updating macro UCB for st pt:', closest_st_point)
 
 				# Decides wether the next_state needs to change or not
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
 			self.__next_state = self.__planner.get_paths_next_coord()
-			# print('* State reached, changing to next state:', str(self.__next_state))
+			print('S State reached, changing to next state:', str(self.__next_state))
 			if self.__next_state == None:
 				# Agent reached its destination
-				# print('* Long transit completed')
+				print('S Long transit completed')
 				self.__in_long_transit = False
 
 	def __update_short_transit(self):
-		self.__exploratory_steps -= 1
+		
 		if self._percept.are_hiders_visible():
 			# print('# Hider visible during short transit')
 			self.__macro_hider_observed = True
 			self.__micro_hider_observed = True
 		if self.__exploratory_steps == 0:
-			# print('* Long transit completed')
+			print('S Exploration around strategic point', self.__current_st_point, 'completed')
 			if self.__macro_hider_observed == True:
 				macro_reward = 10
-				# print('* Since hider was observed, macro reward:', macro_reward)
+				print('S Since hider was observed, macro reward:', macro_reward)
 				self.__macro_hider_observed = False
 			else:
 				macro_reward = -5
-				# print('* Since hider was NOT observed, macro reward:', macro_reward)
+				print('S Since hider was NOT observed, macro reward:', macro_reward)
 
-			# print('* Updating macro UCB for st pt:', self.__current_st_point)
+			print('S Updating macro UCB for st pt:', self.__current_st_point)
 			self.__macro_UCB.update(self.__current_st_point, macro_reward)
 
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
-			# print('# Short transit completed')
+			print('S Short transit completed')
 			self.__in_short_transit = False
 			self.__next_state = None
 
@@ -429,9 +431,8 @@ class UCBAggressiveAgent(Agent):
 
 
 	def __initiate_short_transit(self):
-		self.__exploratory_steps -= 1
 		# print()
-		# print('# Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
+		print('S Starting short transit from', str(self._position), '#Exploratory steps:', self.__exploratory_steps)
 		self.__micro_current_cell = self._map_manager.get_cell_from_coord(self._position)
 		if self.__micro_current_cell not in self.__micro_UCB:
 			self.__create_micro_UCB_entry(self.__micro_current_cell)
@@ -452,11 +453,12 @@ class UCBAggressiveAgent(Agent):
 			if self.__exploratory_steps == 0:
 				self.__initiate_long_transit()
 			else:
+				self.__exploratory_steps -= 1
 				if not self.__in_short_transit:
 					self.__initiate_short_transit()
-				else:
-					self.__update_short_transit()
-		if self.__in_long_transit:
+				self.__update_short_transit()
+
+		elif self.__in_long_transit:
 			self.__update_long_transit()
 
 
@@ -591,7 +593,7 @@ class UCBPassiveAgent(Agent):
 
 	def __initiate_transit(self):
 		print()
-		print('* Initiating transit')
+		# print('H Initiating transit')
 		self.__waiting_steps = self.__MAX_WAITING_STEPS
 		possible_strategic_points = self._map_manager.get_closest_strategic_point(self._position, self.__ST_CONSIDERATION + 1)
 		# print('Strategic points under consideration:', possible_strategic_points)
@@ -612,22 +614,22 @@ class UCBPassiveAgent(Agent):
 		else:
 			# print('* long transits path is NOT valid')
 			self.__in_transit = False
-		print('* Current state', str(self._position),'Next state:', str(self.__next_state))
+		# print('H Current state', str(self._position),'Next state:', str(self.__next_state))
 
 	def __update_transit(self):
-		print('* Update transit, current position:', str(self._position))
+		# print('H Update transit, current position:', str(self._position))
 		if self._percept.are_seekers_visible():
 			closest_st_point = self._map_manager.get_closest_strategic_point(self._position)
 			closest_st_point = closest_st_point[0]
 			macro_reward = -20
 			self.__macro_UCB.update(closest_st_point, macro_reward)
-			print('* Seekers are visible updating st pt', closest_st_point,' with reward:', macro_reward)
-			print('* UCB Status:', str(self.__macro_UCB))
+			# print('H Seekers are visible updating st pt', closest_st_point,' with reward:', macro_reward)
+			# print('H Hider UCB Status:', str(self.__macro_UCB))
 
 
 				# Decides wether the next_state needs to change or not
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
-			print('* Reached target ')
+			# print('H Reached target ')
 			self.__next_state = self.__planner.get_paths_next_coord()
 			if self.__next_state == None:
 				# Agent reached its destination
@@ -636,19 +638,19 @@ class UCBPassiveAgent(Agent):
 
 
 	def __update_waiting(self):
-		print('* Waiting...(update)')
+		# print('H Waiting...(update)')
 		self.__waiting_steps -= 1
 		if self.__transit_trigger_condition():
 			if self._percept.are_seekers_visible():
 				macro_reward = -20
-				print('* Seeker visible, macro reward:', macro_reward)
+				# print('H Seeker visible, macro reward:', macro_reward)
 
 			elif self.__waiting_steps == 0:
 				macro_reward = -10
-				print('* Waiting steps ended, since no seeker visible, updating UCB at', self.__current_st_point ,'with reward:', macro_reward)
-			print('* Updating macro UCB for st point:', self.__current_st_point)
+			# 	print('H Waiting steps ended, since no seeker visible, updating UCB at', self.__current_st_point ,'with reward:', macro_reward)
+			# print('H Updating macro UCB for st point:', self.__current_st_point)
 			self.__macro_UCB.update(self.__current_st_point, macro_reward)
-			print('* UCB Status:', str(self.__macro_UCB))
+			# print('H Hider UCB Status:', str(self.__macro_UCB))
 
 	def __transit_trigger_condition(self):
 		if self.__waiting_steps == 0 or self._percept.are_seekers_visible():
@@ -657,7 +659,7 @@ class UCBPassiveAgent(Agent):
 			return False
 
 	def __update_exploration(self):
-		print('$$ Waiting steps:', self.__waiting_steps)
+		# print('$$ Waiting steps:', self.__waiting_steps)
 		if not self.__in_transit:
 			if self.__transit_trigger_condition():
 				self.__initiate_transit()
