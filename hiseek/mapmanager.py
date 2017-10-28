@@ -314,12 +314,12 @@ class StrategicPoint(coord.Coord):
 	def get_visible_cells_set(self):
 		return self.__visible_cells_set
 
-	def set_common_strategic_point(self, stpoint, num_cells):
-		self.__common_strategic_points.append(stpoint)
+	def set_common_strategic_point(self, stpoint_idx, num_cells):
+		self.__common_strategic_points.append(stpoint_idx)
 		self.__num_cells_common.append(num_cells)
 
 	def __str__(self):
-		point_string = '('+ str(self.get_x()) + ':' + str(self.get_y()) + '); ' + 'Number of common strategic points:' + str(len(self.__common_strategic_points)) +' Number common cells:' + str(self.__num_cells_common) 
+		point_string = '('+ str(self.get_x()) + ':' + str(self.get_y()) + '); ' + 'Common strategic points:' + str(self.__common_strategic_points) +' Number common cells:' + str(self.__num_cells_common) 
 		return point_string
 
 class CoveragePointsMapManager(StrategicPointsMapManager):
@@ -334,10 +334,10 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		for i in range(self._num_strategic_points):
 			stp = self._strategic_points[i]
 			visibility_polygon = self.get_360_visibility_polygon(stp)
-			print('')
+			# print('')
 			del strategic_visibility[:]
-			print('Strategic point:', stp.get_x(), stp.get_y())
-			print('Visibility polygon:', str(visibility_polygon))
+			# print('Strategic point:', stp.get_x(), stp.get_y())
+			# print('Visibility polygon:', str(visibility_polygon))
 			bbox = self._mapworld.get_bbox(stp).get_rtree_bbox()
 			# print('BBOX:', bbox)
 			common_boxes = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
@@ -364,11 +364,10 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				common_cells = visible_cells1.intersection(visible_cells2)
 				num_common_cells = len(common_cells)
 				if num_common_cells > 1:
-					pt1.set_common_strategic_point(pt2, num_common_cells)
-					pt2.set_common_strategic_point(pt1, num_common_cells)
+					pt1.set_common_strategic_point(j, num_common_cells)
+					pt2.set_common_strategic_point(i, num_common_cells)
 
 		#Printing strategic points
 		for i in range(self._num_strategic_points):
 			print('Strategic Point:',i, str(self._strategic_points[i]))
-
 
