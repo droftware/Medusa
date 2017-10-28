@@ -252,7 +252,7 @@ class StrategicPointsMapManager(BasicMapManager):
 		for i in range(num_all_pts):
 			if i not in deletion_idxs:
 				# print(j,'St pt', str(all_strtg_pts[i]))
-				st_pt = StrategicPoint(all_strtg_pts[i].get_x(), all_strtg_pts[i].get_y())
+				st_pt = StrategicPoint(all_strtg_pts[i].get_x(), all_strtg_pts[i].get_y(), j)
 				# self._strategic_points.append(all_strtg_pts[i])
 				self._strategic_points.append(st_pt)	
 				cx = all_strtg_pts[i].get_x()
@@ -302,8 +302,9 @@ class StrategicPointsMapManager(BasicMapManager):
 
 
 class StrategicPoint(coord.Coord):
-	def __init__(self, x, y):
+	def __init__(self, x, y, unique_id):
 		super(StrategicPoint, self).__init__(x, y)
+		self.__id = unique_id
 		self.__visible_cells_set = None
 		self.__common_strategic_points = []
 		self.__num_cells_common = []
