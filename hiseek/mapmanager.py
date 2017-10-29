@@ -371,6 +371,26 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		self.__get_coverage_contours()
 		self.__associate_coverage_point2contours()
 
+	def get_num_coverage_points(self):
+		return len(self.__coverage_points)
+
+	def get_coverage_point(self, uid):
+		return self._coverage_points[uid]
+
+	def get_coverage_points(self):
+		return self._coverage_points
+
+	def get_coverage_contour(self, uid):
+		return self.__coverage_contours[uid]
+
+	def get_coverage_contours(self):
+		return self.__coverage_contours
+
+	def get_coverage_contour_from_point(self, coverage_point_id):
+		contour_id = self.__coverage_point2contour[coverage_point_id]
+		contour = self.__coverage_contours[contour_id]
+		return contour
+
 	def __create_visibility_graph(self):
 		self.__add_visibility_nodes()
 		self.__add_visibility_edges()
