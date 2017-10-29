@@ -323,10 +323,6 @@ class StrategicPoint(coord.Coord):
 	def get_visible_cells_set(self):
 		return self.__visible_cells_set
 
-	def set_common_strategic_point(self, stpoint_idx, num_cells):
-		self.__common_strategic_points.append(stpoint_idx)
-		self.__num_cells_common.append(num_cells)
-
 	def __str__(self):
 		point_string = '('+ str(self.get_x()) + ':' + str(self.get_y()) + '); ' + 'Common strategic points:' + str(self.__common_strategic_points) +' Number common cells:' + str(self.__num_cells_common) 
 		return point_string
@@ -391,8 +387,6 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				num_common_cells = len(common_cells)
 				if num_common_cells > 1:
 					self.__visibility_graph.add_edge(i, j)
-					# pt1.set_common_strategic_point(j, num_common_cells)
-					# pt2.set_common_strategic_point(i, num_common_cells)
 
 	def __print_nodes(self):
 		#Printing strategic points
