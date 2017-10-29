@@ -701,7 +701,205 @@ class UCBPassiveCommanderAgent(UCBPassiveAgent):
 		return self.__skill.get_opening_position(rank, idx)
 
 
+class UCBCoverageAgent(Agent):
 
+	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
+		super(UCBCoverageAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		self.__planner = planner.BasicPlanner(self._map_manager)
+		self.__margin = 10
+		self.__next_state = None
+		
+		self.__offset = self._map_manager.get_offset()
+		self.__micro_actions = [action.Action.NW, action.Action.N, action.Action.NE, action.Action.W, action.Action.E, action.Action.SW, action.Action.S, action.Action.SE]
+		self.__num_coverage_points = self._map_manager.get_num_coverage_points()
+		self.__num_rays = num_rays
+		self.__visibility_angle = visibility_angle
+
+		# print('Total number of strategic points:', self.__num_strategic_points)
+		self.__coverage_UCB = ucb.UCB(self.__num_coverage_points)
+		self.__macro_hider_observed = False
+
+		self.__current_coverage_point = None
+		self.__current_coverage_contour = None
+
+		self.__in_change_transit = False
+		self.__in_contour_transit = False
+		self.__contour_counter = 0
+		self.__contour_size = 0
+
+		self.__seen_reward = 10
+		self.__unseen_reward = -10
+
+
+	def generate_messages(self):
+		pass
+
+	def analyze_messages(self):
+		pass
+
+	def __select_path(self, coverage_point):
+		start_coord = self._position
+		goal_coord = self._map_manager.get_coverage_point(coverage_point)
+		self.__planner.plan(start_coord, goal_coord)
+
+	def __select_closest_action(self, direction_vec):
+		max_cos_prod = -1 * float('inf')
+		max_action = 0
+		# print('*** Selecting action')
+		for i in range(action.Action.num_actions):
+			if i == action.Action.ST:
+				continue
+			action_vec = action.VECTOR[i]
+			action_vec.normalize()
+			direction_vec.normalize()
+			cos_prod = direction_vec.dot_product(action_vec)
+			
+			if cos_prod >= max_cos_prod:
+				# print('Changing min')
+				max_cos_prod = cos_prod
+				max_action = i
+		# print('Action choosen:', action.Action.action2string[max_action])
+		return max_action
+
+	def __select_direction(self):
+		# If the next state is vaid, calculate the vector and return
+		if self._position != self.__next_state and self.__next_state != None:
+			# print(' next state is valid, finding and returning the direction vec ...')
+			# print('Next state:', str(self.__next_state), 'Current position:', str(self._position))
+			direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
+			# print('Direction vec:', str(direction_vec))
+			direction_vec.normalize()
+			return direction_vec
+		
+		return None
+
+
+	def __initiate_change_transit(self):
+		self.__in_contour_transit = False
+		print('S: Select action')
+		max_coverage_point = self.__coverage_UCB.select_action()
+		self.__current_coverage_contour = self._map_manager.get_coverage_contour_from_point(max_coverage_point)
+		self.__contour_counter = 0
+		self.__contour_size = len(self.__current_coverage_contour)
+		self.__current_coverage_point = self.__current_coverage_contour[self.__contour_counter]
+
+		print('S: Coverage point selected:', self.__current_coverage_point)
+		self.__select_path(self.__current_coverage_point)
+		self.__next_state = self.__planner.get_paths_next_coord()
+		print('S Starting Long transit from:', str(self._position))
+		print('S Next state:', str(self.__next_state))
+		if self.__next_state != None:
+			print('S long transits path is valid')
+			self.__in_change_transit = True
+		else:
+			print('S long transits path is NOT valid')
+			self.__in_change_transit = False
+
+	def __update_change_transit(self):
+		if self._percept.are_hiders_visible():
+			closest_coverage_point = self._map_manager.get_closest_coverage_point(self._position)
+			closest_coverage_point = closest_coverage_point[0]
+			self.__coverage_UCB.update(closest_coverage_point, self.__seen_reward)	
+			print('S Hider visible during change transit')
+			print('S Updating macro UCB for coverages pt:', closest_coverage_point)
+
+		# Decides wether the next_state needs to change or not
+		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
+			self.__next_state = self.__planner.get_paths_next_coord()
+			print('S State reached, changing to next state:', str(self.__next_state))
+			if self.__next_state == None:
+				# Agent reached its destination
+				print('S Change transit completed')
+				self.__contour_counter += 1
+				self.__in_change_transit = False
+
+	def __update_contour_transit(self):
+		
+		if self._percept.are_hiders_visible():
+			# print('# Hider visible during short transit')
+			self.__macro_hider_observed = True
+			self.__micro_hider_observed = True
+		if self.__exploratory_steps == 0:
+			print('S Exploration around strategic point', self.__current_st_point, 'completed')
+			if self.__macro_hider_observed == True:
+				macro_reward = 10
+				print('S Since hider was observed, macro reward:', macro_reward)
+				self.__macro_hider_observed = False
+			else:
+				macro_reward = -5
+				print('S Since hider was NOT observed, macro reward:', macro_reward)
+
+			print('S Updating macro UCB for st pt:', self.__current_st_point)
+			self.__macro_UCB.update(self.__current_st_point, macro_reward)
+
+		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
+			print('S Short transit completed')
+			self.__in_contour_transit = False
+			self.__next_state = None
+
+			if self.__micro_hider_observed == True:
+				micro_reward = 10
+				self.__micro_hider_observed = False
+				# print('# Since hider was observed, micro reward:', micro_reward)
+			else:
+				micro_reward = -5
+				# print('# Since hider was NOT observed, micro reward:', micro_reward)
+			# print('# Updating micro UCB for cell:', self.__micro_current_cell, 'for chosen idx:', self.__micro_chosen_idx)
+			# print()
+			self.__micro_UCB[self.__micro_current_cell].update(self.__micro_chosen_idx, micro_reward)
+
+
+	def __initiate_contour_transit(self):
+		# if self.__contour_counter >= self.__contour_size
+		self.__current_coverage_point = self.__current_coverage_contour[0]
+
+		print('S: Coverage point selected:', self.__current_coverage_point)
+		self.__select_path(self.__current_coverage_point)
+		self.__next_state = self.__planner.get_paths_next_coord()
+		print('S Starting Long transit from:', str(self._position))
+		print('S Next state:', str(self.__next_state))
+		if self.__next_state != None:
+			print('S long transits path is valid')
+			self.__in_contour_transit = True
+		else:
+			print('S long transits path is NOT valid')
+			self.__in_contour_transit = False
+
+
+	def __update_exploration(self):
+		if not self.__in_change_transit:
+			if self.__transit_trigger_condition():
+				self.__initiate_change_transit()
+			else:
+				if not self.__in_contour_transit:
+					self.__initiate_contour_transit()
+				self.__update_contour_transit()
+
+		elif self.__in_change_transit:
+			self.__update_long_transit()
+
+	def select_action(self):
+		
+		self.__update_exploration()
+		direction_vec = self.__select_direction() 
+
+
+		if direction_vec == None:
+			# print('@ Direction vec is None, action chosen randomly')
+			self._action = random.choice(action.Action.all_actions)
+			# if self._position != self.__next_state:
+				# self._action = random.choice(action.Action.all_actions)
+			# else:
+				# self.action = action.Action.ST
+		else:
+			if self._stop_counter >= 3:
+				# print('@ Agent got stuck, action chosen randomly')
+				self._action = random.choice(action.Action.all_actions)
+			else:
+				self._action = self.__select_closest_action(direction_vec)
+
+
+		
 
 
 # class FidgetingAgent(Agent):
