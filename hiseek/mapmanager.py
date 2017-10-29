@@ -332,6 +332,22 @@ class CoveragePoint(coord.Coord):
 		super(CoveragePoint, self).__init__(x, y)
 		self.__id = unique_id
 		self.__clique = clique
+		self.__explored = False
+
+	def is_explored(self):
+		return self.__explored
+
+	def mark_explored(self):
+		return self.__explored
+
+	def get_id(self):
+		return self.__id
+
+	def get_clique(self):
+		return self.__clique
+
+# class Clique(object):
+# 	def __init__(self, )
 
 
 class CoveragePointsMapManager(StrategicPointsMapManager):
@@ -339,14 +355,22 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
 		super(CoveragePointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
 		self.__visibility_graph = nx.Graph()
+		self.__coverage_graph = nx.Graph()
 		self.__cliques = None
+		self.__strategic_points2cliques = [[] for stp in self._strategic_points]
 		self.__coverage_points = []
+
+
+		self.__create_visibility_graph()
+		self.__print_nodes()
+		self.__find_coverage_points()
+		self.__associate_strategic_points2cliques()
+		self.__create_coverage_graph()
+		self.__print_coverage_graph()
+
+	def __create_visibility_graph(self):
 		self.__add_visibility_nodes()
 		self.__add_visibility_edges()
-		
-		self.__print_nodes()
-
-		self.__find_coverage_points()
 
 	def __add_visibility_nodes(self):
 		strategic_visibility = []
@@ -448,6 +472,48 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			coverage_point = CoveragePoint(coverage_point.get_x(), coverage_point.get_y(), counter, clique)
 			self.__coverage_points.append(coverage_point)
 			counter += 1
+
+	def __associate_strategic_points2cliques(self):
+		for i in range(len(self.__cliques)):
+			clique = self.__cliques[i]
+			for stp_id in clique:
+				self.__strategic_points2cliques[stp_id].append(i)
+		for i in range(len(self.__cliques)):
+			clique = self.__cliques[i]
+			print('Clique:', i, 'associated strategic points:', clique)
+		print()
+		for i in range(len(self._strategic_points)):
+			print('Strategic Point:',i, 'Associated cliques:', self.__strategic_points2cliques[i])
+
+	def __create_coverage_graph(self):
+		self.__add_coverage_nodes()
+		self.__add_coverage_edges()
+
+	def __add_coverage_nodes(self):
+		for coverage_point in self.__coverage_points:
+			self.__coverage_graph.add_node(coverage_point.get_id())
+
+	def __add_coverage_edges(self):
+		for coverage_point in self.__coverage_points:
+			if not coverage_point.is_explored():
+				self.__explore_coverage_point(coverage_point)
+
+	def __explore_coverage_point(self, coverage_point):
+		coverage_point.mark_explored()
+		clique = coverage_point.get_clique()
+		for stp_id in clique:
+			adjacent_clique_ids = self.__strategic_points2cliques[stp_id]
+			# Since each clique has a one-one map to a coverage point
+			adjacent_coverage_point_ids = adjacent_clique_ids
+			for ad_id in adjacent_coverage_point_ids:
+				adjacent_coverage_point = self.__coverage_points[ad_id]
+				if not adjacent_coverage_point.is_explored():
+					self.__coverage_graph.add_edge(coverage_point.get_id(), adjacent_coverage_point.get_id())
+
+	def __print_coverage_graph(self):
+		print('Coverage nodes:', self.__coverage_graph.nodes())
+		print('Coverage edges:', self.__coverage_graph.edges())
+
 
 
 
