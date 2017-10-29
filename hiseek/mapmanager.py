@@ -359,6 +359,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		self.__strategic_points2cliques = [[] for stp in self._strategic_points]
 		self.__coverage_points = []
 		self.__coverage_contours = []
+		self.__coverage_point2contour = None
 
 
 		self.__create_visibility_graph()
@@ -368,6 +369,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		self.__create_coverage_graph()
 		# self.__print_coverage_graph()
 		self.__get_coverage_contours()
+		self.__associate_coverage_point2contours()
 
 	def __create_visibility_graph(self):
 		self.__add_visibility_nodes()
@@ -521,3 +523,14 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			contour = list(nx.dfs_preorder_nodes(subgraph))
 			self.__coverage_contours.append(contour)
 			print('Contour:', contour)
+
+	def __associate_coverage_point2contours(self):
+		num_contours = len(self.__coverage_contours)
+		num_coverage_points = len(self.__coverage_points)
+		self.__coverage_point2contour = [None for i in range(num_coverage_points)]
+		for i in range(num_contours):
+			contour = self.__coverage_contours[i]
+			for coverage_point in contour:
+				self.__coverage_point2contour[coverage_point] = i
+		# for i in range(num_coverage_points):
+		# 	print('Coverage point:', i, 'is associated with contour:', self.__coverage_point2contour[i])
