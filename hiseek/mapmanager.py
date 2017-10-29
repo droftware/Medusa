@@ -338,7 +338,7 @@ class CoveragePoint(coord.Coord):
 		return self.__explored
 
 	def mark_explored(self):
-		return self.__explored
+		self.__explored = True
 
 	def get_id(self):
 		return self.__id
