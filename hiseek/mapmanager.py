@@ -334,6 +334,7 @@ class CoveragePoint(coord.Coord):
 		self.__clique = clique
 		self.__explored = False
 
+
 	def is_explored(self):
 		return self.__explored
 
@@ -346,8 +347,6 @@ class CoveragePoint(coord.Coord):
 	def get_clique(self):
 		return self.__clique
 
-# class CoverageContours(object):
-
 
 class CoveragePointsMapManager(StrategicPointsMapManager):
 
@@ -358,6 +357,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		self.__cliques = None
 		self.__strategic_points2cliques = [[] for stp in self._strategic_points]
 		self.__coverage_points = []
+		self.__coverage_pts_idx = rtree.index.Index()
 		self.__coverage_contours = []
 		self.__coverage_point2contour = None
 
@@ -390,6 +390,16 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		contour_id = self.__coverage_point2contour[coverage_point_id]
 		contour = self.__coverage_contours[contour_id]
 		return contour
+
+	def get_closest_coverage_point(self, point, num_points = 1):
+		cx = point.get_x()
+		cy = point.get_y()
+		bound_box = (cx, cy, cx, cy)
+		closest_coverage_pts = list(self.__coverage_pts_idx.nearest(bound_box, num_points))
+		# print('Closest points:', closest_coverage_pts)
+		if len(closest_coverage_pts) != num_points:
+			closest_coverage_pts = list(np.random.choice(closest_coverage_pts, num_points, replace=False))
+		return closest_coverage_pts
 
 	def __create_visibility_graph(self):
 		self.__add_visibility_nodes()
@@ -493,6 +503,10 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			assert(coverage_point != None)
 			# print('Coverage point:', str(coverage_point))
 			coverage_point = CoveragePoint(coverage_point.get_x(), coverage_point.get_y(), counter, clique)
+			cx = coverage_point.get_x()
+			cy = coverage_point.get_y()
+			bound_box = (cx, cy, cx, cy)
+			self.__coverage_pts_idx.insert(counter, bound_box, obj=counter)
 			self.__coverage_points.append(coverage_point)
 			counter += 1
 
