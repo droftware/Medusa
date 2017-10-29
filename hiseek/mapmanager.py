@@ -341,10 +341,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		self.__visibility_graph = nx.Graph()
 		self.__cliques = None
 		self.__coverage_points = []
-		# self.__strategic_point_cells = [self.get_cell_from_coord(stp) for stp in self._strategic_points]
-		# self.__strategic_visibility= [[] for stp in self._strategic_points]
 		self.__add_visibility_nodes()
-		# self.__strategic_visibility_set = [set(self.__strategic_visibility[i]) for i in range(self._num_strategic_points)]
 		self.__add_visibility_edges()
 		
 		self.__print_nodes()
@@ -445,19 +442,13 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		counter = 0
 		for clique in self.__cliques:
 			print(clique)
-			# all_marked = self.__check_all_marked(clique)
-			# if not all_marked:
-			# print('X Not all nodes where marked')
 			coverage_point = self.__get_cliques_coverage_point(clique)
 			assert(coverage_point != None)
-			# self.__mark_cliques_nodes(clique)
 			print('Coverage point:', str(coverage_point))
 			coverage_point = CoveragePoint(coverage_point.get_x(), coverage_point.get_y(), counter, clique)
 			self.__coverage_points.append(coverage_point)
 			counter += 1
 
-			# else:
-			# 	print('* All marked')
 
 
 
