@@ -346,8 +346,7 @@ class CoveragePoint(coord.Coord):
 	def get_clique(self):
 		return self.__clique
 
-# class Clique(object):
-# 	def __init__(self, )
+# class CoverageContours(object):
 
 
 class CoveragePointsMapManager(StrategicPointsMapManager):
@@ -359,14 +358,16 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		self.__cliques = None
 		self.__strategic_points2cliques = [[] for stp in self._strategic_points]
 		self.__coverage_points = []
+		self.__coverage_contours = []
 
 
 		self.__create_visibility_graph()
-		self.__print_nodes()
+		# self.__print_visibility_graph()
 		self.__find_coverage_points()
 		self.__associate_strategic_points2cliques()
 		self.__create_coverage_graph()
-		self.__print_coverage_graph()
+		# self.__print_coverage_graph()
+		self.__get_coverage_contours()
 
 	def __create_visibility_graph(self):
 		self.__add_visibility_nodes()
@@ -409,7 +410,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				if num_common_cells > 1:
 					self.__visibility_graph.add_edge(i, j)
 
-	def __print_nodes(self):
+	def __print_visibility_graph(self):
 		#Printing strategic points
 		for i in range(self._num_strategic_points):
 			# print('Strategic Point:',i, str(self._strategic_points[i]))
@@ -447,28 +448,28 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		for node in clique:
 			cst_pt = self._strategic_points[node]
 			if not cst_pt.is_covered():
-				print('Marking node:', node)
+				# print('Marking node:', node)
 				cst_pt.mark_covered()
 
 	def __check_all_marked(self, clique):
 		for node in clique:
 			cst_pt = self._strategic_points[node]
 			if not cst_pt.is_covered():
-				print('Node:', node,' is not marked')
+				# print('Node:', node,' is not marked')
 				return False
 		return True
 
 	def __find_coverage_points(self):
-		print('Cliques:')
+		# print('Cliques:')
 		self.__cliques = list(nx.find_cliques(self.__visibility_graph))
 		self.__cliques.sort(key=len, reverse=True)
-		print('Total number of maximal cliques:', len(self.__cliques))
+		# print('Total number of maximal cliques:', len(self.__cliques))
 		counter = 0
 		for clique in self.__cliques:
 			print(clique)
 			coverage_point = self.__get_cliques_coverage_point(clique)
 			assert(coverage_point != None)
-			print('Coverage point:', str(coverage_point))
+			# print('Coverage point:', str(coverage_point))
 			coverage_point = CoveragePoint(coverage_point.get_x(), coverage_point.get_y(), counter, clique)
 			self.__coverage_points.append(coverage_point)
 			counter += 1
@@ -478,12 +479,12 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			clique = self.__cliques[i]
 			for stp_id in clique:
 				self.__strategic_points2cliques[stp_id].append(i)
-		for i in range(len(self.__cliques)):
-			clique = self.__cliques[i]
-			print('Clique:', i, 'associated strategic points:', clique)
-		print()
-		for i in range(len(self._strategic_points)):
-			print('Strategic Point:',i, 'Associated cliques:', self.__strategic_points2cliques[i])
+		# for i in range(len(self.__cliques)):
+		# 	clique = self.__cliques[i]
+		# 	print('Clique:', i, 'associated strategic points:', clique)
+		# print()
+		# for i in range(len(self._strategic_points)):
+		# 	print('Strategic Point:',i, 'Associated cliques:', self.__strategic_points2cliques[i])
 
 	def __create_coverage_graph(self):
 		self.__add_coverage_nodes()
@@ -514,13 +515,9 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		print('Coverage nodes:', self.__coverage_graph.nodes())
 		print('Coverage edges:', self.__coverage_graph.edges())
 
-
-
-
-
-
-
-
-
-
-
+	def __get_coverage_contours(self):
+		coverage_subgraphs = nx.connected_component_subgraphs(self.__coverage_graph)
+		for subgraph in coverage_subgraphs:
+			contour = list(nx.dfs_preorder_nodes(subgraph))
+			self.__coverage_contours.append(contour)
+			print('Contour:', contour)
