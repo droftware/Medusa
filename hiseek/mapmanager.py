@@ -332,9 +332,10 @@ class StrategicPoint(coord.Coord):
 		return point_string
 
 class CoveragePoint(coord.Coord):
-	def __init__(self, x, y, unique_id):
+	def __init__(self, x, y, unique_id, clique):
 		super(CoveragePoint, self).__init__(x, y)
 		self.__id = unique_id
+		self.__clique = clique
 
 
 class CoveragePointsMapManager(StrategicPointsMapManager):
@@ -342,6 +343,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
 		super(CoveragePointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
 		self.__visibility_graph = nx.Graph()
+		self.__cliques = None
 		self.__coverage_points = []
 		# self.__strategic_point_cells = [self.get_cell_from_coord(stp) for stp in self._strategic_points]
 		# self.__strategic_visibility= [[] for stp in self._strategic_points]
@@ -389,8 +391,8 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				num_common_cells = len(common_cells)
 				if num_common_cells > 1:
 					self.__visibility_graph.add_edge(i, j)
-					pt1.set_common_strategic_point(j, num_common_cells)
-					pt2.set_common_strategic_point(i, num_common_cells)
+					# pt1.set_common_strategic_point(j, num_common_cells)
+					# pt2.set_common_strategic_point(i, num_common_cells)
 
 	def __print_nodes(self):
 		#Printing strategic points
@@ -443,10 +445,11 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 
 	def __find_coverage_points(self):
 		print('Cliques:')
-		cliques = list(nx.find_cliques(self.__visibility_graph))
-		cliques.sort(key=len, reverse=True)
-		print('Total number of maximal cliques:', len(cliques))
-		for clique in (cliques):
+		self.__cliques = list(nx.find_cliques(self.__visibility_graph))
+		self.__cliques.sort(key=len, reverse=True)
+		print('Total number of maximal cliques:', len(self.__cliques))
+		counter = 0
+		for clique in self.__cliques:
 			print(clique)
 			# all_marked = self.__check_all_marked(clique)
 			# if not all_marked:
@@ -455,7 +458,10 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			assert(coverage_point != None)
 			# self.__mark_cliques_nodes(clique)
 			print('Coverage point:', str(coverage_point))
+			coverage_point = CoveragePoint(coverage_point.get_x(), coverage_point.get_y(), counter, clique)
 			self.__coverage_points.append(coverage_point)
+			counter += 1
+
 			# else:
 			# 	print('* All marked')
 
