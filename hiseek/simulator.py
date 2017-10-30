@@ -141,7 +141,7 @@ class Simulator(object):
 		self.__num_rays = self.__conf_options.get_num_rays()
 		self.__visibility_angle = self.__conf_options.get_visibility_angle()
 
-		self.__stats = statistic.Statistic(num_hiders, num_seekers)
+		self.__stats = statistic.Statistic(num_hiders, num_seekers, self.__map_id)
 		self.__max_steps = max_steps
 		self.__steps = 0
 		self.__polygon_map = gamemap.PolygonMap(map_id)
@@ -561,7 +561,8 @@ class Simulator(object):
 		if self.__num_caught == self.__num_hiders:
 			print('Total steps:', self.__steps)
 			print('All hiders caught')
-			self.__stats.print_statistic()
+			# self.__stats.print_statistic()
+			self.__stats.write_statistic()
 			if self.__log_flag:
 				self.__replay_output_file.close()
 			if self.__vis_flag:
