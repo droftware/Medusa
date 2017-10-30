@@ -291,7 +291,7 @@ class UCBAggressiveAgent(Agent):
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
 		super(UCBAggressiveAgent, self).__init__(agent_type, agent_id, team, map_manager)
 		self.__planner = planner.BasicPlanner(self._map_manager)
-		self.__margin = 10
+		self.__margin = 8
 		self.__next_state = None
 		self.__num_rows = self._map_manager.get_num_rows()
 		self.__num_cols = self._map_manager.get_num_cols()
@@ -706,7 +706,7 @@ class UCBCoverageAgent(Agent):
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
 		super(UCBCoverageAgent, self).__init__(agent_type, agent_id, team, map_manager)
 		self.__planner = planner.BasicPlanner(self._map_manager)
-		self.__margin = 10
+		self.__margin = 8
 		self.__next_state = None
 		
 		self.__offset = self._map_manager.get_offset()
@@ -724,13 +724,16 @@ class UCBCoverageAgent(Agent):
 
 		self.__in_change_transit = False
 		self.__in_contour_transit = False
+
 		self.__in_scan_state = False
+		self.__scan_counter = 0
+		self.__scan_directions = [action.Action.N, action.Action.S, action.Action.E, action.Action.W]
 
 		self.__contour_counter = 0
 		self.__contour_size = 0
 
 		self.__seen_reward = 10
-		self.__unseen_reward = -10
+		self.__unseen_reward = -4
 
 
 	def generate_messages(self):
@@ -777,7 +780,7 @@ class UCBCoverageAgent(Agent):
 
 
 	def __initiate_change_transit(self):
-		self.__in_contour_transit = False
+		# self.__in_contour_transit = False
 		print('S: Select action')
 		max_coverage_point = self.__coverage_UCB.select_action()
 		self.__current_coverage_contour = self._map_manager.get_coverage_contour_from_point(max_coverage_point)
@@ -801,7 +804,7 @@ class UCBCoverageAgent(Agent):
 		if self._percept.are_hiders_visible():
 			closest_coverage_point = self._map_manager.get_closest_coverage_point(self._position)
 			closest_coverage_point = closest_coverage_point[0]
-			self.__coverage_UCB.update(closest_coverage_point, self.__seen_reward)	
+			self.__coverage_UCB.update(closest_coverage_point, self.__seen_reward)
 			print('S Hider visible during change transit')
 			print('S Updating UCB for coverages pt:', closest_coverage_point)
 
@@ -812,8 +815,8 @@ class UCBCoverageAgent(Agent):
 			if self.__next_state == None:
 				# Agent reached its destination
 				# print('S Change transit completed')
-				self.__contour_counter += 1
 				self.__in_scan_state = True
+				self.__scan_counter = 0
 				if self.__in_change_transit:
 					self.__in_change_transit = False
 				elif self.__in_contour_transit:
@@ -832,41 +835,60 @@ class UCBCoverageAgent(Agent):
 		else:
 			print('S long transits path is NOT valid')
 			self.__in_contour_transit = False
+
+	def __update_scan(self):
+		if self._percept.are_hiders_visible():
+			self.__hider_observed = True
+
+		self.__scan_counter += 1
+
+		if self.__scan_counter == 4:
+			if self.__hider_observed:
+				self.__coverage_UCB.update(self.__current_coverage_point, self.__seen_reward)
+			else:
+				self.__coverage_UCB.update(self.__current_coverage_point, self.__unseen_reward)
+			self.__hider_observed = False
+			self.__in_scan_state = False
+			self.__contour_counter += 1
+
 		
 	def __transit_trigger_condition(self):
 		return self.__contour_counter == self.__contour_size
 
 	def __update_exploration(self):
 		if self.__in_scan_state:
-			pass
-		elif not self.__in_change_transit:
-			if self.__transit_trigger_condition():
-				self.__initiate_change_transit()
-			else:
-				if not self.__in_contour_transit:
-					self.__initiate_contour_transit()
-		if self.__in_change_transit or self.__in_contour_transit:
-			self.__update_transit()
+			self.__update_scan()
+		else:
+			if not self.__in_change_transit:
+				if self.__transit_trigger_condition():
+					self.__initiate_change_transit()
+				else:
+					if not self.__in_contour_transit:
+						self.__initiate_contour_transit()
+			if self.__in_change_transit or self.__in_contour_transit:
+				self.__update_transit()
 
 	def select_action(self):
 		
 		self.__update_exploration()
-		direction_vec = self.__select_direction() 
 
-
-		if direction_vec == None:
-			# print('@ Direction vec is None, action chosen randomly')
-			self._action = random.choice(action.Action.all_actions)
-			# if self._position != self.__next_state:
-				# self._action = random.choice(action.Action.all_actions)
-			# else:
-				# self.action = action.Action.ST
+		if self.__in_scan_state:
+			self._action = self.__scan_directions[self.__scan_counter]
 		else:
-			if self._stop_counter >= 3:
-				# print('@ Agent got stuck, action chosen randomly')
+			direction_vec = self.__select_direction() 
+			if direction_vec == None:
+				# print('@ Direction vec is None, action chosen randomly')
 				self._action = random.choice(action.Action.all_actions)
+				# if self._position != self.__next_state:
+					# self._action = random.choice(action.Action.all_actions)
+				# else:
+					# self.action = action.Action.ST
 			else:
-				self._action = self.__select_closest_action(direction_vec)
+				if self._stop_counter >= 3:
+					# print('@ Agent got stuck, action chosen randomly')
+					self._action = random.choice(action.Action.all_actions)
+				else:
+					self._action = self.__select_closest_action(direction_vec)
 
 
 		
