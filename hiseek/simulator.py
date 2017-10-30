@@ -143,6 +143,7 @@ class Simulator(object):
 
 		self.__stats = statistic.Statistic(num_hiders, num_seekers)
 		self.__max_steps = max_steps
+		self.__steps = 0
 		self.__polygon_map = gamemap.PolygonMap(map_id)
 
 		self.__log_flag = log_flag
@@ -352,6 +353,10 @@ class Simulator(object):
 				print('Hider caught !!')
 				self.__num_caught += 1
 
+				# Updating the statistics
+				self.__stats.update_hider_caught_time(graphics_idx, self.__steps)
+
+
 	def __get_visible_players(self, visibility_polygon, ignore_hiders, ignore_seekers):
 		hider_coords = []
 		hider_idxs = []
@@ -435,6 +440,10 @@ class Simulator(object):
 					hiders_pos_string += str(x) + ',' + str(y) + ',' + action.Action.action2string[act]
 					points_string = str(self.__hiders[i].get_visibility_polygon().get_points_tuple())[1:-1]
 					hiders_pos_string += '*' + points_string
+
+					# Updating the statistics
+					self.__stats.update_hider_path(i, self.__hiders[i].get_current_coordinate())
+
 			else:
 				if self.__log_flag:
 					if i != 0:
@@ -463,6 +472,10 @@ class Simulator(object):
 					seekers_pos_string += str(x) + ',' + str(y) + ',' + action.Action.action2string[act]
 					points_string = str(self.__seekers[i].get_visibility_polygon().get_points_tuple())[1:-1]
 					seekers_pos_string += '*' + points_string
+
+					# Updating the statistics
+					self.__stats.update_seeker_path(i, self.__seekers[i].get_current_coordinate())
+
 
 			else:
 				if self.__log_flag:
@@ -510,8 +523,9 @@ class Simulator(object):
 
 	def __update_simulation(self, dt):
 		# update the time
-		# print('dt:', dt)
+		print('dt:', dt)
 		self.__total_time += dt
+		self.__steps += 1
 		
 
 		# extract percept from simulation layer and send to AI layer
@@ -545,7 +559,9 @@ class Simulator(object):
 			self.__update_graphics_visibility()
 
 		if self.__num_caught == self.__num_hiders:
+			print('Total steps:', self.__steps)
 			print('All hiders caught')
+			self.__stats.print_statistic()
 			if self.__log_flag:
 				self.__replay_output_file.close()
 			if self.__vis_flag:
