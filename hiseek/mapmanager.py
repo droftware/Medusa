@@ -375,10 +375,10 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		return len(self.__coverage_points)
 
 	def get_coverage_point(self, uid):
-		return self._coverage_points[uid]
+		return self.__coverage_points[uid]
 
 	def get_coverage_points(self):
-		return self._coverage_points
+		return self.__coverage_points
 
 	def get_coverage_contour(self, uid):
 		return self.__coverage_contours[uid]

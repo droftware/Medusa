@@ -120,7 +120,7 @@ class Simulator(object):
 	"""
 
 	mode_type_hiders = ['random', 'bayesian', 'sbandit']
-	mode_type_seekers = ['random', 'sbandit']
+	mode_type_seekers = ['random', 'sbandit', 'coverage']
 
 	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, max_steps=1000, window_width=640, window_height=360):
 		assert(mode_hiders in Simulator.mode_type_hiders)
@@ -173,6 +173,10 @@ class Simulator(object):
 			self.__seeker_team = team.RandomTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
 		elif mode_seekers == 'sbandit':
 			self.__seeker_team = team.UCBAggressiveTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
+		elif mode_seekers == 'coverage':
+			self.__seeker_team = team.UCBCoverageTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
+
+
 
 		# Graphics setup
 		self.__window_width = self.__polygon_map.get_map_width()

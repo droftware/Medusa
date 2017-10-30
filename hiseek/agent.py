@@ -890,8 +890,19 @@ class UCBCoverageAgent(Agent):
 				else:
 					self._action = self.__select_closest_action(direction_vec)
 
+	def clear_temporary_state(self):
+		pass
 
-		
+
+
+class UCBCoverageCommanderAgent(UCBCoverageAgent):
+
+	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
+		super(UCBCoverageCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
+		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
+
+	def get_opening_position(self, rank, idx):
+		return self.__skill.get_opening_position(rank, idx)		
 
 
 # class FidgetingAgent(Agent):
