@@ -360,14 +360,16 @@ class UCBCoverageTeam(Team):
 		self._map_managers.append(map_manager)
 
 		# recruit the commander of the random team
-		agent_id = 'RH' + str(0)
+		# agent_id = 'RH' + str(0)
+		agent_id = 0
 		commander_member = agent.UCBCoverageCommanderAgent(agent_type, agent_id, self, self._map_managers[0], self.__num_rays, self.__visibility_angle)
 		self._members[0].append(commander_member)
 		self._active[0].append(True)
 
 		# recruit agents for the team
-		for i in range(self._num_agents - 1):
-			agent_id = 'RH' + str(i)
+		for i in range(1, self._num_agents):
+			# agent_id = 'RH' + str(i)
+			agent_id = i
 			member = agent.UCBCoverageAgent(agent_type, agent_id, self, self._map_managers[0], self.__num_rays, self.__visibility_angle)
 			self._members[0].append(member)
 			self._active[0].append(True)

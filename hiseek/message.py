@@ -16,6 +16,9 @@ class Message(object):
 	def get_content(self):
 		return self.__content
 
+	def __str__(self):
+		return str(self.__content)
+
 
 class AgentMessenger(object):
 	'''
@@ -30,14 +33,14 @@ class AgentMessenger(object):
 	def compose(self, receiver, content):
 		message = Message(self.__id, receiver, content)
 		self.__team_messenger.send(message)
-		self.__outbox.append((False, message))
+		self.__outbox.append([False, message])
 
 	def receive(self, message):
-		self.__inbox.append((False, message))
+		self.__inbox.append([False, message])
 
 	def get_new_messages(self):
 		unread_messages = []
-		for i in reversed(self.__inbox):
+		for i in reversed(range(len(self.__inbox))):
 			message = self.__inbox[i]
 			if not message[0]:
 				message[0] = True

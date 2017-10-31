@@ -737,10 +737,17 @@ class UCBCoverageAgent(Agent):
 
 
 	def generate_messages(self):
-		pass
+		self._agent_messenger.compose(0, 'Hi')
 
 	def analyze_messages(self):
 		pass
+		# messages = self._agent_messenger.get_new_messages()
+		# if len(messages) > 0:
+		# 	print('M You have got mail')
+		# 	for i in range(len(messages)):
+		# 		print(i, messages[i])
+		# else:
+		# 	print('M No new mail')
 
 	def __select_path(self, coverage_point):
 		start_coord = self._position
@@ -914,7 +921,20 @@ class UCBCoverageCommanderAgent(UCBCoverageAgent):
 		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
 
 	def get_opening_position(self, rank, idx):
-		return self.__skill.get_opening_position(rank, idx)		
+		return self.__skill.get_opening_position(rank, idx)	
+
+	def generate_messages(self):
+		pass
+
+	def analyze_messages(self):
+		messages = self._agent_messenger.get_new_messages()
+		if len(messages) > 0:
+			print('M You have got mail')
+			for i in range(len(messages)):
+				print(i, str(messages[i]))
+		else:
+			print('M No new mail')
+
 
 
 # class FidgetingAgent(Agent):
