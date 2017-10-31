@@ -122,7 +122,13 @@ def main():
 
 	for p in obstacles:
 		ax3.add_patch(p)
-	ax3.plot(seeker_paths_x, seeker_paths_y, 'bo')
+
+	for i in range(num_seekers):
+		ax3.plot(seeker_paths_x[i], seeker_paths_y[i], 'b^-')
+
+	for i in range(num_hiders):
+		ax3.plot(hider_paths_x[i], hider_paths_y[i], 'r*-')
+
 	# fig3.savefig('rect3.png', dpi=90, bbox_inches='tight')
 	plt.show()
 
