@@ -868,10 +868,10 @@ class UCBCoverageAgent(Agent):
 			else:
 				print('S: Scan completed, updating with a negative reward')
 				reward = self.__unseen_reward
-			self.__update_coverage_UCB(self.__current_coverage_point, reward)
 			self.__hider_observed = False
 			self.__in_scan_state = False
 			self.__contour_counter += 1
+			self.__update_coverage_UCB(self.__current_coverage_point, reward)
 
 		
 	def __transit_trigger_condition(self):
@@ -947,8 +947,9 @@ class UCBCoverageCommunicationAgent(UCBCoverageAgent):
 		messages = self._agent_messenger.get_new_messages()
 		assert(len(messages) <= 1)
 		if len(messages) == 1:
-			if messages[0][0] == 'T':
-				self.__max_coverage_point = int(messages[0].split(',')[1])
+			content = messages[0].get_content().strip()
+			if content[0] == 'T':
+				self.__max_coverage_point = int(content.split(',')[1])
 			else:
 				self.__max_coverage_point = None
 		else:
@@ -959,33 +960,50 @@ class UCBCoverageCommunicationAgent(UCBCoverageAgent):
 		return self.__max_coverage_point
 
 	def __update_coverage_UCB(self, coverage_point, reward):
-		# self.__coverage_UCB.update(coverage_point, reward)
-		self.__content = 'U, ' + str(coverage_point) + ', ' + str(reward)
+		type_flag = 'U'
+		if self.__transit_trigger_condition():
+			type_flag = 'L'
+		self.__content = type_flag + ', ' + str(coverage_point) + ', ' + str(reward)
 		self.generate_messages()
 
 
-class UCBCoverageCommunicationCommanderAgent(UCBCoverageAgent):
+class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
 		super(UCBCoverageCommunicationCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
 		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
+		self.__stopped_agents = []
 
 	def get_opening_position(self, rank, idx):
 		return self.__skill.get_opening_position(rank, idx)	
 
 	def generate_messages(self):
-		pass
+		num_stopped_agents = len(self.__stopped_agents)
+		coverage_points = self.__coverage_UCB.get_greatest_actions(num_stopped_agents)
+		for i in range(num_stopped_agents):
+			agent_id = self.__stopped_agents[i]
+			content = 'T, ' + coverage_points[i] 
+			self._agent_messenger.compose(agent_id, content)
 
 	def analyze_messages(self):
 		messages = self._agent_messenger.get_new_messages()
-		if len(messages) > 0:
-			print('M You have got mail')
-			for i in range(len(messages)):
-				print(i, str(messages[i]))
-		else:
-			print('M No new mail')
+		del self.__stopped_agents[:]
+		for mail in messages:
+			content = mail.get_content().strip()
+			if content[0] == 'L':
+				sender_id = mail.get_sender()
+				self.__stopped_agents.append(sender_id)
 
+			if content[0] == 'U' or content[0] == 'L':
+				token = content.split(',')
+				coverage_point = int(token[1])
+				reward = int(token[2])
+				self.__update_coverage_UCB(coverage_point, reward)
 
+	def select_action(self):
+		self.__analyze_messages()
+		self.__generate_messages()
+		super(UCBCoverageCommunicationCommanderAgent, self).select_action()
 
 
 
