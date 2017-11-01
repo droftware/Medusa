@@ -782,11 +782,16 @@ class UCBCoverageAgent(Agent):
 		max_coverage_point = self.__coverage_UCB.select_action()
 		return max_coverage_point
 
+	def __update_coverage_UCB(self, coverage_point, reward):
+		self.__coverage_UCB.update(coverage_point, reward)
+
 	def __initiate_change_transit(self):
 		# self.__in_contour_transit = False
 		print()
 		print('S: Inititating change transit')
 		max_coverage_point = self.__get_max_coverage_point()
+		if max_coverage_point == None:
+			return
 		self.__current_coverage_contour = self._map_manager.get_coverage_contour_from_point(max_coverage_point)
 		self.__contour_counter = 0
 		self.__contour_size = len(self.__current_coverage_contour)
@@ -803,9 +808,6 @@ class UCBCoverageAgent(Agent):
 		else:
 			print('S long transits path is NOT valid')
 			self.__in_change_transit = False
-
-	def __update_coverage_UCB(self, coverage_point, reward):
-		self.__coverage_UCB.update(coverage_point, reward)
 
 	def __update_transit(self):
 		if self._percept.are_hiders_visible():
@@ -933,19 +935,34 @@ class UCBCoverageCommunicationAgent(UCBCoverageAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
 		super(UCBCoverageCommunicationAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		self.__content = None
+		self.__commander_id = 0
+		self.__max_coverage_point = None
+
 
 	def generate_messages(self):
-		self._agent_messenger.compose(0, 'Hi')
+		self._agent_messenger.compose(self.__commander_id, self.__content)
 
 	def analyze_messages(self):
-		pass
-		# messages = self._agent_messenger.get_new_messages()
-		# if len(messages) > 0:
-		# 	print('M You have got mail')
-		# 	for i in range(len(messages)):
-		# 		print(i, messages[i])
-		# else:
-		# 	print('M No new mail')
+		messages = self._agent_messenger.get_new_messages()
+		assert(len(messages) <= 1)
+		if len(messages) == 1:
+			if messages[0][0] == 'T':
+				self.__max_coverage_point = int(messages[0].split(',')[1])
+			else:
+				self.__max_coverage_point = None
+		else:
+			self.__max_coverage_point = None
+
+	def __get_max_coverage_point(self):
+		self.analyze_messages()
+		return self.__max_coverage_point
+
+	def __update_coverage_UCB(self, coverage_point, reward):
+		# self.__coverage_UCB.update(coverage_point, reward)
+		self.__content = 'U, ' + str(coverage_point) + ', ' + str(reward)
+		self.generate_messages()
+
 
 class UCBCoverageCommunicationCommanderAgent(UCBCoverageAgent):
 
@@ -967,6 +984,7 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageAgent):
 				print(i, str(messages[i]))
 		else:
 			print('M No new mail')
+
 
 
 
