@@ -778,12 +778,15 @@ class UCBCoverageAgent(Agent):
 		
 		return None
 
+	def __get_max_coverage_point(self):
+		max_coverage_point = self.__coverage_UCB.select_action()
+		return max_coverage_point
 
 	def __initiate_change_transit(self):
 		# self.__in_contour_transit = False
 		print()
 		print('S: Inititating change transit')
-		max_coverage_point = self.__coverage_UCB.select_action()
+		max_coverage_point = self.__get_max_coverage_point()
 		self.__current_coverage_contour = self._map_manager.get_coverage_contour_from_point(max_coverage_point)
 		self.__contour_counter = 0
 		self.__contour_size = len(self.__current_coverage_contour)
@@ -801,11 +804,14 @@ class UCBCoverageAgent(Agent):
 			print('S long transits path is NOT valid')
 			self.__in_change_transit = False
 
+	def __update_UCB(self, coverage_point, reward):
+		self.__coverage_UCB.update(coverage_point, reward)
+
 	def __update_transit(self):
 		if self._percept.are_hiders_visible():
 			closest_coverage_point = self._map_manager.get_closest_coverage_point(self._position)
 			closest_coverage_point = closest_coverage_point[0]
-			self.__coverage_UCB.update(closest_coverage_point, self.__seen_reward)
+			self.__update_UCB(closest_coverage_point, self.__seen_reward)
 			print('S: Hider visible during change transit')
 			print('S: Updating UCB for coverages pt:', closest_coverage_point)
 
@@ -853,12 +859,14 @@ class UCBCoverageAgent(Agent):
 		print('S: Incrementing scan counter')
 
 		if self.__scan_counter == 4:
+			reward = 0
 			if self.__hider_observed:
 				print('S: Scan completed, updating with a positive reward')
-				self.__coverage_UCB.update(self.__current_coverage_point, self.__seen_reward)
+				reward = self.__seen_reward
 			else:
 				print('S: Scan completed, updating with a negative reward')
-				self.__coverage_UCB.update(self.__current_coverage_point, self.__unseen_reward)
+				reward = self.__unseen_reward
+			self.__coverage_UCB.update(self.__current_coverage_point, reward)
 			self.__hider_observed = False
 			self.__in_scan_state = False
 			self.__contour_counter += 1
