@@ -737,18 +737,11 @@ class UCBCoverageAgent(Agent):
 
 
 	def generate_messages(self):
-		self._agent_messenger.compose(0, 'Hi')
+		pass
 
 	def analyze_messages(self):
 		pass
-		# messages = self._agent_messenger.get_new_messages()
-		# if len(messages) > 0:
-		# 	print('M You have got mail')
-		# 	for i in range(len(messages)):
-		# 		print(i, messages[i])
-		# else:
-		# 	print('M No new mail')
-
+		
 	def __select_path(self, coverage_point):
 		start_coord = self._position
 		goal_coord = self._map_manager.get_coverage_point(coverage_point)
@@ -913,11 +906,43 @@ class UCBCoverageAgent(Agent):
 		pass
 
 
-
 class UCBCoverageCommanderAgent(UCBCoverageAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
 		super(UCBCoverageCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
+		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
+
+	def get_opening_position(self, rank, idx):
+		return self.__skill.get_opening_position(rank, idx)	
+
+	def generate_messages(self):
+		pass
+
+	def analyze_messages(self):
+		pass
+
+class UCBCoverageCommunicationAgent(UCBCoverageAgent):
+
+	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
+		super(UCBCoverageCommunicationAgent, self).__init__(agent_type, agent_id, team, map_manager)
+
+	def generate_messages(self):
+		self._agent_messenger.compose(0, 'Hi')
+
+	def analyze_messages(self):
+		pass
+		# messages = self._agent_messenger.get_new_messages()
+		# if len(messages) > 0:
+		# 	print('M You have got mail')
+		# 	for i in range(len(messages)):
+		# 		print(i, messages[i])
+		# else:
+		# 	print('M No new mail')
+
+class UCBCoverageCommunicationCommanderAgent(UCBCoverageAgent):
+
+	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
+		super(UCBCoverageCommunicationCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
 		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
 
 	def get_opening_position(self, rank, idx):
@@ -934,6 +959,7 @@ class UCBCoverageCommanderAgent(UCBCoverageAgent):
 				print(i, str(messages[i]))
 		else:
 			print('M No new mail')
+
 
 
 
