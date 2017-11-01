@@ -974,8 +974,30 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
 		self.__stopped_agents = []
 
+		self.__num_members = self._team.get_num_agents()
+		self.__num_coverage_contours = self._map_manager.get_num_coverage_contours()
+		self.__coverage_point_allotments = None
+
+		self.__allot_coverage_points()
+
 	def get_opening_position(self, rank, idx):
-		return self.__skill.get_opening_position(rank, idx)	
+		return self.__skill.get_opening_position(rank, idx)
+ 
+	def get_opening_coverage_point(self, agent_id):
+		return self.__coverage_point_allotments[agent_id]
+
+	def __allot_coverage_points(self, rank, idx):
+		replace = False
+		if self.__num_members > self.__num_coverage_contours:
+			replace = True
+		contour_id_allotments = np.random.choice(self.__num_coverage_contours, self.__num_members, replace=replace)
+		contour_id_allotments = list(contour_id_allotments)
+
+		for contour_id in contour_id_allotments:
+			contour = self._map_manager.get_coverage_contour(contour_id)
+			coverage_point = contour[0]
+			self.__coverage_point_allotments.append(coverage_point)
+
 
 	def generate_messages(self):
 		num_stopped_agents = len(self.__stopped_agents)
