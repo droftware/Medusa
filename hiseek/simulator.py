@@ -120,7 +120,7 @@ class Simulator(object):
 	"""
 
 	mode_type_hiders = ['random', 'bayesian', 'sbandit']
-	mode_type_seekers = ['random', 'sbandit', 'coverage']
+	mode_type_seekers = ['random', 'sbandit', 'coverage', 'cc']
 
 	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, max_steps=1000, window_width=640, window_height=360):
 		assert(mode_hiders in Simulator.mode_type_hiders)
@@ -176,6 +176,8 @@ class Simulator(object):
 			self.__seeker_team = team.UCBAggressiveTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
 		elif mode_seekers == 'coverage':
 			self.__seeker_team = team.UCBCoverageTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
+		elif mode_seekers == 'cc':
+			self.__seeker_team = team.UCBCoverageCommunicationTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
 
 
 
@@ -344,13 +346,13 @@ class Simulator(object):
 		for i in range(len(visible_hiders)):
 			rank, ai_idx = visible_hiders[i]
 			graphics_idx = self.__hiders_agent2player[visible_hiders[i]]
-			print('')
-			print(self.__num_caught,':Hider caught:', graphics_idx)
+			# print('')
+			# print(self.__num_caught,':Hider caught:', graphics_idx)
 			if self.__hiders_active[graphics_idx]:
 				self.__hiders_active[graphics_idx] = False 
 				self.__hider_team.set_member_inactive(rank, ai_idx)
 				self.__set_mover_inactive(agent.AgentType.Hider, graphics_idx)
-				print('Hider caught !!')
+				# print('Hider caught !!')
 				self.__num_caught += 1
 
 				# Updating the statistics
@@ -523,7 +525,7 @@ class Simulator(object):
 
 	def __update_simulation(self, dt):
 		# update the time
-		print('dt:', dt)
+		# print('dt:', dt)
 		self.__total_time += dt
 		self.__steps += 1
 		

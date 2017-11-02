@@ -161,8 +161,8 @@ class Team(object):
 			b/w the members, each agent takes an action
 		'''
 		
-		self.__enable_message_generation()
-		self.__enable_message_analysis()
+		# self.__enable_message_generation()
+		# self.__enable_message_analysis()
 		self.__enable_action_selection()
 		self.__enable_temporal_state_clearance()
 		
@@ -382,3 +382,57 @@ class UCBCoverageTeam(Team):
 			for j in range(self.get_num_rankers(i)):
 				position = commander_member.get_opening_position(i, j)
 				self._members[i][j].set_position(position)
+
+
+class UCBCoverageCommunicationTeam(Team):
+
+	# TO DO: Extend it for multiple agents
+
+	ranks = 2
+
+	def __init__(self, agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta, num_rays, visibility_angle):
+		super(UCBCoverageCommunicationTeam, self).__init__(agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta)
+
+		# prepare a rank 1 hierarchy member list and map managers
+		self._map_managers = [] # one map manager for one level
+		self._members = [[], []]
+		self._active = [[], []]
+		
+		self.__num_rays = num_rays
+		self.__visibility_angle = visibility_angle
+
+		# assign a basic map manager to the only level
+		map_manager = mapmanager.CoveragePointsMapManager(self._mapworld, self._fps, self._velocity, self.__num_rays, self.__visibility_angle)
+
+		self._map_managers.append(map_manager)
+
+		# recruit the commander of the random team
+		# agent_id = 'RH' + str(0)
+		agent_id = 0
+		commander_member = agent.UCBCoverageCommunicationCommanderAgent(agent_type, agent_id, self, self._map_managers[0], self.__num_rays, self.__visibility_angle)
+		self._members[1].append(commander_member)
+		self._active[1].append(True)
+
+		# recruit agents for the team
+		for i in range(self._num_agents - 1):
+			agent_id = i+1
+			member = agent.UCBCoverageCommunicationAgent(agent_type, agent_id, self, self._map_managers[0], self.__num_rays, self.__visibility_angle)
+			self._members[0].append(member)
+			self._active[0].append(True)
+
+		print('Members:', self._members)
+
+		# Get the opening positions from the commader member and set each agents
+		# position accordingly
+		for i in reversed(range(self.ranks)):
+			for j in range(self.get_num_rankers(i)):
+				position = commander_member.get_opening_position(i, j)
+				self._members[i][j].set_position(position)
+
+		# Get opening coverage points for the agents
+		agent_id = 0
+		for i in reversed(range(self.ranks)):
+			for j in range(self.get_num_rankers(i)):
+				coverage_point = commander_member.get_opening_coverage_point(agent_id)
+				self._members[i][j].set_initial_coverage_point(coverage_point)
+				agent_id += 1

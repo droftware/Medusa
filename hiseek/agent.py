@@ -640,7 +640,7 @@ class UCBPassiveAgent(Agent):
 	def __update_waiting(self):
 		# print('H Waiting...(update)')
 		self.__waiting_steps -= 1
-		if self.__transit_trigger_condition():
+		if self._transit_trigger_condition():
 			if self._percept.are_seekers_visible():
 				macro_reward = -20
 				# print('H Seeker visible, macro reward:', macro_reward)
@@ -652,7 +652,7 @@ class UCBPassiveAgent(Agent):
 			self.__macro_UCB.update(self.__current_st_point, macro_reward)
 			# print('H Hider UCB Status:', str(self.__macro_UCB))
 
-	def __transit_trigger_condition(self):
+	def _transit_trigger_condition(self):
 		if self.__waiting_steps == 0 or self._percept.are_seekers_visible():
 			return True
 		else:
@@ -661,7 +661,7 @@ class UCBPassiveAgent(Agent):
 	def __update_exploration(self):
 		# print('$$ Waiting steps:', self.__waiting_steps)
 		if not self.__in_transit:
-			if self.__transit_trigger_condition():
+			if self._transit_trigger_condition():
 				self.__initiate_transit()
 			elif self.__waiting_steps > 0:
 				self.__update_waiting()
@@ -716,7 +716,7 @@ class UCBCoverageAgent(Agent):
 		self.__visibility_angle = visibility_angle
 
 		# print('Total number of strategic points:', self.__num_strategic_points)
-		self.__coverage_UCB = ucb.UCB(self.__num_coverage_points)
+		self._coverage_UCB = ucb.UCB(self.__num_coverage_points)
 		self.__hider_observed = False
 
 		self.__current_coverage_point = None
@@ -741,6 +741,9 @@ class UCBCoverageAgent(Agent):
 
 	def analyze_messages(self):
 		pass
+
+	def set_initial_coverage_point(self, coverage_point):
+		self.__set_contour_path(coverage_point)
 		
 	def __select_path(self, coverage_point):
 		start_coord = self._position
@@ -778,44 +781,50 @@ class UCBCoverageAgent(Agent):
 		
 		return None
 
-	def __get_max_coverage_point(self):
-		max_coverage_point = self.__coverage_UCB.select_action()
+	def _get_max_coverage_point(self):
+		max_coverage_point = self._coverage_UCB.select_action()
 		return max_coverage_point
 
-	def __update_coverage_UCB(self, coverage_point, reward):
-		self.__coverage_UCB.update(coverage_point, reward)
+	def _update_coverage_UCB(self, coverage_point, reward):
+		# print('updating ucb** yo yo')
+		self._coverage_UCB.update(coverage_point, reward)
 
-	def __initiate_change_transit(self):
-		# self.__in_contour_transit = False
-		print()
-		print('S: Inititating change transit')
-		max_coverage_point = self.__get_max_coverage_point()
-		if max_coverage_point == None:
-			return
-		self.__current_coverage_contour = self._map_manager.get_coverage_contour_from_point(max_coverage_point)
+	def __set_contour_path(self, coverage_point):
+		self.__current_coverage_contour = self._map_manager.get_coverage_contour_from_point(coverage_point)
 		self.__contour_counter = 0
 		self.__contour_size = len(self.__current_coverage_contour)
 		self.__current_coverage_point = self.__current_coverage_contour[self.__contour_counter]
-		print('S: Current contour:', self.__current_coverage_contour)
-		print('S: Coverage point selected:', self.__current_coverage_point)
+		# print('S: Current contour:', self.__current_coverage_contour)
+		# print('S: Coverage point selected:', self.__current_coverage_point)
 		self.__select_path(self.__current_coverage_point)
 		self.__next_state = self.__planner.get_paths_next_coord()
-		print('S Starting Long transit from:', str(self._position))
-		print('S Next state:', str(self.__next_state))
+		# print('S Starting Long transit from:', str(self._position))
+		# print('S Next state:', str(self.__next_state))
 		if self.__next_state != None:
-			print('S long transits path is valid')
+			# print('S long transits path is valid')
 			self.__in_change_transit = True
 		else:
-			print('S long transits path is NOT valid')
+			# print('S long transits path is NOT valid')
 			self.__in_change_transit = False
+
+
+	def __initiate_change_transit(self):
+		# self.__in_contour_transit = False
+		# print()
+		# print('S: Inititating change transit')
+		max_coverage_point = self._get_max_coverage_point()
+		if max_coverage_point == None:
+			return
+		self.__set_contour_path(max_coverage_point)
+		
 
 	def __update_transit(self):
 		if self._percept.are_hiders_visible():
 			closest_coverage_point = self._map_manager.get_closest_coverage_point(self._position)
 			closest_coverage_point = closest_coverage_point[0]
-			self.__update_coverage_UCB(closest_coverage_point, self.__seen_reward)
-			print('S: Hider visible during change transit')
-			print('S: Updating UCB for coverages pt:', closest_coverage_point)
+			self._update_coverage_UCB(closest_coverage_point, self.__seen_reward)
+			# print('S: Hider visible during change transit')
+			# print('S: Updating UCB for coverages pt:', closest_coverage_point)
 
 		# Decides wether the next_state needs to change or not
 		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
@@ -827,16 +836,16 @@ class UCBCoverageAgent(Agent):
 				self.__in_scan_state = True
 				self.__scan_counter = 0
 				if self.__in_change_transit:
-					print('S: Change transit completed')
+					# print('S: Change transit completed')
 					self.__in_change_transit = False
 				elif self.__in_contour_transit:
-					print('S: Contour transit completed')
+					# print('S: Contour transit completed')
 					self.__in_contour_transit = False
 
 	def __initiate_contour_transit(self):
-		print()
-		print('S: Initiating contour transit')
-		print('S: Contour counter:', self.__contour_counter)
+		# print()
+		# print('S: Initiating contour transit')
+		# print('S: Contour counter:', self.__contour_counter)
 		self.__current_coverage_point = self.__current_coverage_contour[self.__contour_counter]
 		# print('S: Coverage point selected:', self.__current_coverage_point)
 		self.__select_path(self.__current_coverage_point)
@@ -844,37 +853,36 @@ class UCBCoverageAgent(Agent):
 		# print('S Starting contour transit from:', str(self._position))
 		# print('S Next state:', str(self.__next_state))
 		if self.__next_state != None:
-			print('S long transits path is valid')
+			# print('S long transits path is valid')
 			self.__in_contour_transit = True
 		else:
-			print('S long transits path is NOT valid')
+			# print('S long transits path is NOT valid')
 			self.__in_contour_transit = False
 
 	def __update_scan(self):
-		print()
-		print('S: Updating scan')
+		# print()
+		print('Agent ID:', self._id, 'S: Updating scan')
 		if self._percept.are_hiders_visible():
-			print('S: Hider observed during scan')
+			# print('S: Hider observed during scan')
 			self.__hider_observed = True
 
 		self.__scan_counter += 1
-		print('S: Incrementing scan counter')
+		# print('S: Incrementing scan counter')
 
 		if self.__scan_counter == 4:
 			reward = 0
 			if self.__hider_observed:
-				print('S: Scan completed, updating with a positive reward')
+				print('Agent ID:', self._id, 'S: Scan completed, updating with a positive reward')
 				reward = self.__seen_reward
 			else:
-				print('S: Scan completed, updating with a negative reward')
+				print('Agent ID:', self._id, 'S: Scan completed, updating with a negative reward')
 				reward = self.__unseen_reward
 			self.__hider_observed = False
 			self.__in_scan_state = False
 			self.__contour_counter += 1
-			self.__update_coverage_UCB(self.__current_coverage_point, reward)
+			self._update_coverage_UCB(self.__current_coverage_point, reward)
 
-		
-	def __transit_trigger_condition(self):
+	def _transit_trigger_condition(self):
 		return self.__contour_counter == self.__contour_size
 
 	def __update_exploration(self):
@@ -882,7 +890,7 @@ class UCBCoverageAgent(Agent):
 			self.__update_scan()
 		else:
 			if not self.__in_change_transit:
-				if self.__transit_trigger_condition():
+				if self._transit_trigger_condition():
 					self.__initiate_change_transit()
 				else:
 					if not self.__in_contour_transit:
@@ -891,6 +899,8 @@ class UCBCoverageAgent(Agent):
 				self.__update_transit()
 
 	def select_action(self):
+		# print('')
+		# print('Agent id:', self._id)
 		
 		self.__update_exploration()
 
@@ -934,20 +944,24 @@ class UCBCoverageCommanderAgent(UCBCoverageAgent):
 class UCBCoverageCommunicationAgent(UCBCoverageAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
-		super(UCBCoverageCommunicationAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		super(UCBCoverageCommunicationAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
 		self.__content = None
 		self.__commander_id = 0
 		self.__max_coverage_point = None
 
 
 	def generate_messages(self):
+		# print('Generating message:', self.__content)
 		self._agent_messenger.compose(self.__commander_id, self.__content)
 
 	def analyze_messages(self):
+		print()
+		print('Agent: analyzing messages')
 		messages = self._agent_messenger.get_new_messages()
 		assert(len(messages) <= 1)
 		if len(messages) == 1:
 			content = messages[0].get_content().strip()
+			print('Agent: Message content:', content)
 			if content[0] == 'T':
 				self.__max_coverage_point = int(content.split(',')[1])
 			else:
@@ -955,15 +969,17 @@ class UCBCoverageCommunicationAgent(UCBCoverageAgent):
 		else:
 			self.__max_coverage_point = None
 
-	def __get_max_coverage_point(self):
+	def _get_max_coverage_point(self):
 		self.analyze_messages()
 		return self.__max_coverage_point
 
-	def __update_coverage_UCB(self, coverage_point, reward):
+	def _update_coverage_UCB(self, coverage_point, reward):
+		# print('** Called **')
 		type_flag = 'U'
-		if self.__transit_trigger_condition():
+		if self._transit_trigger_condition():
 			type_flag = 'L'
 		self.__content = type_flag + ', ' + str(coverage_point) + ', ' + str(reward)
+		print('Agent: sending message:', self.__content)
 		self.generate_messages()
 
 
@@ -976,7 +992,7 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 
 		self.__num_members = self._team.get_num_agents()
 		self.__num_coverage_contours = self._map_manager.get_num_coverage_contours()
-		self.__coverage_point_allotments = None
+		self.__coverage_point_allotments = []
 
 		self.__allot_coverage_points()
 
@@ -986,7 +1002,7 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 	def get_opening_coverage_point(self, agent_id):
 		return self.__coverage_point_allotments[agent_id]
 
-	def __allot_coverage_points(self, rank, idx):
+	def __allot_coverage_points(self):
 		replace = False
 		if self.__num_members > self.__num_coverage_contours:
 			replace = True
@@ -998,19 +1014,23 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 			coverage_point = contour[0]
 			self.__coverage_point_allotments.append(coverage_point)
 
-
 	def generate_messages(self):
+		# print()
 		num_stopped_agents = len(self.__stopped_agents)
-		coverage_points = self.__coverage_UCB.get_greatest_actions(num_stopped_agents)
+		coverage_points = self._coverage_UCB.get_greatest_actions(num_stopped_agents)
 		for i in range(num_stopped_agents):
 			agent_id = self.__stopped_agents[i]
-			content = 'T, ' + coverage_points[i] 
+			content = 'T, ' + str(coverage_points[i]) 
+			print('Commander: sending message:', content)
 			self._agent_messenger.compose(agent_id, content)
 
 	def analyze_messages(self):
+		# print()
+		# print('Commander: analyzing messages')
 		messages = self._agent_messenger.get_new_messages()
 		del self.__stopped_agents[:]
 		for mail in messages:
+			print('Commander: Mail:',str(mail),'sender:', mail.get_sender(), 'receiver:', mail.get_receiver())
 			content = mail.get_content().strip()
 			if content[0] == 'L':
 				sender_id = mail.get_sender()
@@ -1020,11 +1040,13 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 				token = content.split(',')
 				coverage_point = int(token[1])
 				reward = int(token[2])
-				self.__update_coverage_UCB(coverage_point, reward)
+				self._update_coverage_UCB(coverage_point, reward)
 
 	def select_action(self):
-		self.__analyze_messages()
-		self.__generate_messages()
+		# print('')
+		# print('Commander id:', self._id)
+		self.analyze_messages()
+		self.generate_messages()
 		super(UCBCoverageCommunicationCommanderAgent, self).select_action()
 
 
