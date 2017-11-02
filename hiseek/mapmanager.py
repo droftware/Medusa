@@ -394,6 +394,10 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		contour = self.__coverage_contours[contour_id]
 		return contour
 
+	def get_coverage_contour_id_from_point(self, coverage_point_id):
+		contour_id = self.__coverage_point2contour[coverage_point_id]
+		return contour_id
+
 	def get_closest_coverage_point(self, point, num_points = 1):
 		cx = point.get_x()
 		cy = point.get_y()
