@@ -56,6 +56,34 @@ class RandomOpeningSkill(Skill):
 						self.__opening_positions[(i, j)] = position
 						found_position = True
 
+class LineOpeningSkill(Skill):
+
+	def __init__(self, agent_type, team, map_manager):
+		super(LineOpeningSkill, self).__init__(agent_type, team, map_manager)
+		self.__opening_positions = {}
+		self.__openings_created = False	
+		self.__x_offset = 5
+		self.__y_offset = 0
+		self.__ground_coord = coord.Coord(5, 5)	
+
+	def get_opening_position(self, rank, idx):
+		assert(rank < self._team.get_ranks())
+		assert(idx < self._team.get_num_rankers(rank))
+		if not self.__openings_created:
+			self.__set_opening()
+			self.__openings_created = True
+		return self.__opening_positions[(rank, idx)]
+
+	def __set_opening(self):
+		max_rank = self._team.get_ranks()
+		position = self.__ground_coord
+		for i in reversed(range(max_rank)):
+			for j in range(self._team.get_num_rankers(i)):
+				self.__opening_positions[(i, j)] = position
+				position = coord.Coord(position.get_x() + self.__x_offset, position.get_y() + self.__y_offset)
+
+
+
 class UCBOpeningSkill(Skill):
 	def __init__(self, agent_type, team, map_manager, macro_UCB, randomOpening=False):
 		super(UCBOpeningSkill, self).__init__(agent_type, team, map_manager)

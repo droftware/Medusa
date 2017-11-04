@@ -821,7 +821,7 @@ class UCBCoverageAgent(Agent):
 		if self._percept.are_hiders_visible():
 			closest_coverage_point = self._map_manager.get_closest_coverage_point(self._position)
 			closest_coverage_point = closest_coverage_point[0]
-			print('Agent ID:', self._id, 'S: Hider visible during change transit')
+			print('Agent ID:', self._id, 'S: *** Hider visible during transit')
 			# print('Agent ID:', self._id, 'S: Updating UCB for coverages pt:', closest_coverage_point)
 			self._update_coverage_UCB(closest_coverage_point, self.__seen_reward)
 			
@@ -986,7 +986,7 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager, num_rays, visibility_angle):
 		super(UCBCoverageCommunicationCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, num_rays, visibility_angle)
-		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
+		self.__skill = skill.LineOpeningSkill(agent_type, team, map_manager)
 		self.__stopped_agents = []
 		self.__stopped_contours = []
 
