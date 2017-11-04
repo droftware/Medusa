@@ -1,5 +1,6 @@
 import math
 import os
+import pickle
 
 import numpy as np
 import rtree
@@ -36,10 +37,10 @@ class BasicMapManager(object):
 		self._visibility_penta = [0, 0, 0, 0, 0]
 		self.__max_cells_visible = 0
 
-		map_name = mapworld.get_map_name().split('.')[0]
-		vis_file = map_name + '.visibility'
-		obs_file = map_name + '.obstruction'
-		idx_file = map_name + '.index'
+		self._map_name = mapworld.get_map_name().split('.')[0]
+		vis_file = self._map_name + '.visibility'
+		obs_file = self._map_name + '.obstruction'
+		idx_file = self._map_name + '.index'
 		if inference_map:
 			if os.path.isfile(vis_file) and os.path.isfile(obs_file) and os.path.isfile(idx_file+'.idx'):
 				print('Loading files', vis_file, obs_file, idx_file)
@@ -89,8 +90,8 @@ class BasicMapManager(object):
 									self._visibility[i, j] += 1
 									self._obstruction[a, b] += 1
 
-				np.savetxt(map_name.split('.')[0] + '.visibility',self._visibility)
-				np.savetxt(map_name.split('.')[0] + '.obstruction', self._obstruction)
+				np.savetxt(self._map_name.split('.')[0] + '.visibility',self._visibility)
+				np.savetxt(self._map_name.split('.')[0] + '.obstruction', self._obstruction)
 				self._visibility_idx.close()
 
 			self.__max_cells_visible = np.amax(self._visibility)
@@ -223,44 +224,68 @@ class StrategicPointsMapManager(BasicMapManager):
 		'''
 		super(StrategicPointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
 		all_strtg_pts = []
-		self._strategic_points = []
 		self.__threshold = 50
-		self.__strategic_pts_idx = rtree.index.Index()
+		self._strategic_points = None
+		self.__strategic_pts_idx = None
 
-		num_squares = mapworld.get_num_polygons()
-		for i in range(num_squares):
-			square = mapworld.get_polygon(i)
-			mid_edge_points = square.get_mid_edge_points(2)
-			for point in mid_edge_points:
-				if not mapworld.check_obstacle_collision(point) and not mapworld.check_boundary_collision(point):
-					all_strtg_pts.append(point)
+		self.__sp_file = self._map_name + '.st_pts'
+		self.__sp_idx_file = self._map_name + '.st_pts_index'
 
-		num_all_pts = len(all_strtg_pts)
 
-		deletion_idxs = []
-		for i in range(num_all_pts):
-			if i in deletion_idxs:
-				continue
-			for j in range(i+1, num_all_pts):
-				if j in deletion_idxs:
+		if os.path.isfile(self.__sp_file) and os.path.isfile(self.__sp_idx_file + '.idx'):
+			print('Loading startegic files')
+			self.__load_strategic_points()
+			self.__load_strategic_points_index()
+		else:
+			print('Creating strategic files')
+			self._strategic_points = []
+			p = rtree.index.Property()
+			# print('overwrite then:', p.overwrite)
+			p.overwrite = True
+			# print('overwrite now:', p.overwrite)
+
+			self.__strategic_pts_idx = rtree.index.Index(self.__sp_idx_file, properties=p)
+
+			num_squares = mapworld.get_num_polygons()
+			for i in range(num_squares):
+				square = mapworld.get_polygon(i)
+				mid_edge_points = square.get_mid_edge_points(2)
+				for point in mid_edge_points:
+					if not mapworld.check_obstacle_collision(point) and not mapworld.check_boundary_collision(point):
+						all_strtg_pts.append(point)
+
+			num_all_pts = len(all_strtg_pts)
+
+			deletion_idxs = []
+			for i in range(num_all_pts):
+				if i in deletion_idxs:
 					continue
-				dist = all_strtg_pts[i].get_euclidean_distance(all_strtg_pts[j])
-				if dist < 50:
-					# print(i,j, dist)
-					deletion_idxs.append(j)
+				for j in range(i+1, num_all_pts):
+					if j in deletion_idxs:
+						continue
+					dist = all_strtg_pts[i].get_euclidean_distance(all_strtg_pts[j])
+					if dist < 50:
+						# print(i,j, dist)
+						deletion_idxs.append(j)
 
-		j = 0
-		for i in range(num_all_pts):
-			if i not in deletion_idxs:
-				# print(j,'St pt', str(all_strtg_pts[i]))
-				st_pt = StrategicPoint(all_strtg_pts[i].get_x(), all_strtg_pts[i].get_y(), j)
-				# self._strategic_points.append(all_strtg_pts[i])
-				self._strategic_points.append(st_pt)	
-				cx = all_strtg_pts[i].get_x()
-				cy = all_strtg_pts[i].get_y()
-				bound_box = (cx, cy, cx, cy)
-				self.__strategic_pts_idx.insert(j, bound_box, obj=j)
-				j += 1
+			j = 0
+			for i in range(num_all_pts):
+				if i not in deletion_idxs:
+					# print(j,'St pt', str(all_strtg_pts[i]))
+					st_pt = StrategicPoint(all_strtg_pts[i].get_x(), all_strtg_pts[i].get_y(), j)
+					# self._strategic_points.append(all_strtg_pts[i])
+					self._strategic_points.append(st_pt)	
+					cx = all_strtg_pts[i].get_x()
+					cy = all_strtg_pts[i].get_y()
+					bound_box = (cx, cy, cx, cy)
+					self.__strategic_pts_idx.insert(j, bound_box, obj=j)
+					j += 1
+
+			self.__store_strategic_points()
+			self.__store_strategic_points_index()
+			
+
+
 
 
 		self._num_strategic_points = len(self._strategic_points)
@@ -268,6 +293,27 @@ class StrategicPointsMapManager(BasicMapManager):
 
 		# TO DO: Merge strategic points if they are very close to each other and
 		# there is no obstacle between them
+
+	def __store_strategic_points(self):
+		spfile = open(self.__sp_file, 'wb')
+		# for stp in self._strategic_points:
+		pickle.dump(self._strategic_points, spfile, pickle.HIGHEST_PROTOCOL)
+		spfile.close()
+
+	def __store_strategic_points_index(self):
+		self.__strategic_pts_idx.close()
+		# .close() makes the st pt inaccessible, therefore reopening it
+		self.__strategic_pts_idx = rtree.index.Index(self.__sp_idx_file)
+
+
+	def __load_strategic_points(self):
+		spfile = open(self.__sp_file, 'rb')
+		self._strategic_points = pickle.load(spfile)
+
+	def __load_strategic_points_index(self):
+		self.__strategic_pts_idx = rtree.index.Index(self.__sp_idx_file)
+
+
 
 	def get_num_strategic_points(self):
 		return self._num_strategic_points
