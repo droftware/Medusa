@@ -285,9 +285,6 @@ class StrategicPointsMapManager(BasicMapManager):
 			self.__store_strategic_points_index()
 			
 
-
-
-
 		self._num_strategic_points = len(self._strategic_points)
 		# print('Number of strategic points:', self._num_strategic_points)
 
@@ -296,7 +293,7 @@ class StrategicPointsMapManager(BasicMapManager):
 
 	def __store_strategic_points(self):
 		spfile = open(self.__sp_file, 'wb')
-		# for stp in self._strategic_points:
+		# for stp in self._strategic_opints:
 		pickle.dump(self._strategic_points, spfile, pickle.HIGHEST_PROTOCOL)
 		spfile.close()
 
@@ -402,42 +399,64 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		self.__coverage_graph = nx.Graph()
 		self.__cliques = None
 		self.__strategic_points2cliques = [[] for stp in self._strategic_points]
-		self.__coverage_points = []
-		self.__coverage_pts_idx = rtree.index.Index()
-		self.__coverage_contours = []
+		
+		self._coverage_points = None
+		self._coverage_pts_idx = None
+		self._coverage_contours = None
 		self.__coverage_point2contour = None
 
+		self.__cp_file = self._map_name + '.cpts'
+		self.__cp_idx_file = self._map_name + '.cpts_index'
+		self.__contours_file = self._map_name + '.contours'
+		# also coverage pt 2 contour
 
-		self.__create_visibility_graph()
-		# self.__print_visibility_graph()
-		self.__find_coverage_points()
-		self.__associate_strategic_points2cliques()
-		self.__create_coverage_graph()
-		# self.__print_coverage_graph()
-		self.__get_coverage_contours()
+		if os.path.isfile(self.__cp_file) and os.path.isfile(self.__cp_idx_file + '.idx') and os.path.isfile(self.__contours_file):
+			self.__load_coverage_points()
+			self.__load_coverage_points_index()
+			self.__load_coverage_contours()
+		else:
+			self._coverage_points = []
+			self._coverage_pts_idx = rtree.index.Index(self.__cp_idx_file)
+			self._coverage_contours = []
+
+			self.__create_visibility_graph()
+			# self.__print_visibility_graph()
+			self.__find_coverage_points()
+			self.__associate_strategic_points2cliques()
+			self.__create_coverage_graph()
+			# self.__print_coverage_graph()
+			self.__get_coverage_contours()
+
+			self.__store_coverage_points()
+			self.__store_coverage_points_index()
+			self.__store_coverage_contours()
+		
+		print('Coverage points:', self._coverage_points)
+		print('Coverage contours:', self._coverage_contours)
+
 		self.__associate_coverage_point2contours()
 
 	def get_num_coverage_points(self):
-		return len(self.__coverage_points)
+		return len(self._coverage_points)
 
 	def get_coverage_point(self, uid):
-		return self.__coverage_points[uid]
+		return self._coverage_points[uid]
 
 	def get_coverage_points(self):
-		return self.__coverage_points
+		return self._coverage_points
 
 	def get_num_coverage_contours(self):
-		return len(self.__coverage_contours)
+		return len(self._coverage_contours)
 
 	def get_coverage_contour(self, uid):
-		return self.__coverage_contours[uid]
+		return self._coverage_contours[uid]
 
 	def get_coverage_contours(self):
-		return self.__coverage_contours
+		return self._coverage_contours
 
 	def get_coverage_contour_from_point(self, coverage_point_id):
 		contour_id = self.__coverage_point2contour[coverage_point_id]
-		contour = self.__coverage_contours[contour_id]
+		contour = self._coverage_contours[contour_id]
 		return contour
 
 	def get_coverage_contour_id_from_point(self, coverage_point_id):
@@ -448,11 +467,38 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		cx = point.get_x()
 		cy = point.get_y()
 		bound_box = (cx, cy, cx, cy)
-		closest_coverage_pts = list(self.__coverage_pts_idx.nearest(bound_box, num_points))
+		closest_coverage_pts = list(self._coverage_pts_idx.nearest(bound_box, num_points))
 		# print('Closest points:', closest_coverage_pts)
 		if len(closest_coverage_pts) != num_points:
 			closest_coverage_pts = list(np.random.choice(closest_coverage_pts, num_points, replace=False))
 		return closest_coverage_pts
+
+	def __store_coverage_points(self):
+		cpfile = open(self.__cp_file, 'wb')
+		pickle.dump(self._coverage_points, cpfile, pickle.HIGHEST_PROTOCOL)
+		cpfile.close()
+
+	def __store_coverage_points_index(self):
+		self._coverage_pts_idx.close()
+		# .close() makes the cpt idx inaccessible, therefore reopening it
+		self._coverage_pts_idx = rtree.index.Index(self.__cp_idx_file)
+
+	def __store_coverage_contours(self):
+		ccfile = open(self.__contours_file, 'wb')
+		print('Storing coverage contours:', self._coverage_contours)
+		pickle.dump(self._coverage_contours, ccfile, pickle.HIGHEST_PROTOCOL)
+		ccfile.close()
+
+	def __load_coverage_points(self):
+		cpfile = open(self.__cp_file, 'rb')
+		self._coverage_points = pickle.load(cpfile)
+
+	def __load_coverage_points_index(self):
+		self._coverage_pts_idx = rtree.index.Index(self.__cp_idx_file)
+
+	def __load_coverage_contours(self):
+		ccfile = open(self.__contours_file, 'rb')
+		self._coverage_contours = pickle.load(ccfile)
 
 	def __create_visibility_graph(self):
 		self.__add_visibility_nodes()
@@ -559,8 +605,8 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			cx = coverage_point.get_x()
 			cy = coverage_point.get_y()
 			bound_box = (cx, cy, cx, cy)
-			self.__coverage_pts_idx.insert(counter, bound_box, obj=counter)
-			self.__coverage_points.append(coverage_point)
+			self._coverage_pts_idx.insert(counter, bound_box, obj=counter)
+			self._coverage_points.append(coverage_point)
 			counter += 1
 
 	def __associate_strategic_points2cliques(self):
@@ -580,11 +626,11 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		self.__add_coverage_edges()
 
 	def __add_coverage_nodes(self):
-		for coverage_point in self.__coverage_points:
+		for coverage_point in self._coverage_points:
 			self.__coverage_graph.add_node(coverage_point.get_id())
 
 	def __add_coverage_edges(self):
-		for coverage_point in self.__coverage_points:
+		for coverage_point in self._coverage_points:
 			if not coverage_point.is_explored():
 				self.__explore_coverage_point(coverage_point)
 
@@ -596,7 +642,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			# Since each clique has a one-one map to a coverage point
 			adjacent_coverage_point_ids = adjacent_clique_ids
 			for ad_id in adjacent_coverage_point_ids:
-				adjacent_coverage_point = self.__coverage_points[ad_id]
+				adjacent_coverage_point = self._coverage_points[ad_id]
 				if not adjacent_coverage_point.is_explored():
 					self.__coverage_graph.add_edge(coverage_point.get_id(), adjacent_coverage_point.get_id())
 
@@ -608,15 +654,15 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		coverage_subgraphs = nx.connected_component_subgraphs(self.__coverage_graph)
 		for subgraph in coverage_subgraphs:
 			contour = list(nx.dfs_preorder_nodes(subgraph))
-			self.__coverage_contours.append(contour)
+			self._coverage_contours.append(contour)
 			print('Contour:', contour)
 
 	def __associate_coverage_point2contours(self):
-		num_contours = len(self.__coverage_contours)
-		num_coverage_points = len(self.__coverage_points)
+		num_contours = len(self._coverage_contours)
+		num_coverage_points = len(self._coverage_points)
 		self.__coverage_point2contour = [None for i in range(num_coverage_points)]
 		for i in range(num_contours):
-			contour = self.__coverage_contours[i]
+			contour = self._coverage_contours[i]
 			for coverage_point in contour:
 				self.__coverage_point2contour[coverage_point] = i
 		# for i in range(num_coverage_points):
