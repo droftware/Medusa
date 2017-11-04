@@ -719,7 +719,7 @@ class UCBCoverageAgent(Agent):
 		self._coverage_UCB = ucb.UCB(self.__num_coverage_points)
 		self.__hider_observed = False
 
-		self.__current_coverage_point = None
+		self._current_coverage_point = None
 		self.__current_coverage_contour = None
 
 		self.__in_change_transit = False
@@ -792,10 +792,10 @@ class UCBCoverageAgent(Agent):
 		self.__current_coverage_contour = self._map_manager.get_coverage_contour_from_point(coverage_point)
 		self.__contour_counter = 0
 		self.__contour_size = len(self.__current_coverage_contour)
-		self.__current_coverage_point = self.__current_coverage_contour[self.__contour_counter]
+		self._current_coverage_point = self.__current_coverage_contour[self.__contour_counter]
 		print('Agent ID:', self._id, 'S: Setting a new contour:', self.__current_coverage_contour)
-		# print('S: Coverage point selected:', self.__current_coverage_point)
-		self.__select_path(self.__current_coverage_point)
+		# print('S: Coverage point selected:', self._current_coverage_point)
+		self.__select_path(self._current_coverage_point)
 		self.__next_state = self.__planner.get_paths_next_coord()
 		# print('S Starting Long contour transit from:', str(self._position))
 		# print('S Next state:', str(self.__next_state))
@@ -845,9 +845,9 @@ class UCBCoverageAgent(Agent):
 		print()
 		print('Agent ID:', self._id ,'S: Initiating contour transit')
 		print('Agent ID:', self._id ,'S: Contour counter:', self.__contour_counter)
-		self.__current_coverage_point = self.__current_coverage_contour[self.__contour_counter]
-		# print('S: Coverage point selected:', self.__current_coverage_point)
-		self.__select_path(self.__current_coverage_point)
+		self._current_coverage_point = self.__current_coverage_contour[self.__contour_counter]
+		# print('S: Coverage point selected:', self._current_coverage_point)
+		self.__select_path(self._current_coverage_point)
 		self.__next_state = self.__planner.get_paths_next_coord()
 		# print('S Starting contour transit from:', str(self._position))
 		# print('S Next state:', str(self.__next_state))
@@ -879,7 +879,7 @@ class UCBCoverageAgent(Agent):
 			self.__hider_observed = False
 			self.__in_scan_state = False
 			self.__contour_counter += 1
-			self._update_coverage_UCB(self.__current_coverage_point, reward)
+			self._update_coverage_UCB(self._current_coverage_point, reward)
 
 	def _transit_trigger_condition(self):
 		return self.__contour_counter == self.__contour_size
@@ -1005,17 +1005,6 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 	def get_opening_coverage_point(self, agent_id):
 		return self.__coverage_point_allotments[agent_id]
 
-
-	def __get_unalloted_coverage_points(self):
-		unalloted_coverage_points = []
-		for contour_id in range(self.__num_coverage_contours):
-			if not self.__contour_assignment[contour_id]:
-				contour = self._map_manager.get_coverage_contour(contour_id)
-				for coverage_point in contour:
-					unalloted_coverage_points.append(coverage_point)
-		return unalloted_coverage_points
-
-
 	def __allot_coverage_points(self):
 		replace = False
 		if self.__num_members > self.__num_coverage_contours:
@@ -1030,6 +1019,30 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 			contour = self._map_manager.get_coverage_contour(contour_id)
 			coverage_point = contour[0]
 			self.__coverage_point_allotments.append(coverage_point)
+
+	def __get_unalloted_coverage_points(self):
+		unalloted_coverage_points = []
+		for contour_id in range(self.__num_coverage_contours):
+			if not self.__contour_assignment[contour_id]:
+				contour = self._map_manager.get_coverage_contour(contour_id)
+				for coverage_point in contour:
+					unalloted_coverage_points.append(coverage_point)
+		return unalloted_coverage_points
+
+	def _get_max_coverage_point(self):
+		unalloted_coverage_points = self.__get_unalloted_coverage_points()
+		coverage_points = self._coverage_UCB.get_greatest_actions(1, unalloted_coverage_points)
+		max_coverage_point =  coverage_points[0]
+		
+		# Unmarking previous contour id
+		previous_contour_id = self._map_manager.get_coverage_contour_id_from_point(self._current_coverage_point)
+		self.__contour_assignment[previous_contour_id] = False
+
+		# Marking current contour id
+		current_contour_id = self._map_manager.get_coverage_contour_id_from_point(max_coverage_point)
+		self.__contour_assignment[current_contour_id] = True
+		return max_coverage_point
+
 
 	def generate_messages(self):
 		# print()
