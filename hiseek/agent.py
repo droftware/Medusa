@@ -1031,8 +1031,13 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 
 	def _get_max_coverage_point(self):
 		unalloted_coverage_points = self.__get_unalloted_coverage_points()
-		coverage_points = self._coverage_UCB.get_greatest_actions(1, unalloted_coverage_points)
-		max_coverage_point =  coverage_points[0]
+		num_unalloted_cpoints = len(unalloted_coverage_points)
+		coverage_points = None
+		if num_unalloted_cpoints < 1:
+			coverage_points = self._coverage_UCB.get_greatest_actions(1)
+		else:
+			coverage_points = self._coverage_UCB.get_greatest_actions(1, unalloted_coverage_points)
+		max_coverage_point = coverage_points[0]
 		
 		# Unmarking previous contour id
 		previous_contour_id = self._map_manager.get_coverage_contour_id_from_point(self._current_coverage_point)
@@ -1048,7 +1053,12 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 		# print()
 		num_stopped_agents = len(self.__stopped_agents)
 		unalloted_coverage_points = self.__get_unalloted_coverage_points()
-		coverage_points = self._coverage_UCB.get_greatest_actions(num_stopped_agents, unalloted_coverage_points)
+		num_unalloted_cpoints = len(unalloted_coverage_points)
+		coverage_points = None
+		if num_unalloted_cpoints < num_stopped_agents:
+			coverage_points = self._coverage_UCB.get_greatest_actions(num_stopped_agents)
+		else:
+			coverage_points = self._coverage_UCB.get_greatest_actions(num_stopped_agents, unalloted_coverage_points)
 		for i in range(num_stopped_agents):
 			agent_id = self.__stopped_agents[i]
 			content = 'T, ' + str(coverage_points[i]) 
