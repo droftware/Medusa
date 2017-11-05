@@ -1017,7 +1017,7 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 		agent_id = 0
 		for contour_id in contour_id_allotments:
 			self.__contour_assignment[contour_id] = True
-			print('Marking:', contour_id, 'as assigned')
+			# print('Marking:', contour_id, 'as assigned')
 			contour = self._map_manager.get_coverage_contour(contour_id)
 			coverage_point = contour[0]
 			self.__coverage_point_allotments.append(coverage_point)
@@ -1070,11 +1070,11 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 		for coverage_point in coverage_points:
 			contour_id = self._map_manager.get_coverage_contour_id_from_point(coverage_point)
 			self.__contour_assignment[contour_id] = True
-			print('Marking:', contour_id, 'as assigned')
+			# print('Marking:', contour_id, 'as assigned')
 
 		for contour_id in self.__stopped_contours:
 			self.__contour_assignment[contour_id] = False
-			print('Marking:', contour_id, ' as NOT assigned')
+			# print('Marking:', contour_id, ' as NOT assigned')
 
 	def analyze_messages(self):
 		# print()
