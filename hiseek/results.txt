@@ -1,0 +1,14 @@
+python main.py -n 10 -s -m 0 -nh 30 -ns 3 -mh sbandit -ms cc
+[332, 703, 1106, 700, 530, 571, 422, 980, 278, 246]
+avg = 586.8
+python main.py -n 20 -s -m 0 -nh 30 -ns 3 -mh sbandit -ms cc
+('Step times:', [566, 814, 366, 729, 580, 678, 310, 342, 549, 1248, 957, 583, 355, 635, 601, 516, 388, 779, 277, 515])
+('Average step time:', 589.4)
+
+
+python main.py -n 10 -s -m 0 -nh 30 -ns 3 -mh sbandit -ms sbandit
+[622, 1053, 677, 601, 587, 423, 607, 509, 643, 445]
+avg = 616.7
+python main.py -n 20 -s -m 0 -nh 30 -ns 3 -mh sbandit -ms sbandit
+[451, 519, 750, 525, 529, 430, 586, 1159, 510, 563, 651, 622, 1338, 568, 1021, 512, 1360, 369, 896, 1240]
+('Average step time:', 729.95)
