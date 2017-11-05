@@ -93,6 +93,9 @@ class BasicMapManager(object):
 				np.savetxt(self._map_name.split('.')[0] + '.visibility',self._visibility)
 				np.savetxt(self._map_name.split('.')[0] + '.obstruction', self._obstruction)
 				self._visibility_idx.close()
+				# Reinitializing idx since .close() makes the idx unusable
+				self._visibility_idx = rtree.index.Index(idx_file)
+
 
 			self.__max_cells_visible = np.amax(self._visibility)
 			print('Max cells visible:', self.__max_cells_visible)
@@ -213,6 +216,25 @@ class BasicMapManager(object):
 		y = int(col * self.__offset - self.__offset/2)
 		cell_coord = coord.Coord(x, y)
 		return cell_coord
+
+	def get_all_coords_from_cell(self, row, col):
+		'''
+			Returns the coordinates corresponding to the centre and all the corners
+			of the cell.
+		'''
+		cell_coords = []
+		x = int(row * self.__offset - self.__offset/2)
+		y = int(col * self.__offset - self.__offset/2)
+		cell_coords.append(coord.Coord(x, y))
+
+		ofsetters = [(-1,-1), (0,-1), (-1,0), (0, 0)]
+		for of in ofsetters:
+			x = int((row - of[0]) * self.__offset)
+			y = int((col - of[1]) * self.__offset)
+			cell_coords.append(coord.Coord(x, y))
+
+		return cell_coords
+
 
 
 class StrategicPointsMapManager(BasicMapManager):
@@ -400,6 +422,9 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		self.__cliques = None
 		self.__strategic_points2cliques = [[] for stp in self._strategic_points]
 		
+		self.__num_rays = num_rays * 4
+		print('Num rays used:', self.__num_rays)
+
 		self._coverage_points = None
 		self._coverage_pts_idx = None
 		self._coverage_contours = None
@@ -508,7 +533,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		strategic_visibility = []
 		for i in range(self._num_strategic_points):
 			stp = self._strategic_points[i]
-			visibility_polygon = self.get_360_visibility_polygon(stp)
+			visibility_polygon = self.get_360_visibility_polygon(stp, 10)
 			# print('')
 			del strategic_visibility[:]
 			# print('Strategic point:', stp.get_x(), stp.get_y())
@@ -560,7 +585,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			coverage_point = None
 			for cell in cvisible_cells:
 				cell_coord = self.get_coord_from_cell(cell[0], cell[1])
-				visibility_polygon = self.get_360_visibility_polygon(cell_coord, 100)
+				visibility_polygon = self.get_360_visibility_polygon(cell_coord, 300)
 				all_flag = True
 				for node in clique:
 					cst_adj_pt = self._strategic_points[node]
@@ -573,6 +598,27 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 					break
 		else:
 			coverage_point = cst_pt
+
+		# if coverage_point == None:
+		# 	print('Searching intensively')
+		# 	cvisible_cells = cst_pt.get_visible_cells_set()
+		# 	coverage_point = None
+		# 	for cell in cvisible_cells:
+		# 		cell_coords = self.get_all_coords_from_cell(cell[0], cell[1])
+		# 		for cell_coord in cell_coords:
+		# 			visibility_polygon = self.get_360_visibility_polygon(cell_coord, 100)
+		# 			all_flag = True
+		# 			for node in clique:
+		# 				cst_adj_pt = self._strategic_points[node]
+		# 				if not visibility_polygon.is_point_inside(cst_adj_pt):
+		# 					all_flag = False
+		# 					break
+
+		# 			if all_flag == True:
+		# 				coverage_point = cell_coord
+		# 				return coverage_point
+		# 				# break
+
 		return coverage_point
 
 	def __mark_cliques_nodes(self, clique):
@@ -591,7 +637,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		return True
 
 	def __find_coverage_points(self):
-		# print('Cliques:')
+		print('Cliques:')
 		self.__cliques = list(nx.find_cliques(self.__visibility_graph))
 		self.__cliques.sort(key=len, reverse=True)
 		# print('Total number of maximal cliques:', len(self.__cliques))
@@ -600,7 +646,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			print(clique)
 			coverage_point = self.__get_cliques_coverage_point(clique)
 			assert(coverage_point != None)
-			# print('Coverage point:', str(coverage_point))
+			print('Coverage point:', str(coverage_point))
 			coverage_point = CoveragePoint(coverage_point.get_x(), coverage_point.get_y(), counter, clique)
 			cx = coverage_point.get_x()
 			cy = coverage_point.get_y()
