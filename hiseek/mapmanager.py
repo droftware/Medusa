@@ -620,6 +620,8 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 					coverage_point = cell_coord
 					break
 		else:
+			max_nodes_covered.append(cst_pt)
+			num_max_nodes_covered = 1
 			coverage_point = cst_pt
 		
 		print('Max nodes covered:', max_nodes_covered)
