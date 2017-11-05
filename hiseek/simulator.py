@@ -122,7 +122,7 @@ class Simulator(object):
 	mode_type_hiders = ['random', 'bayesian', 'sbandit']
 	mode_type_seekers = ['random', 'sbandit', 'coverage', 'cc']
 
-	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, max_steps=1000, window_width=640, window_height=360):
+	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, total_step_times, max_steps=1000, window_width=640, window_height=360):
 		assert(mode_hiders in Simulator.mode_type_hiders)
 		assert(mode_seekers in Simulator.mode_type_seekers)
 		self.__mode_hiders = mode_hiders
@@ -149,6 +149,8 @@ class Simulator(object):
 		self.__log_flag = log_flag
 		self.__vis_flag = vis_flag
 		self.__replay_output_file = None
+
+		self._total_step_times = total_step_times
 
 
 		if log_flag:
@@ -563,9 +565,12 @@ class Simulator(object):
 		if self.__num_caught == self.__num_hiders:
 			print('Total steps:', self.__steps)
 			print('All hiders caught')
+			self._total_step_times.append(self.__steps)
 			# self.__stats.print_statistic()
 			self.__stats.write_statistic()
 			if self.__log_flag:
+				print()
+				print('## Closing log file')
 				self.__replay_output_file.close()
 			if self.__vis_flag:
 				pyglet.app.exit()
