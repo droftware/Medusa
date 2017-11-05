@@ -456,8 +456,8 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			self.__store_coverage_points_index()
 			self.__store_coverage_contours()
 		
-		print('Coverage points:', self._coverage_points)
-		print('Coverage contours:', self._coverage_contours)
+		# print('Coverage points:', self._coverage_points)
+		# print('Coverage contours:', self._coverage_contours)
 
 		self.__associate_coverage_point2contours()
 
