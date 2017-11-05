@@ -269,9 +269,23 @@ class UCBAggressiveTeam(Team):
 		self._members[0].append(commander_member)
 		self._active[0].append(True)
 
-		# Set the opening position of the lone agent
-		position = commander_member.get_opening_position(0, 0)
-		self._members[0][0].set_position(position)
+		# recruit agents for the team
+		for i in range(self._num_agents - 1):
+			agent_id = 'RH' + str(i)
+			member = agent.UCBAggressiveAgent(agent_type, agent_id, self, self._map_managers[0], self.__num_rays, self.__visibility_angle)
+			self._members[0].append(member)
+			self._active[0].append(True)
+
+		# Get the opening positions from the commader member and set each agents
+		# position accordingly
+		for i in reversed(range(self.ranks)):
+			for j in range(self.get_num_rankers(i)):
+				position = commander_member.get_opening_position(i, j)
+				self._members[i][j].set_position(position)
+
+		# # Set the opening position of the lone agent
+		# position = commander_member.get_opening_position(0, 0)
+		# self._members[0][0].set_position(position)
 
 
 
