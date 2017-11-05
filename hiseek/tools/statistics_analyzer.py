@@ -1,3 +1,6 @@
+import pickle
+from mapmanager import StrategicPoint
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
@@ -102,17 +105,13 @@ def main():
 		square = patches.Rectangle(bottom, length, length, hatch='\\', fill=False) 
 		obstacles.append(square)
 
-	# obstacles = [
-	#     patches.Rectangle(
-	#         (0.1, 0.1), 0.3, 0.6,
-	#         hatch='/'
-	#     ),
-	#     patches.Rectangle(
-	#         (0.5, 0.1), 0.3, 0.6,
-	#         hatch='\\',
-	#         fill=False
-	#     ),
-	# ]
+	
+	sp_file_name = 'id_' + str(map_id) + '.st_pts'
+	spfile = open(sp_file_name, 'rb')
+	strategic_points = pickle.load(spfile)
+
+
+
 
 	fig3 = plt.figure()
 	# ax3 = fig3.add_axes([0,0, map_width, map_length])
