@@ -102,7 +102,7 @@ def main():
 		length = int(token[2])
 		bottom = (centre[0] - length/2.0, centre[1] - length/2.0)
 		print('Bottom:', bottom, 'length:', length)
-		square = patches.Rectangle(bottom, length, length, hatch='\\', fill=False) 
+		square = patches.Rectangle(bottom, length, length, hatch='\\', fill=True) 
 		obstacles.append(square)
 
 	
