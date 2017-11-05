@@ -533,7 +533,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		strategic_visibility = []
 		for i in range(self._num_strategic_points):
 			stp = self._strategic_points[i]
-			visibility_polygon = self.get_360_visibility_polygon(stp, 10)
+			visibility_polygon = self.get_360_visibility_polygon(stp, 40)
 			# print('')
 			del strategic_visibility[:]
 			# print('Strategic point:', stp.get_x(), stp.get_y())
@@ -576,10 +576,21 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		# print('Number of edges:', self.__visibility_graph.number_of_edges())
 		# print('Edges:', list(self.__visibility_graph.edges()))
 
-	def __get_cliques_coverage_point(self, clique):
+	def __get_cliques_coverage_points(self, clique):
+		'''
+			Returns the coverage points corresponding to a clique
+		'''
+		coverage_points = []
 		coverage_point = None
 		cid = clique[0]
 		cst_pt = self._strategic_points[cid]
+
+		nodes_covered = []
+		num_nodes_covered = 0
+		max_nodes_covered = []
+		num_max_nodes_covered = 0
+		max_cov_coord = None
+
 		if len(clique) > 1:
 			cvisible_cells = cst_pt.get_visible_cells_set()
 			coverage_point = None
@@ -587,17 +598,51 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				cell_coord = self.get_coord_from_cell(cell[0], cell[1])
 				visibility_polygon = self.get_360_visibility_polygon(cell_coord, 300)
 				all_flag = True
+
+				del nodes_covered[:]
+				num_nodes_covered = 0
+
 				for node in clique:
 					cst_adj_pt = self._strategic_points[node]
 					if not visibility_polygon.is_point_inside(cst_adj_pt):
 						all_flag = False
-						break
+						# break
+					else:
+						nodes_covered.append(node)
+
+				num_nodes_covered = len(nodes_covered)
+				if num_nodes_covered > num_max_nodes_covered:
+					max_nodes_covered = nodes_covered
+					num_max_nodes_covered = num_nodes_covered
+					max_cov_coord = cell_coord
 
 				if all_flag == True:
 					coverage_point = cell_coord
 					break
 		else:
 			coverage_point = cst_pt
+		
+		print('Max nodes covered:', max_nodes_covered)
+
+		if coverage_point == None:
+			coverage_points.append(max_cov_coord)
+
+			remaining_clique = []
+			for node in clique:
+				if node not in max_nodes_covered:
+					remaining_clique.append(node)
+			remaining_coverage_points = self.__get_cliques_coverage_points(remaining_clique)
+			for cov_pts in remaining_coverage_points:
+				coverage_points.append(cov_pts)
+		else:
+			coverage_points.append(coverage_point)
+		
+		print('Coverage points:')
+		for cov_pt in coverage_points:
+			print(str(cov_pt))
+		return coverage_points
+
+
 
 		# if coverage_point == None:
 		# 	print('Searching intensively')
@@ -606,7 +651,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		# 	for cell in cvisible_cells:
 		# 		cell_coords = self.get_all_coords_from_cell(cell[0], cell[1])
 		# 		for cell_coord in cell_coords:
-		# 			visibility_polygon = self.get_360_visibility_polygon(cell_coord, 100)
+		# 			visibility_polygon = self.get_360_visibility_polygon(cell_coord, 300)
 		# 			all_flag = True
 		# 			for node in clique:
 		# 				cst_adj_pt = self._strategic_points[node]
@@ -619,7 +664,6 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		# 				return coverage_point
 		# 				# break
 
-		return coverage_point
 
 	def __mark_cliques_nodes(self, clique):
 		for node in clique:
@@ -644,16 +688,17 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		counter = 0
 		for clique in self.__cliques:
 			print(clique)
-			coverage_point = self.__get_cliques_coverage_point(clique)
-			assert(coverage_point != None)
-			print('Coverage point:', str(coverage_point))
-			coverage_point = CoveragePoint(coverage_point.get_x(), coverage_point.get_y(), counter, clique)
-			cx = coverage_point.get_x()
-			cy = coverage_point.get_y()
-			bound_box = (cx, cy, cx, cy)
-			self._coverage_pts_idx.insert(counter, bound_box, obj=counter)
-			self._coverage_points.append(coverage_point)
-			counter += 1
+			coverage_points = self.__get_cliques_coverage_points(clique)
+			for coverage_point in coverage_points:
+				assert(coverage_point != None)
+				print('* Coverage point:', str(coverage_point))
+				coverage_point = CoveragePoint(coverage_point.get_x(), coverage_point.get_y(), counter, clique)
+				cx = coverage_point.get_x()
+				cy = coverage_point.get_y()
+				bound_box = (cx, cy, cx, cy)
+				self._coverage_pts_idx.insert(counter, bound_box, obj=counter)
+				self._coverage_points.append(coverage_point)
+				counter += 1
 
 	def __associate_strategic_points2cliques(self):
 		for i in range(len(self.__cliques)):
