@@ -21,7 +21,7 @@ class PolygonMap(object):
 		self.__expansion_factor = 2.50
 		self.__expanded_polygons = []
 
-		self.__bbox_length = 300
+		self.__bbox_length = 250
 
 		self.__rtree_idx = rtree.index.Index()
 
