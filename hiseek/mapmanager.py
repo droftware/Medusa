@@ -591,6 +591,8 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		num_max_nodes_covered = 0
 		max_cov_coord = None
 
+		coverage_cliques = []
+
 		if len(clique) > 1:
 			cvisible_cells = cst_pt.get_visible_cells_set()
 			coverage_point = None
@@ -620,7 +622,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 					coverage_point = cell_coord
 					break
 		else:
-			max_nodes_covered.append(cst_pt)
+			max_nodes_covered.append(cid)
 			num_max_nodes_covered = 1
 			coverage_point = cst_pt
 		
@@ -628,21 +630,27 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 
 		if coverage_point == None:
 			coverage_points.append(max_cov_coord)
+			coverage_cliques.append(max_nodes_covered)
+
 
 			remaining_clique = []
 			for node in clique:
 				if node not in max_nodes_covered:
 					remaining_clique.append(node)
-			remaining_coverage_points = self.__get_cliques_coverage_points(remaining_clique)
+			remaining_coverage_points, remaining_coverage_cliques = self.__get_cliques_coverage_points(remaining_clique)
 			for cov_pts in remaining_coverage_points:
 				coverage_points.append(cov_pts)
+			for coverage_clique in remaining_coverage_cliques:
+				coverage_cliques.append(coverage_clique)
+
 		else:
 			coverage_points.append(coverage_point)
+			coverage_cliques.append(max_nodes_covered)
 		
 		print('Coverage points:')
 		for cov_pt in coverage_points:
 			print(str(cov_pt))
-		return coverage_points
+		return coverage_points, coverage_cliques
 
 
 
@@ -690,11 +698,15 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		counter = 0
 		for clique in self.__cliques:
 			print(clique)
-			coverage_points = self.__get_cliques_coverage_points(clique)
-			for coverage_point in coverage_points:
+			coverage_points, coverage_cliques = self.__get_cliques_coverage_points(clique)
+			# for coverage_point in coverage_points:
+			for i in range(len(coverage_points)):
+				coverage_point = coverage_points[i]
+				coverage_clique = coverage_cliques[i]
 				assert(coverage_point != None)
 				print('* Coverage point:', str(coverage_point))
-				coverage_point = CoveragePoint(coverage_point.get_x(), coverage_point.get_y(), counter, clique)
+				print('* Coverage clique:', str(coverage_clique))
+				coverage_point = CoveragePoint(coverage_point.get_x(), coverage_point.get_y(), counter, coverage_clique)
 				cx = coverage_point.get_x()
 				cy = coverage_point.get_y()
 				bound_box = (cx, cy, cx, cy)
