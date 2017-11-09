@@ -6,7 +6,7 @@ def main():
 	width = int(sys.argv[1])
 	height = int(sys.argv[2])
 	max_squares = int(sys.argv[3])
-	min_length = 70
+	min_length = 50
 	max_length = 100
 	squares_list = []
 	sq = shapes.Square((30, 30), 60)
@@ -32,7 +32,7 @@ def main():
 	# for sqs in squares_list:
 	# 	print(sqs)
 
-	f = open('id_2.polygons', 'w')
+	f = open('id_5.polygons', 'w')
 	f.write(str(width)+', '+str(height) + '\n')
 	for sqs in squares_list[1:]:
 		centre = sqs.get_centre()

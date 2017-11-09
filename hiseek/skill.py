@@ -64,7 +64,7 @@ class LineOpeningSkill(Skill):
 		self.__openings_created = False	
 		self.__x_offset = 5
 		self.__y_offset = 0
-		self.__ground_coord = coord.Coord(100, 5)	
+		self.__ground_coord = coord.Coord(5, 5)	
 
 	def get_opening_position(self, rank, idx):
 		assert(rank < self._team.get_ranks())
