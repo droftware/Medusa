@@ -419,7 +419,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		super(CoveragePointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
 		self.__visibility_graph = nx.Graph()
 		self.__coverage_graph = nx.Graph()
-		self.__cliques = None
+		self.__cliques = []
 		self.__strategic_points2cliques = [[] for stp in self._strategic_points]
 		
 		self.__num_rays = num_rays * 4
@@ -692,11 +692,12 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 
 	def __find_coverage_points(self):
 		print('Cliques:')
-		self.__cliques = list(nx.find_cliques(self.__visibility_graph))
-		self.__cliques.sort(key=len, reverse=True)
-		# print('Total number of maximal cliques:', len(self.__cliques))
+		clique_list = list(nx.find_cliques(self.__visibility_graph))
+		clique_list.sort(key=len, reverse=True)
+
 		counter = 0
-		for clique in self.__cliques:
+		for clique in clique_list:
+			print('')
 			print(clique)
 			coverage_points, coverage_cliques = self.__get_cliques_coverage_points(clique)
 			# for coverage_point in coverage_points:
@@ -712,6 +713,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				bound_box = (cx, cy, cx, cy)
 				self._coverage_pts_idx.insert(counter, bound_box, obj=counter)
 				self._coverage_points.append(coverage_point)
+				self.__cliques.append(coverage_clique)
 				counter += 1
 
 	def __associate_strategic_points2cliques(self):
@@ -740,6 +742,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				self.__explore_coverage_point(coverage_point)
 
 	def __explore_coverage_point(self, coverage_point):
+		clique_limit = 3
 		coverage_point.mark_explored()
 		clique = coverage_point.get_clique()
 		for stp_id in clique:
@@ -748,7 +751,9 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			adjacent_coverage_point_ids = adjacent_clique_ids
 			for ad_id in adjacent_coverage_point_ids:
 				adjacent_coverage_point = self._coverage_points[ad_id]
-				if not adjacent_coverage_point.is_explored():
+				adjacent_clique = self.__cliques[ad_id]
+				clique_intersection = set(clique).intersection(set(adjacent_clique))
+				if not adjacent_coverage_point.is_explored() and len(clique_intersection) >= clique_limit:
 					self.__coverage_graph.add_edge(coverage_point.get_id(), adjacent_coverage_point.get_id())
 
 	def __print_coverage_graph(self):
