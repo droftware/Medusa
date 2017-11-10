@@ -40,6 +40,7 @@ class UCB(object):
 							, if None, all the actions are considered
 		'''
 		considered_actions = []
+		# print('UCB:', self.__UCB)
 		if consideration != None:
 			considered_actions = consideration
 		else:
@@ -50,7 +51,7 @@ class UCB(object):
 
 	def select_action(self, consideration = None):
 
-		self.__t += 1
+		# self.__t += 1
 		# print('UCB:', self.__UCB)
 		actions =  np.argwhere(self.__UCB == np.amax(self.__UCB))
 		actions = actions.flatten()
@@ -59,9 +60,10 @@ class UCB(object):
 		# print('Action picked:', action)
 		return action
 
-	def update(self, action, reward):
+	def update(self, action, reward, printUcb=False):
 		self.__update_ucb_params(action, reward)
-		self.__update_ucb()
+		self.__update_ucb(printUcb)
+
 		
 	def __update_ucb_params(self, action, reward):
 		# print('Updating for strategic point:', action)
@@ -70,11 +72,13 @@ class UCB(object):
 		self.__u_cap[action] = self.__u_cap[action] + (reward - self.__u_cap[action])*1.0/(self.__N[action] + 1)
 		self.__N[action] += 1 
 
-	def __update_ucb(self):
+	def __update_ucb(self, printUcb=False):
 		# print('After update:')
+		self.__t += 1
 		for i in range(self.__num_actions):
 			self.__UCB[i] = self.__u_cap[i] + math.sqrt(self.__alpha * math.log(self.__t)/(2*self.__N[i]))
-			# print(i, self.__UCB[i])
+			if printUcb:
+				print(i, self.__UCB[i])
 
 	def __str__(self):
 		return str(self.__UCB)
