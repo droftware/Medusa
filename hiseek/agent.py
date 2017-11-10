@@ -594,7 +594,7 @@ class UCBPassiveAgent(Agent):
 		return None
 
 	def __initiate_transit(self):
-		print()
+		# print()
 		# print('H Initiating transit')
 		self.__waiting_steps = self.__MAX_WAITING_STEPS
 		possible_strategic_points = self._map_manager.get_closest_strategic_point(self._position, self.__ST_CONSIDERATION + 1)
@@ -671,7 +671,7 @@ class UCBPassiveAgent(Agent):
 			self.__update_transit()
 
 	def select_action(self):
-		
+		# print('Hider')
 		self.__update_exploration()
 		direction_vec = self.__select_direction() 
 
@@ -788,7 +788,8 @@ class UCBCoverageAgent(Agent):
 		return max_coverage_point
 
 	def _update_coverage_UCB(self, coverage_point, reward):
-		self._coverage_UCB.update(coverage_point, reward)
+		print('Calling coverage update')
+		self._coverage_UCB.update(coverage_point, reward, True)
 
 	def __set_contour_path(self, coverage_point):
 		self.__current_coverage_contour = self._map_manager.get_coverage_contour_from_point(coverage_point)
@@ -796,7 +797,7 @@ class UCBCoverageAgent(Agent):
 		self.__contour_size = len(self.__current_coverage_contour)
 		self._current_coverage_point = self.__current_coverage_contour[self.__contour_counter]
 		print('Agent ID:', self._id, 'S: Setting a new contour:', self.__current_coverage_contour)
-		# print('S: Coverage point selected:', self._current_coverage_point)
+		print('S: Coverage point selected:', self._current_coverage_point)
 		self.__select_path(self._current_coverage_point)
 		self.__next_state = self.__planner.get_paths_next_coord()
 		# print('S Starting Long contour transit from:', str(self._position))
@@ -811,8 +812,8 @@ class UCBCoverageAgent(Agent):
 
 	def __initiate_change_transit(self):
 		# self.__in_contour_transit = False
-		# print()
-		# print('S: Inititating change transit')
+		print()
+		print('S: Inititating change transit')
 		max_coverage_point = self._get_max_coverage_point()
 		if max_coverage_point == None:
 			return
@@ -833,7 +834,7 @@ class UCBCoverageAgent(Agent):
 			# print('S State reached, changing to next state:', str(self.__next_state))
 			if self.__next_state == None:
 				# Agent reached its destination
-				# print('S Change transit completed')
+				print('S Change transit completed')
 				self.__in_scan_state = True
 				self.__scan_counter = 0
 				if self.__in_change_transit:
@@ -848,7 +849,7 @@ class UCBCoverageAgent(Agent):
 		print('Agent ID:', self._id ,'S: Initiating contour transit')
 		print('Agent ID:', self._id ,'S: Contour counter:', self.__contour_counter)
 		self._current_coverage_point = self.__current_coverage_contour[self.__contour_counter]
-		# print('S: Coverage point selected:', self._current_coverage_point)
+		print('S: Coverage point selected:', self._current_coverage_point)
 		self.__select_path(self._current_coverage_point)
 		self.__next_state = self.__planner.get_paths_next_coord()
 		# print('S Starting contour transit from:', str(self._position))
@@ -862,7 +863,7 @@ class UCBCoverageAgent(Agent):
 
 	def __update_scan(self):
 		# print()
-		# print('Agent ID:', self._id, 'S: Updating scan')
+		print('Agent ID:', self._id, 'S: Updating scan')
 		if self._percept.are_hiders_visible():
 			print('Agent ID:', self._id ,'S: Hider observed during scan')
 			self.__hider_observed = True
@@ -1102,7 +1103,7 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 
 	def select_action(self):
 		# print('')
-		# print('Commander id:', self._id)
+		# print('Seeker:', self._id)
 		self.analyze_messages()
 		self.generate_messages()
 		super(UCBCoverageCommunicationCommanderAgent, self).select_action()
