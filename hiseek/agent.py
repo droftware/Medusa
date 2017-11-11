@@ -535,11 +535,12 @@ class UCBPassiveAgent(Agent):
 		An agent which uses stochastic UCB to select strategic points
 	'''
 
-	def __init__(self, agent_type, agent_id, team, map_manager, macro_UCB, num_rays, visibility_angle):
+	def __init__(self, agent_type, agent_id, team, map_manager, macro_UCB, num_rays, visibility_angle, handicap=False):
 		super(UCBPassiveAgent, self).__init__(agent_type, agent_id, team, map_manager)
 		self.__planner = planner.BasicPlanner(self._map_manager)
 		self.__margin = 10
 		self.__next_state = None
+		self.__handicap = handicap
 
 		self.__macro_UCB = macro_UCB
 		self.__macro_seeker_observed = False
@@ -597,13 +598,20 @@ class UCBPassiveAgent(Agent):
 		# print()
 		# print('H Initiating transit')
 		self.__waiting_steps = self.__MAX_WAITING_STEPS
-		possible_strategic_points = self._map_manager.get_closest_strategic_point(self._position, self.__ST_CONSIDERATION + 1)
-		# print('Strategic points under consideration:', possible_strategic_points)
-		if self.__current_st_point in possible_strategic_points:
-			possible_strategic_points.remove(self.__current_st_point)
-		# print('Strategic points after elimination', possible_strategic_points)
-		# print('Current strategic point:', self.__current_st_point)
-		self.__current_st_point = self.__macro_UCB.get_greatest_actions(1, possible_strategic_points)[0]
+		possible_strategic_points = None
+		if not self.__handicap:
+			print('Deciding strategic points')
+			possible_strategic_points = self._map_manager.get_closest_strategic_point(self._position, self.__ST_CONSIDERATION + 1)
+			# print('Strategic points under consideration:', possible_strategic_points)
+			if self.__current_st_point in possible_strategic_points:
+				possible_strategic_points.remove(self.__current_st_point)
+			# print('Strategic points after elimination', possible_strategic_points)
+			# print('Current strategic point:', self.__current_st_point)
+			print('Possible strategic points:', possible_strategic_points)
+			self.__current_st_point = self.__macro_UCB.get_greatest_actions(1, possible_strategic_points)[0]
+		else:
+			print('Possible strategic points:', possible_strategic_points)
+			self.__current_st_point = self.__macro_UCB.select_action()
 		# print('New strategic point:', self.__current_st_point)
 
 		self.__select_path(self.__current_st_point)
@@ -695,8 +703,8 @@ class UCBPassiveAgent(Agent):
 
 class UCBPassiveCommanderAgent(UCBPassiveAgent):
 
-	def __init__(self, agent_type, agent_id, team, map_manager, macro_UCB, num_rays, visibility_angle):
-		super(UCBPassiveCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, macro_UCB, num_rays, visibility_angle)
+	def __init__(self, agent_type, agent_id, team, map_manager, macro_UCB, num_rays, visibility_angle, handicap=False):
+		super(UCBPassiveCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, macro_UCB, num_rays, visibility_angle, handicap)
 		self.__skill = skill.UCBOpeningSkill(agent_type, team, map_manager, macro_UCB, randomOpening=True)
 
 	def get_opening_position(self, rank, idx):
@@ -789,7 +797,7 @@ class UCBCoverageAgent(Agent):
 
 	def _update_coverage_UCB(self, coverage_point, reward):
 		print('Calling coverage update')
-		self._coverage_UCB.update(coverage_point, reward, True)
+		self._coverage_UCB.update(coverage_point, reward, False)
 
 	def __set_contour_path(self, coverage_point):
 		self.__current_coverage_contour = self._map_manager.get_coverage_contour_from_point(coverage_point)

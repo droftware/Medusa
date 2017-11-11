@@ -293,13 +293,19 @@ class UCBPassiveTeam(Team):
 
 	ranks = 2
 
-	def __init__(self, agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta, num_rays, visibility_angle):		
+	def __init__(self, agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta, num_rays, visibility_angle, handicap=False):		
 		super(UCBPassiveTeam, self).__init__(agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta)
 
 		# prepare a rank 1 hierarchy member list and map managers
 		self._map_managers = [] # one map manager for one level
 		self._members = [[], []]
 		self._active = [[], []]
+		self.__handicap = handicap
+
+		if self.__handicap:
+			print('Hider is Handicapped')
+		else:
+			print('Hider is NOT Handicapped')
 
 		self.__num_rays = num_rays
 		self.__visibility_angle = visibility_angle
@@ -312,17 +318,20 @@ class UCBPassiveTeam(Team):
 		max_cells_visible = self._map_managers[0].get_max_cells_visible()
 
 		for i in range(num_strategic_points):
-			strategic_point = self._map_managers[0].get_strategic_point(i)
-			vpolygon = self._map_managers[0].get_360_visibility_polygon(strategic_point, self.__num_rays)
-			common_cells = self._map_managers[0].get_nearby_visibility_cells(strategic_point)
-			visible_cells = 0
-			for a, b in common_cells:
-				coord_obs = coord.Coord(a * offset, b * offset)
-				if vpolygon.is_point_inside(coord_obs):
-					visible_cells += 1
-			if visible_cells == 0:
-				visible_cells = 1
-			avg_val = max_cells_visible * 1.0/ visible_cells
+			avg_val = 0
+			if not self.__handicap:
+				strategic_point = self._map_managers[0].get_strategic_point(i)
+				vpolygon = self._map_managers[0].get_360_visibility_polygon(strategic_point, self.__num_rays)
+				common_cells = self._map_managers[0].get_nearby_visibility_cells(strategic_point)
+				visible_cells = 0
+				for a, b in common_cells:
+					coord_obs = coord.Coord(a * offset, b * offset)
+					if vpolygon.is_point_inside(coord_obs):
+						visible_cells += 1
+				if visible_cells == 0:
+					visible_cells = 1
+				avg_val = max_cells_visible * 1.0/ visible_cells
+			print('Setting avg value:', avg_val)
 			macro_UCB.set_initial_average(i, avg_val)
 		macro_UCB.set_initial_bounds()
 		# print('Hider macro UCB:', str(macro_UCB))
@@ -330,7 +339,7 @@ class UCBPassiveTeam(Team):
 		# recruit the commander of the random team
 		agent_id = 'RH' + str(0)
 		cm_ucb = copy.deepcopy(macro_UCB)
-		commander_member = agent.UCBPassiveCommanderAgent(agent_type, agent_id, self, self._map_managers[0], cm_ucb, self.__num_rays, self.__visibility_angle)
+		commander_member = agent.UCBPassiveCommanderAgent(agent_type, agent_id, self, self._map_managers[0], cm_ucb, self.__num_rays, self.__visibility_angle, self.__handicap)
 		self._members[1].append(commander_member)
 		self._active[1].append(True)
 
@@ -338,7 +347,7 @@ class UCBPassiveTeam(Team):
 		for i in range(self._num_agents - 1):
 			agent_id = 'RH' + str(i)
 			m_ucb = copy.deepcopy(macro_UCB)
-			member = agent.UCBPassiveAgent(agent_type, agent_id, self, self._map_managers[0], m_ucb, self.__num_rays, self.__visibility_angle)
+			member = agent.UCBPassiveAgent(agent_type, agent_id, self, self._map_managers[0], m_ucb, self.__num_rays, self.__visibility_angle, self.__handicap)
 			self._members[0].append(member)
 			self._active[0].append(True)
 
