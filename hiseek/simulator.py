@@ -119,7 +119,7 @@ class Simulator(object):
 		Responsible for one complete simulation
 	"""
 
-	mode_type_hiders = ['random', 'bayesian', 'sbandit', 'sh']
+	mode_type_hiders = ['random', 'bayesian', 'sbandit', 'hm_sbandit', 'hv_sbandit', 'hmv_sbandit']
 	mode_type_seekers = ['random', 'sbandit', 'coverage', 'cc']
 
 	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, total_step_times, max_steps=1000, window_width=640, window_height=360):
@@ -170,10 +170,15 @@ class Simulator(object):
 		elif mode_hiders == 'bayesian':
 			self.__hider_team = team.BayesianTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
 		elif mode_hiders == 'sbandit':
-			self.__hider_team = team.UCBPassiveTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
-		elif mode_hiders == 'sh':
-			self.__hider_team = team.UCBPassiveTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle, True)
+			self.__hider_team = team.UCBPassiveTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle, False, False)
+		elif mode_hiders == 'hm_sbandit':
+			self.__hider_team = team.UCBPassiveTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle, True, False)
+		elif mode_hiders == 'hv_sbandit':
+			self.__hider_team = team.UCBPassiveTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle, False, True)
+		elif mode_hiders == 'hmv_sbandit':
+			self.__hider_team = team.UCBPassiveTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle, True, True)
 		
+
 		if mode_seekers == 'random':
 			self.__seeker_team = team.RandomTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
 		elif mode_seekers == 'sbandit':
