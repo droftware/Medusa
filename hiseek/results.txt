@@ -17,6 +17,8 @@ python main.py -n 20 -s -m 0 -nh 30 -ns 3 -mh sbandit -ms sbandit
 
 New updated coverage : seekers
 
+Here coverage communication strategy for seekers and sbandit for hiders.
+
 * python main.py -n 10 -s -m 0 -nh 30 -ns 3 -mh sbandit -ms cc
 ('Step times:', [284, 888, 878, 527, 694, 529, 904, 560, 375, 476])
 ('Average step time:', 611.5)
@@ -32,6 +34,13 @@ New updated coverage : seekers
 
 ('Step times:', [489, 511, 1030, 343, 1055, 1108, 574, 425, 544, 502])
 ('Average step time:', 658.1)
+
+('Step times:', [723, 438, 1013, 628, 416, 413, 543, 599, 458, 640])
+('Average step time:', 587.1)
+
+('Step times:', [566, 624, 587, 763, 497, 501, 866, 512, 1054, 632])
+('Average step time:', 660.2)
+
 
 
 
@@ -49,3 +58,11 @@ New updated coverage : seekers
 ('Step times:', [421, 915, 607, 537, 824, 645, 937, 669, 645, 678, 702, 532, 517, 664, 346, 494, 576, 436, 572, 1180])
 ('Average step time:', 644.85)
 
+('Step times:', [377, 779, 883, 353, 481, 642, 878, 586, 699, 507])
+('Average step time:', 618.5)
+
+('Step times:', [459, 1080, 857, 614, 448, 526, 365, 772, 507, 689])
+('Average step time:', 631.7)
+
+('Step times:', [374, 729, 536, 554, 611, 485, 618, 793, 492, 814])
+('Average step time:', 600.6)

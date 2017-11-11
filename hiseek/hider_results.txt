@@ -2,3 +2,42 @@ obstrutiveness factor = 0
 nearest obstacles = 4
 
 python main.py -n 10 -s -m 0 -nh 30 -ns 3 -mh sbandit -ms cc
+
+--------------------
+Hider: Handicapped movement bandit
+Seeker: Coverage Communication
+python main.py -n 10 -s -m 0 -nh 30 -ns 3 -mh hm_sbandit -ms cc
+('Step times:', [289, 139, 146, 203, 188, 167, 164, 187, 164, 175])
+('Average step time:', 182.2)
+
+('Step times:', [568, 173, 189, 310, 206, 182, 169, 221, 192, 127])
+('Average step time:', 233.7)
+
+
+-----------------------
+
+Hider: Handicapped visibility bandit
+Seeker: Coverage Communication
+
+python main.py -n 10 -s -m 0 -nh 30 -ns 3 -mh hv_sbandit -ms cc
+('Step times:', [267, 470, 502, 1056, 636, 285, 778, 282, 742, 402])
+('Average step time:', 542.0)
+
+('Step times:', [383, 560, 408, 773, 774, 718, 417, 367, 870, 514])
+('Average step time:', 578.4)
+
+('Step times:', [447, 516, 306, 387, 655, 789, 425, 540, 395, 468])
+('Average step time:', 492.8)
+
+
+
+-----------------------------
+
+Hider: Handicapped visibility and movement
+python main.py -n 10 -s -m 0 -nh 30 -ns 3 -mh hmv_sbandit -ms cc
+('Step times:', [305, 518, 139, 287, 256, 373, 197, 270, 397, 301])
+('Average step time:', 304.3)
+
+('Step times:', [238, 288, 236, 252, 480, 184, 187, 246, 365, 164])
+('Average step time:', 264.0)
+
