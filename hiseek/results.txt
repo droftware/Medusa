@@ -12,3 +12,40 @@ avg = 616.7
 python main.py -n 20 -s -m 0 -nh 30 -ns 3 -mh sbandit -ms sbandit
 [451, 519, 750, 525, 529, 430, 586, 1159, 510, 563, 651, 622, 1338, 568, 1021, 512, 1360, 369, 896, 1240]
 ('Average step time:', 729.95)
+
+----------------------------------------------
+
+New updated coverage : seekers
+
+* python main.py -n 10 -s -m 0 -nh 30 -ns 3 -mh sbandit -ms cc
+('Step times:', [284, 888, 878, 527, 694, 529, 904, 560, 375, 476])
+('Average step time:', 611.5)
+
+('Step times:', [482, 393, 317, 750, 1048, 491, 843, 352, 669, 469])
+('Average step time:', 581.4)
+
+('Step times:', [347, 391, 460, 1107, 440, 908, 373, 345, 690, 261])
+('Average step time:', 532.2)
+
+('Step times:', [461, 394, 517, 525, 507, 852, 589, 808, 339, 522])
+('Average step time:', 551.4)
+
+('Step times:', [489, 511, 1030, 343, 1055, 1108, 574, 425, 544, 502])
+('Average step time:', 658.1)
+
+
+
+
+* python main.py -n 10 -s -m 0 -nh 30 -ns 3 -mh sbandit -ms sbandit
+('Step times:', [710, 667, 537, 730, 1522, 445, 717, 1102, 465, 447])
+('Average step time:', 734.2)
+
+('Step times:', [1284, 472, 494, 910, 669, 666, 609, 484, 691, 472])
+('Average step time:', 675.1)
+
+('Step times:', [841, 981, 1087, 634, 514, 724, 735, 551, 544, 580])
+('Average step time:', 719.1)
+
+('Step times:', [421, 915, 607, 537, 824, 645, 937, 669, 645, 678, 702, 532, 517, 664, 346, 494, 576, 436, 572, 1180])
+('Average step time:', 644.85)
+

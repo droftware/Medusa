@@ -1,0 +1,4 @@
+obstrutiveness factor = 0
+nearest obstacles = 4
+
+python main.py -n 10 -s -m 0 -nh 30 -ns 3 -mh sbandit -ms cc
