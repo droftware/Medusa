@@ -49,7 +49,7 @@ class UCB(object):
 		greatest_arms = greatest_arms[0:num_actions]
 		return greatest_arms
 
-	def select_action(self, consideration = None):
+	def select_action(self):
 
 		# self.__t += 1
 		# print('UCB:', self.__UCB)
