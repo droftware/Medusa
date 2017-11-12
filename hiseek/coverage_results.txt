@@ -1,0 +1,46 @@
+python map_generator.py 400 300 12
+
+('Total number of coverage points:', 16)
+('Total strategic points:', 24)
+('Average strategic points covered:', 2.8125)
+
+('Total number of coverage points:', 12)
+('Total strategic points:', 22)
+('Average strategic points covered:', 4.0)
+
+('Total number of coverage points:', 18)
+('Total strategic points:', 25)
+('Average strategic points covered:', 3.611111111111111)
+
+('Total number of coverage points:', 16)
+('Total strategic points:', 25)
+('Average strategic points covered:', 3.8125)
+
+('Total number of coverage points:', 13)
+('Total strategic points:', 20)
+('Average strategic points covered:', 2.6153846153846154)
+
+
+
+-------------------------------------------------
+python map_generator.py 600 500 25
+
+('Total number of coverage points:', 40)
+('Total strategic points:', 50)
+('Average strategic points covered:', 3.575)
+
+('Total number of coverage points:', 34)
+('Total strategic points:', 47)
+('Average strategic points covered:', 3.823529411764706)
+
+('Total number of coverage points:', 54)
+('Total strategic points:', 59)
+('Average strategic points covered:', 3.2962962962962963)
+
+('Total number of coverage points:', 52)
+('Total strategic points:', 51)
+('Average strategic points covered:', 4.230769230769231)
+
+('Total number of coverage points:', 50)
+('Total strategic points:', 58)
+('Average strategic points covered:', 3.86)
