@@ -696,6 +696,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		print('Cliques:')
 		clique_list = list(nx.find_cliques(self.__visibility_graph))
 		clique_list.sort(key=len, reverse=True)
+		total_sts_covered = 0
 
 		counter = 0
 		for clique in clique_list:
@@ -716,9 +717,11 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				self._coverage_pts_idx.insert(counter, bound_box, obj=counter)
 				self._coverage_points.append(coverage_point)
 				self.__cliques.append(coverage_clique)
+				total_sts_covered += len(coverage_clique)
 				counter += 1
 		print('Total number of coverage points:', len(self._coverage_points))
 		print('Total strategic points:', len(self._strategic_points))
+		print('Average strategic points covered:', total_sts_covered*1.0/len(self._coverage_points))
 
 	def __associate_strategic_points2cliques(self):
 		for i in range(len(self.__cliques)):
