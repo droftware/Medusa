@@ -36,12 +36,13 @@ class BasicMapManager(object):
 		self._obstruction_penta = [0, 0, 0, 0, 0]
 		self._visibility_penta = [0, 0, 0, 0, 0]
 		self.__max_cells_visible = 0
+		self.__inference_map = inference_map
 
 		self._map_name = mapworld.get_map_name().split('.')[0]
 		vis_file = self._map_name + '.visibility'
 		obs_file = self._map_name + '.obstruction'
 		idx_file = self._map_name + '.index'
-		if inference_map:
+		if self.__inference_map:
 			if os.path.isfile(vis_file) and os.path.isfile(obs_file) and os.path.isfile(idx_file+'.idx'):
 				print('Loading files', vis_file, obs_file, idx_file)
 				self._visibility = np.loadtxt(vis_file)
@@ -74,24 +75,25 @@ class BasicMapManager(object):
 
 				# print('Filled all obstacles')
 				# print(self._visibility)
+				####
+				# for i in range(self.__num_rows):
+				# 	for j in range(self.__num_cols):
+				# 		print('Analyzing:',i,j)
+				# 		coord_vis = coord.Coord(i * self.__offset, j * self.__offset)
+				# 		if self._visibility[i, j] != -1:
+				# 			visibility_polygon = self.get_360_visibility_polygon(coord_vis)
+				# 			bbox = self._mapworld.get_bbox(coord_vis).get_rtree_bbox()
+				# 			common_boxes = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
+				# 			# print('Common boxes for:',i,j, len(common_boxes))
+				# 			for a,b in common_boxes:
+				# 				coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
+				# 				if visibility_polygon.is_point_inside(coord_obs):
+				# 					self._visibility[i, j] += 1
+				# 					self._obstruction[a, b] += 1
 
-				for i in range(self.__num_rows):
-					for j in range(self.__num_cols):
-						print('Analyzing:',i,j)
-						coord_vis = coord.Coord(i * self.__offset, j * self.__offset)
-						if self._visibility[i, j] != -1:
-							visibility_polygon = self.get_360_visibility_polygon(coord_vis)
-							bbox = self._mapworld.get_bbox(coord_vis).get_rtree_bbox()
-							common_boxes = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
-							# print('Common boxes for:',i,j, len(common_boxes))
-							for a,b in common_boxes:
-								coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
-								if visibility_polygon.is_point_inside(coord_obs):
-									self._visibility[i, j] += 1
-									self._obstruction[a, b] += 1
-
-				np.savetxt(self._map_name.split('.')[0] + '.visibility',self._visibility)
-				np.savetxt(self._map_name.split('.')[0] + '.obstruction', self._obstruction)
+				# np.savetxt(self._map_name.split('.')[0] + '.visibility',self._visibility)
+				# np.savetxt(self._map_name.split('.')[0] + '.obstruction', self._obstruction)
+				####
 				self._visibility_idx.close()
 				# Reinitializing idx since .close() makes the idx unusable
 				self._visibility_idx = rtree.index.Index(idx_file)
@@ -626,7 +628,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			num_max_nodes_covered = 1
 			coverage_point = cst_pt
 		
-		print('Max nodes covered:', max_nodes_covered)
+		# print('Max nodes covered:', max_nodes_covered)
 
 		if coverage_point == None:
 			coverage_points.append(max_cov_coord)
@@ -647,7 +649,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			coverage_points.append(coverage_point)
 			coverage_cliques.append(max_nodes_covered)
 		
-		print('Coverage points:')
+		# print('Coverage points:')
 		for cov_pt in coverage_points:
 			print(str(cov_pt))
 		return coverage_points, coverage_cliques
@@ -715,6 +717,8 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				self._coverage_points.append(coverage_point)
 				self.__cliques.append(coverage_clique)
 				counter += 1
+		print('Total number of coverage points:', len(self._coverage_points))
+		print('Total strategic points:', len(self._strategic_points))
 
 	def __associate_strategic_points2cliques(self):
 		for i in range(len(self.__cliques)):
@@ -734,6 +738,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 
 	def __add_coverage_nodes(self):
 		for coverage_point in self._coverage_points:
+			print('i:', str(coverage_point))
 			self.__coverage_graph.add_node(coverage_point.get_id())
 
 	def __add_coverage_edges(self):
@@ -742,9 +747,10 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				self.__explore_coverage_point(coverage_point)
 
 	def __explore_coverage_point(self, coverage_point):
-		clique_limit = 3
+		clique_limit = 2
 		coverage_point.mark_explored()
 		clique = coverage_point.get_clique()
+		# print('Coverage point:', str(coverage_point), ' clique:', clique)
 		for stp_id in clique:
 			adjacent_clique_ids = self.__strategic_points2cliques[stp_id]
 			# Since each clique has a one-one map to a coverage point
@@ -752,6 +758,9 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			for ad_id in adjacent_coverage_point_ids:
 				adjacent_coverage_point = self._coverage_points[ad_id]
 				adjacent_clique = self.__cliques[ad_id]
+				# print('Edge')
+				# print('Clique set:', set(clique))
+				# print('Adjacent clique set:', set(adjacent_clique))
 				clique_intersection = set(clique).intersection(set(adjacent_clique))
 				if not adjacent_coverage_point.is_explored() and len(clique_intersection) >= clique_limit:
 					self.__coverage_graph.add_edge(coverage_point.get_id(), adjacent_coverage_point.get_id())

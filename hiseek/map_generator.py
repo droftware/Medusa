@@ -32,7 +32,7 @@ def main():
 	# for sqs in squares_list:
 	# 	print(sqs)
 
-	f = open('id_5.polygons', 'w')
+	f = open('id_3.polygons', 'w')
 	f.write(str(width)+', '+str(height) + '\n')
 	for sqs in squares_list[1:]:
 		centre = sqs.get_centre()
