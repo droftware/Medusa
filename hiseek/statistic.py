@@ -4,7 +4,7 @@ class Statistic(object):
 		Stores various kind of in-game statistics for one complete simulation.
 	"""
 
-	def __init__(self, num_hiders, num_seekers, map_id):
+	def __init__(self, num_hiders, num_seekers, map_id, sim_turn):
 		self.__total_time = 0
 		self.__map_id = map_id
  		self.__num_hiders = num_hiders
@@ -14,6 +14,7 @@ class Statistic(object):
 		self.__seeker_paths = [[] for i in range(self.__num_seekers)]
 		self.__avg_seeker_visibility = 0
 		self.__avg_hider_visibility = 0
+		self.__sim_turn = sim_turn
 
 	def update_seeker_path(self, seeker_num, position):
 		self.__seeker_paths[seeker_num].append((position.get_x(), position.get_y()))
@@ -40,7 +41,7 @@ class Statistic(object):
 			print('Hider:', i, 'caught at time step:', self.__catch_time[i])
 
 	def write_statistic(self):
-		output_file = 'hs.statistic'
+		output_file = 'hs_' + str(self.__sim_turn) + '_.statistic'
 		f = open(output_file, 'w')
 		f.write('map_id:' + str(self.__map_id) + '\n')
 		f.write('num_hiders:' + str(self.__num_hiders) + '\n')

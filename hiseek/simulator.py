@@ -122,7 +122,7 @@ class Simulator(object):
 	mode_type_hiders = ['random', 'bayesian', 'sbandit', 'hm_sbandit', 'hv_sbandit', 'hmv_sbandit']
 	mode_type_seekers = ['random', 'sbandit', 'coverage', 'cc']
 
-	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, total_step_times, max_steps=1000, window_width=640, window_height=360):
+	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, total_step_times, sim_turn, max_steps=1000, window_width=640, window_height=360):
 		assert(mode_hiders in Simulator.mode_type_hiders)
 		assert(mode_seekers in Simulator.mode_type_seekers)
 		self.__mode_hiders = mode_hiders
@@ -141,7 +141,8 @@ class Simulator(object):
 		self.__num_rays = self.__conf_options.get_num_rays()
 		self.__visibility_angle = self.__conf_options.get_visibility_angle()
 
-		self.__stats = statistic.Statistic(num_hiders, num_seekers, self.__map_id)
+		self.__sim_turn = sim_turn
+		self.__stats = statistic.Statistic(num_hiders, num_seekers, self.__map_id, self.__sim_turn)
 		self.__max_steps = max_steps
 		self.__steps = 0
 		self.__polygon_map = gamemap.PolygonMap(map_id)

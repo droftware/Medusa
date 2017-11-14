@@ -49,7 +49,7 @@ class Experiment(object):
 			for i in range(self.__num_runs):
 				print()
 				print('*** New game ***',i)
-				sim = simulator.Simulator(self.__mode_hiders, self.__mode_seekers, self.__num_hiders, self.__num_seekers, self.__map_id, self.__input_file, self.__output_file, self.__conf_options, log_flag, vis_flag, self._total_step_times)
+				sim = simulator.Simulator(self.__mode_hiders, self.__mode_seekers, self.__num_hiders, self.__num_seekers, self.__map_id, self.__input_file, self.__output_file, self.__conf_options, log_flag, vis_flag, self._total_step_times, i)
 				sim.simulate()
 
 			print('Step times:', self._total_step_times)
