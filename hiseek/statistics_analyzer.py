@@ -110,6 +110,50 @@ def main():
 	spfile = open(sp_file_name, 'rb')
 	strategic_points = pickle.load(spfile)
 
+	cp_file_name = 'id_' + str(map_id) + '.cpts'
+	cpfile = open(cp_file_name, 'rb')
+	coverage_points = pickle.load(cpfile)
+
+	# print(strategic_points)
+	# print(coverage_points)
+
+	sp_x = []
+	sp_y = []
+
+	for sp in strategic_points:
+		spx,spy = sp.get_x(), sp.get_y()
+		sp_x.append(spx)
+		sp_y.append(spy)
+
+	cp_x = []
+	cp_y = []
+	for cp in coverage_points:
+		cpx,cpy = cp.get_x(), cp.get_y()
+		cp_x.append(cpx)
+		cp_y.append(cpy)
+
+	coverage_contours = [[0, 1, 2, 3, 6], [4], [5, 7], [8], [9], [10]]
+	real_coverage_contours_x = []
+	real_coverage_contours_y = []
+
+	ctr = 0
+	for cc in coverage_contours:
+		real_coverage_contours_x.append([])
+		real_coverage_contours_y.append([])
+
+		for x in cc:
+			real_coverage_contours_x[ctr].append(cp_x[x])
+			real_coverage_contours_y[ctr].append(cp_y[x])
+
+		ctr += 1
+
+
+	print('Strategic points:', sp_x, sp_y)
+	print('Coverage points:', cp_x, cp_y)
+	print('Real coverage contour', real_coverage_contours_x, real_coverage_contours_y)
+
+
+
 
 
 	plt.style.use('dark_background')
@@ -124,35 +168,48 @@ def main():
 
 	for p in obstacles:
 		ax3.add_patch(p)
+
 	circle_rad = 5
-	for i in range(num_seekers):
-		ax3.plot(seeker_paths_x[i], seeker_paths_y[i], 'y^')
+	# for i in range(num_seekers):
+	# 	ax3.plot(seeker_paths_x[i], seeker_paths_y[i], 'y^')
 
 
 
-	for i in range(num_hiders):
-		ax3.plot(hider_paths_x[i], hider_paths_y[i], 'r*')
+	# for i in range(num_hiders):
+	# 	ax3.plot(hider_paths_x[i], hider_paths_y[i], 'r*')
 
 
-	for i in range(num_hiders):
-		x = hider_paths_x[i][-1]
-		y = hider_paths_y[i][-1]
-		circle_rad = 10 # This is the radius, in points
-		ax3.plot(x, y, 'o',
-				ms=circle_rad * 2, mec='g', mfc='none', mew=2)
+	# for i in range(num_hiders):
+	# 	x = hider_paths_x[i][-1]
+	# 	y = hider_paths_y[i][-1]
+	# 	circle_rad = 10 # This is the radius, in points
+	# 	ax3.plot(x, y, 'o',
+	# 			ms=circle_rad * 2, mec='g', mfc='none', mew=2)
 
-	for i in range(num_seekers):
-		ax3.plot(seeker_paths_x[i][0], seeker_paths_y[i][0], 'b^', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
+	# for i in range(num_seekers):
+	# 	ax3.plot(seeker_paths_x[i][0], seeker_paths_y[i][0], 'b^', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
 
-	for i in range(num_hiders):
-		ax3.plot(hider_paths_x[i][0], hider_paths_y[i][0], 'b*', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
+	# for i in range(num_hiders):
+	# 	ax3.plot(hider_paths_x[i][0], hider_paths_y[i][0], 'b*', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
 
+	for i in range(len(strategic_points)):
+		ax3.plot(sp_x[i], sp_y[i], 'b^', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
+
+	for i in range(len(coverage_points)):
+		ax3.plot(cp_x[i], cp_y[i], 'b*', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
+
+	for i in range(len(coverage_contours)):
+		ax3.plot(real_coverage_contours_x[i], real_coverage_contours_y[i], 'y*-', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
+		
+
+	for i in range(len(coverage_points)):
+		ax3.plot(cp_x[i], cp_y[i], 'b*')
 					
 		
 
 
 
-	fig3.savefig('rect3.png', dpi=90, bbox_inches='tight')
+	fig3.savefig('cc1.png', dpi=90, bbox_inches='tight')
 	# plt.show()
 	# plt.savefig("example.png",bbox_inches='tight')
 
