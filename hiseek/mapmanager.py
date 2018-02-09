@@ -628,7 +628,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			num_max_nodes_covered = 1
 			coverage_point = cst_pt
 		
-		# print('Max nodes covered:', max_nodes_covered)
+		print('Max nodes covered:', max_nodes_covered)
 
 		if coverage_point == None:
 			coverage_points.append(max_cov_coord)
@@ -649,7 +649,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			coverage_points.append(coverage_point)
 			coverage_cliques.append(max_nodes_covered)
 		
-		# print('Coverage points:')
+		print('Coverage points:')
 		for cov_pt in coverage_points:
 			print(str(cov_pt))
 		return coverage_points, coverage_cliques
