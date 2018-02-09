@@ -76,23 +76,23 @@ class BasicMapManager(object):
 				# print('Filled all obstacles')
 				# print(self._visibility)
 				####
-				# for i in range(self.__num_rows):
-				# 	for j in range(self.__num_cols):
-				# 		print('Analyzing:',i,j)
-				# 		coord_vis = coord.Coord(i * self.__offset, j * self.__offset)
-				# 		if self._visibility[i, j] != -1:
-				# 			visibility_polygon = self.get_360_visibility_polygon(coord_vis)
-				# 			bbox = self._mapworld.get_bbox(coord_vis).get_rtree_bbox()
-				# 			common_boxes = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
-				# 			# print('Common boxes for:',i,j, len(common_boxes))
-				# 			for a,b in common_boxes:
-				# 				coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
-				# 				if visibility_polygon.is_point_inside(coord_obs):
-				# 					self._visibility[i, j] += 1
-				# 					self._obstruction[a, b] += 1
+				for i in range(self.__num_rows):
+					for j in range(self.__num_cols):
+						print('Analyzing:',i,j)
+						coord_vis = coord.Coord(i * self.__offset, j * self.__offset)
+						if self._visibility[i, j] != -1:
+							visibility_polygon = self.get_360_visibility_polygon(coord_vis)
+							bbox = self._mapworld.get_bbox(coord_vis).get_rtree_bbox()
+							common_boxes = [box.object for box in self._visibility_idx.intersection(bbox, objects=True)]
+							# print('Common boxes for:',i,j, len(common_boxes))
+							for a,b in common_boxes:
+								coord_obs = coord.Coord(a * self.__offset, b * self.__offset)
+								if visibility_polygon.is_point_inside(coord_obs):
+									self._visibility[i, j] += 1
+									self._obstruction[a, b] += 1
 
-				# np.savetxt(self._map_name.split('.')[0] + '.visibility',self._visibility)
-				# np.savetxt(self._map_name.split('.')[0] + '.obstruction', self._obstruction)
+				np.savetxt(self._map_name.split('.')[0] + '.visibility',self._visibility)
+				np.savetxt(self._map_name.split('.')[0] + '.obstruction', self._obstruction)
 				####
 				self._visibility_idx.close()
 				# Reinitializing idx since .close() makes the idx unusable
@@ -719,6 +719,13 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				self.__cliques.append(coverage_clique)
 				total_sts_covered += len(coverage_clique)
 				counter += 1
+		print('Strategic points:')
+		for i in range(len(self._strategic_points)):
+			print(i,':',str(self._strategic_points[i]))
+		print('')
+		print('Coverage points:', self._coverage_points)
+		for i in range(len(self._coverage_points)):
+			print(i,':',str(self._coverage_points[i]))
 		print('Total number of coverage points:', len(self._coverage_points))
 		print('Total strategic points:', len(self._strategic_points))
 		print('Average strategic points covered:', total_sts_covered*1.0/len(self._coverage_points))
@@ -787,5 +794,5 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			contour = self._coverage_contours[i]
 			for coverage_point in contour:
 				self.__coverage_point2contour[coverage_point] = i
-		# for i in range(num_coverage_points):
-		# 	print('Coverage point:', i, 'is associated with contour:', self.__coverage_point2contour[i])
+		for i in range(num_coverage_points):
+			print('Coverage point:', i, 'is associated with contour:', self.__coverage_point2contour[i])
