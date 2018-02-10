@@ -104,6 +104,7 @@ class Graphics(pyglet.window.Window):
 		self.__polygon_map = polygon_map
 		self.__polygons = [] # By polygons we refer to the background obstacles only
 		self.__num_rays = conf_options.get_num_rays()
+		self.__frame_count = 0
 
 
 		self.__num_polygons = polygon_map.get_num_polygons()
@@ -189,4 +190,6 @@ class Graphics(pyglet.window.Window):
 		self.clear()
 		self.__dynamic_batch.draw()
 		self.__static_batch.draw()
-		# self.__fps_display.draw()
+		pyglet.image.get_buffer_manager().get_color_buffer().save('./frames/'+str(self.__frame_count)+'.png')
+		self.__frame_count += 1
+		self.__fps_display.draw()
