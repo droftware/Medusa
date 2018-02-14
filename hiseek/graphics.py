@@ -16,7 +16,7 @@ class Player(pyglet.sprite.Sprite):
 	def __init__(self, img, batch, background, foreground, polygon_map, pos_x, pos_y, pos_rot, num_rays):
 		super(Player, self).__init__(img, pos_x, pos_y, batch=batch, group=foreground)
 		Player.center_anchor(img)
-		self.scale = 0.5
+		self.scale = 0.6
 		self.rotation = pos_rot
 		self.dx = 0
 		self.dy = 0
@@ -27,7 +27,9 @@ class Player(pyglet.sprite.Sprite):
 
 		# Visibility polygon setup
 		self._num_rays = num_rays
-		self._visibility_color = 28, 40, 51  
+		# self._visibility_color = 28, 40, 51
+		self._visibility_color = 132, 132, 132  
+
 		self._visibility_polygon = None
 
 		self._num_vertices = self._num_rays + 1
@@ -127,7 +129,8 @@ class Graphics(pyglet.window.Window):
 	def __add_batch_polygon(self, polygon, is_filled):
 		assert(polygon.get_num_vertices() == 4 or polygon.get_num_vertices() == 3)
 		if is_filled:
-			polygon_color = 74, 35, 90 
+			# polygon_color = 74, 35, 90 
+			polygon_color = 20, 20, 20
 			color_list = []
 			for i in range(4):
 				# 149, 165, 166
@@ -187,6 +190,7 @@ class Graphics(pyglet.window.Window):
 		players[player_idx].set_visibility_polygon_raw(points_tuple)
 
 	def on_draw(self):
+		pyglet.gl.glClearColor(1,1,1,1)
 		self.clear()
 		self.__dynamic_batch.draw()
 		self.__static_batch.draw()

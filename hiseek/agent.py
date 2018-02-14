@@ -129,7 +129,8 @@ class RandomCommanderAgent(RandomAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager):
 		super(RandomCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager)
-		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
+		# self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
+		self.__skill = skill.LineOpeningSkill(agent_type, team, map_manager)
 
 	def get_opening_position(self, rank, idx):
 		return self.__skill.get_opening_position(rank, idx)
