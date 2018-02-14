@@ -192,23 +192,23 @@ def main():
 	# for i in range(num_hiders):
 	# 	ax3.plot(hider_paths_x[i][0], hider_paths_y[i][0], 'b*', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
 
-	for i in range(len(strategic_points)):
-		ax3.plot(sp_x[i], sp_y[i], 'b^', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
+	# for i in range(len(strategic_points)):
+	# 	ax3.plot(sp_x[i], sp_y[i], 'b^', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
 
 	for i in range(len(coverage_points)):
 		ax3.plot(cp_x[i], cp_y[i], 'b*', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
 
-	for i in range(len(coverage_contours)):
-		ax3.plot(real_coverage_contours_x[i], real_coverage_contours_y[i], 'y*-', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
+	# for i in range(len(coverage_contours)):
+	# 	ax3.plot(real_coverage_contours_x[i], real_coverage_contours_y[i], 'y*-', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
 		
 
-	for i in range(len(coverage_points)):
-		ax3.plot(cp_x[i], cp_y[i], 'b*')
+	# for i in range(len(coverage_points)):
+	# 	ax3.plot(cp_x[i], cp_y[i], 'b*')
 					
 		
 
 
-
+	fig3.set_size_inches(18.5, 10.5)
 	fig3.savefig('cc1.png', dpi=90, bbox_inches='tight')
 	# plt.show()
 	# plt.savefig("example.png",bbox_inches='tight')

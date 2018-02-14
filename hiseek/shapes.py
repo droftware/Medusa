@@ -239,7 +239,7 @@ class Square(Polygon):
 		else:
 			return False 
 
-	def check_aabb_collision(self, other):
+	def check_aabb_collision(self, other, offset=0):
 		if (self.__centre[0] < other.__centre[0] + other.__length) and (other.__centre[0] < self.__centre[0] + self.__length) and (self.__centre[1] < other.__centre[1] + other.__length) and (other.__centre[1] < self.__centre[1] + self.__length):
 			return True
 		else:

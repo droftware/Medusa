@@ -6,8 +6,8 @@ def main():
 	width = int(sys.argv[1])
 	height = int(sys.argv[2])
 	max_squares = int(sys.argv[3])
-	min_length = 50
-	max_length = 100
+	min_length = 30
+	max_length = 40
 	squares_list = []
 	sq = shapes.Square((30, 30), 60)
 	squares_list.append(sq)
@@ -21,7 +21,7 @@ def main():
 			sq = shapes.Square((cx, cy), length)
 			collision = False
 			for other in squares_list:
-				if sq.check_aabb_collision(other):
+				if sq.check_aabb_collision(other,70):
 					collision = True
 					break
 			if not collision:
@@ -32,7 +32,7 @@ def main():
 	# for sqs in squares_list:
 	# 	print(sqs)
 
-	f = open('id_3.polygons', 'w')
+	f = open('id_8.polygons', 'w')
 	f.write(str(width)+', '+str(height) + '\n')
 	for sqs in squares_list[1:]:
 		centre = sqs.get_centre()
