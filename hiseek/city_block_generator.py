@@ -9,7 +9,7 @@ def main():
 	num_cols = int(sys.argv[2])
 	gap = int(sys.argv[3])
 	map_width = 1500
-	map_height = 175
+	map_height = 315
 	# Block is rectangular not square
 	block_width = math.floor((map_width - (1+num_cols)*gap)/(num_cols*1.0))
 	# block_height = floor((map_height - (1+num_cols)*gap)/num_cols)

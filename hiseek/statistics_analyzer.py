@@ -102,7 +102,9 @@ def main():
 		length = int(token[2])
 		bottom = (centre[0] - length/2.0, centre[1] - length/2.0)
 		print('Bottom:', bottom, 'length:', length)
-		square = patches.Rectangle(bottom, length, length, color='#4a235a',fill=True) 
+		# square = patches.Rectangle(bottom, length, length, color='#4a235a',fill=True) 
+		square = patches.Rectangle(bottom, length, length, color='black',fill=True) 
+
 		obstacles.append(square)
 
 	
@@ -156,7 +158,7 @@ def main():
 
 
 
-	plt.style.use('dark_background')
+	# plt.style.use('dark_background')
 	# plt.axis('off')
 
 	fig3 = plt.figure()
@@ -187,16 +189,18 @@ def main():
 	# 			ms=circle_rad * 2, mec='g', mfc='none', mew=2)
 
 	# for i in range(num_seekers):
-	# 	ax3.plot(seeker_paths_x[i][0], seeker_paths_y[i][0], 'b^', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
+		# ax3.plot(seeker_paths_x[i][0], seeker_paths_y[i][0], 'b^', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
 
 	# for i in range(num_hiders):
 	# 	ax3.plot(hider_paths_x[i][0], hider_paths_y[i][0], 'b*', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
 
 	# for i in range(len(strategic_points)):
-	# 	ax3.plot(sp_x[i], sp_y[i], 'b^', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
+	# 	ax3.plot(sp_x[i], sp_y[i], 'b^', ms=circle_rad * 2, mec='red', mfc='red', mew=2)
+	# 	# ax3.plot(sp_x[i], sp_y[i], 'b^', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
 
 	for i in range(len(coverage_points)):
-		ax3.plot(cp_x[i], cp_y[i], 'b*', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
+		ax3.plot(cp_x[i], cp_y[i], 'b*', ms=circle_rad * 2, mec='red', mfc='red', mew=2)
+		# ax3.plot(cp_x[i], cp_y[i], 'b*', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
 
 	# for i in range(len(coverage_contours)):
 	# 	ax3.plot(real_coverage_contours_x[i], real_coverage_contours_y[i], 'y*-', ms=circle_rad * 2, mec='orange', mfc='orange', mew=2)
