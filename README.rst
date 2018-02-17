@@ -1,4 +1,4 @@
-Hiseek
+Medusa
 ========================
 
 Developing strategies for a massive hide and seek game
