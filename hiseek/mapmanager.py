@@ -574,12 +574,12 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 	def __print_visibility_graph(self):
 		#Printing strategic points
 		for i in range(self._num_strategic_points):
-			# print('Strategic Point:',i, str(self._strategic_points[i]))
+			print('Strategic Point:',i, str(self._strategic_points[i]))
 			print('St pt:', i,'points adjacent to it:', list(self.__visibility_graph.neighbors(i)))
-		# print('Number of nodes:', self.__visibility_graph.number_of_nodes())
-		# print('Nodes:', list(self.__visibility_graph.nodes()))
-		# print('Number of edges:', self.__visibility_graph.number_of_edges())
-		# print('Edges:', list(self.__visibility_graph.edges()))
+		print('Number of nodes:', self.__visibility_graph.number_of_nodes())
+		print('Nodes:', list(self.__visibility_graph.nodes()))
+		print('Number of edges:', self.__visibility_graph.number_of_edges())
+		print('Edges:', list(self.__visibility_graph.edges()))
 
 	def __get_cliques_coverage_points(self, clique):
 		'''
@@ -797,17 +797,17 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			contour = self._coverage_contours[i]
 			for coverage_point in contour:
 				self.__coverage_point2contour[coverage_point] = i
-		for i in range(num_coverage_points):
-			print('Coverage point:', i, 'is associated with contour:', self.__coverage_point2contour[i])
+		# for i in range(num_coverage_points):
+		# 	print('Coverage point:', i, 'is associated with contour:', self.__coverage_point2contour[i])
 
 	def __save_visibility_graph_plot(self):
 		plt.clf()
 		nx.draw(self.__visibility_graph)
-		plt.savefig('visibility_graph.png')
+		plt.savefig(self._map_name + '_visibility_graph.png')
 		print('Visibility Graph saved')
 
 	def __save_coverage_graph_plot(self):
 		plt.clf()
 		nx.draw(self.__coverage_graph)
-		plt.savefig('coverage_graph.png')
+		plt.savefig(self._map_name +'_coverage_graph.png')
 		print('Coverage Graph saved')

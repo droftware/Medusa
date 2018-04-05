@@ -445,7 +445,7 @@ class UCBCoverageCommunicationTeam(Team):
 			self._members[0].append(member)
 			self._active[0].append(True)
 
-		print('Members:', self._members)
+		# print('Members:', self._members)
 
 		# Get the opening positions from the commader member and set each agents
 		# position accordingly

@@ -26,6 +26,8 @@ def main():
 	parser.add_argument("-va", "--visibility_angle", type=int, default = 45, help="Visibility angle")
 	parser.add_argument("-hi", "--hider_image", default="dark_hider.png", help="Hider's image used during visualisations.")
 	parser.add_argument("-si", "--seeker_image", default="dark_seeker.png", help="Seeker's image used during visualisations.")
+	
+	parser.add_argument("-sf", "--save_frame", action="store_true", help="This mode saves the rendered frames.")
 
 	args = parser.parse_args()
 
@@ -48,7 +50,7 @@ def main():
 		print('No mode selected, using vis_sim mode as default.')
 		args.vis_sim = True
 
-	conf_options = config.Configuration(int(args.fps), int(args.velocity), args.time_quanta, int(args.num_rays), int(args.visibility_angle), int(args.verbose), args.hider_image, args.seeker_image)
+	conf_options = config.Configuration(int(args.fps), int(args.velocity), args.time_quanta, int(args.num_rays), int(args.visibility_angle), int(args.verbose), args.save_frame, args.hider_image, args.seeker_image)
 	exp = experiment.Experiment(args.visualisation, args.simulation, args.vis_sim, args.replay, args.num_runs, args.mode_hiders, args.mode_seekers, args.num_hiders, args.num_seekers, args.map_id, args.input_file, args.output_file, conf_options)
 	exp.run()
 	
