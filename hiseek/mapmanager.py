@@ -4,6 +4,7 @@ import pickle
 
 import numpy as np
 import rtree
+import matplotlib.pyplot as plt
 import networkx as nx
 
 import gamemap
@@ -452,6 +453,8 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			self.__associate_strategic_points2cliques()
 			self.__create_coverage_graph()
 			# self.__print_coverage_graph()
+			self.__save_visibility_graph_plot()
+			self.__save_coverage_graph_plot()
 			self.__get_coverage_contours()
 
 			self.__store_coverage_points()
@@ -796,3 +799,15 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				self.__coverage_point2contour[coverage_point] = i
 		for i in range(num_coverage_points):
 			print('Coverage point:', i, 'is associated with contour:', self.__coverage_point2contour[i])
+
+	def __save_visibility_graph_plot(self):
+		plt.clf()
+		nx.draw(self.__visibility_graph)
+		plt.savefig('visibility_graph.png')
+		print('Visibility Graph saved')
+
+	def __save_coverage_graph_plot(self):
+		plt.clf()
+		nx.draw(self.__coverage_graph)
+		plt.savefig('coverage_graph.png')
+		print('Coverage Graph saved')
