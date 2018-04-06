@@ -611,9 +611,10 @@ class UCBPassiveAgent(Agent):
 			print('Possible strategic points:', possible_strategic_points)
 			self.__current_st_point = self.__macro_UCB.get_greatest_actions(1, possible_strategic_points)[0]
 		else:
-			print('Possible strategic points:', possible_strategic_points)
+			# print('Possible strategic points:', possible_strategic_points)
+			print('All strategic points are possible')
 			self.__current_st_point = self.__macro_UCB.select_action()
-		# print('New strategic point:', self.__current_st_point)
+		print('New strategic point:', self.__current_st_point)
 
 		self.__select_path(self.__current_st_point)
 		self.__next_state = self.__planner.get_paths_next_coord()
@@ -623,7 +624,7 @@ class UCBPassiveAgent(Agent):
 			# print('* long transits path is valid')
 			self.__in_transit = True
 		else:
-			# print('* long transits path is NOT valid')
+			print('* long transits path is NOT valid')
 			self.__in_transit = False
 		# print('H Current state', str(self._position),'Next state:', str(self.__next_state))
 

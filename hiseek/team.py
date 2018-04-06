@@ -304,9 +304,9 @@ class UCBPassiveTeam(Team):
 		self.__handicap_visibility = handicap_visibility
 
 		if self.__handicap_movement:
-			print('Hider is Handicapped')
+			print('Hider is movement Handicapped')
 		else:
-			print('Hider is NOT Handicapped')
+			print('Hider is NOT movement Handicapped')
 
 		self.__num_rays = num_rays
 		self.__visibility_angle = visibility_angle
@@ -332,11 +332,11 @@ class UCBPassiveTeam(Team):
 				if visible_cells == 0:
 					visible_cells = 1
 				avg_val = max_cells_visible * 1.0/ visible_cells
-			print('Setting avg value:', avg_val)
+			# print('Setting avg value:', avg_val)
 			macro_UCB.set_initial_average(i, avg_val)
 
 		macro_UCB.set_initial_bounds()
-		# print('Hider macro UCB:', str(macro_UCB))
+		print('Hider macro UCB:', str(macro_UCB))
 
 		# recruit the commander of the random team
 		agent_id = 'RH' + str(0)
