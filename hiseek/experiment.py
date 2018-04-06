@@ -30,6 +30,9 @@ class Experiment(object):
 		self._total_step_times = []
 
 	def run(self):
+		self.__exp_log_name = str(self.__mode_hiders) + '_' + str(self.__mode_seekers) + '_' + str(self.__num_hiders) + '_' + str(self.__num_seekers) + '_' + str(self.__map_id)+ '.exp'
+		self.__exp_log_file = open('./experiments/'+self.__exp_log_name, 'w')
+		self.__exp_log_file.close()
 		if self.__replay:
 			if os.path.isfile(self.__input_file):	
 				rep = replay.Replay(self.__input_file, self.__conf_options)
@@ -51,6 +54,9 @@ class Experiment(object):
 				print('*** New game ***',i)
 				sim = simulator.Simulator(self.__mode_hiders, self.__mode_seekers, self.__num_hiders, self.__num_seekers, self.__map_id, self.__input_file, self.__output_file, self.__conf_options, log_flag, vis_flag, self._total_step_times, i)
 				sim.simulate()
+				self.__exp_log_file = open('./experiments/'+self.__exp_log_name, 'a+')
+				self.__exp_log_file.write(str(self._total_step_times[-1])+'\n')
+				self.__exp_log_file.close()
 
 			print('Step times:', self._total_step_times)
 			sum_steps = 0
