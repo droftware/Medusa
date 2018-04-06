@@ -78,6 +78,9 @@ class BasicPlanner(object):
         self.__solve_path(start_state, goal_state)
 
     def plan(self, start_coord, goal_coord):
+        '''
+            Returns True if path is found, False otherwise
+        '''
         start_state = ob.State(self._setup.getStateSpace())
         start_state()[0] = start_coord.get_x()
         start_state()[1] = start_coord.get_y()
@@ -87,7 +90,7 @@ class BasicPlanner(object):
         goal_state()[1] = goal_coord.get_y()
 
 
-        self.__solve_path(start_state, goal_state)
+        return self.__solve_path(start_state, goal_state)
         
 
     def __solve_path(self, start_state, goal_state):
@@ -98,7 +101,7 @@ class BasicPlanner(object):
                 self._setup.getPlanner().clear()
             self._setup.solve()
 
-        assert(self._setup.haveSolutionPath())
+        # assert(self._setup.haveSolutionPath())
         if self._setup.haveSolutionPath():
             # try to shorten the path
             self._setup.simplifySolution()
@@ -106,6 +109,9 @@ class BasicPlanner(object):
             self._path = self._setup.getSolutionPath()
             self._num_states = self._path.getStateCount()
             self.__next_idx = 1
+            return True
+        else:
+            return False
 
             # p = self._setup.getSolutionPath()
             # ps = og.PathSimplifier(self._setup.getSpaceInformation())

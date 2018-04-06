@@ -562,7 +562,7 @@ class UCBPassiveAgent(Agent):
 	def __select_path(self, strategic_point):
 		start_coord = self._position
 		goal_coord = self._map_manager.get_strategic_point(strategic_point)
-		self.__planner.plan(start_coord, goal_coord)
+		return self.__planner.plan(start_coord, goal_coord)
 
 	def __select_closest_action(self, direction_vec):
 		max_cos_prod = -1 * float('inf')
@@ -600,6 +600,7 @@ class UCBPassiveAgent(Agent):
 		# print('H Initiating transit')
 		self.__waiting_steps = self.__MAX_WAITING_STEPS
 		possible_strategic_points = None
+		optimal_strategic_points = None
 		if not self.__handicap_movement:
 			print('Deciding strategic points')
 			possible_strategic_points = self._map_manager.get_closest_strategic_point(self._position, self.__ST_CONSIDERATION + 1)
@@ -609,14 +610,22 @@ class UCBPassiveAgent(Agent):
 			# print('Strategic points after elimination', possible_strategic_points)
 			# print('Current strategic point:', self.__current_st_point)
 			print('Possible strategic points:', possible_strategic_points)
-			self.__current_st_point = self.__macro_UCB.get_greatest_actions(1, possible_strategic_points)[0]
+			# self.__current_st_point = self.__macro_UCB.get_greatest_actions(1, possible_strategic_points)[0]
+			optimal_strategic_points = self.__macro_UCB.get_greatest_actions(len(possible_strategic_points), possible_strategic_points)
 		else:
 			# print('Possible strategic points:', possible_strategic_points)
 			print('All strategic points are possible')
-			self.__current_st_point = self.__macro_UCB.select_action()
-		print('New strategic point:', self.__current_st_point)
+			# self.__current_st_point = self.__macro_UCB.select_action()
+			optimal_strategic_points = self.__macro_UCB.get_greatest_actions(self._map_manager.get_num_strategic_points())
+		# print('New strategic point:', self.__current_st_point)
 
-		self.__select_path(self.__current_st_point)
+		spt_counter = 0
+		self.__current_st_point = optimal_strategic_points[spt_counter]
+		
+		while self.__select_path(self.__current_st_point) == False:
+			spt_counter += 1
+			self.__current_st_point = optimal_strategic_points[spt_counter]
+					
 		self.__next_state = self.__planner.get_paths_next_coord()
 		# print('* Starting Long transit from:', str(self._position))
 		# print('* Next state:', str(self.__next_state))
