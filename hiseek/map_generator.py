@@ -3,11 +3,12 @@ import sys
 import random
 
 def main():
-	width = int(sys.argv[1])
+	width = int(sys.argv[1]) 
 	height = int(sys.argv[2])
 	max_squares = int(sys.argv[3])
-	min_length = 30
-	max_length = 40
+	boundary_offset = 10
+	min_length = 40
+	max_length = 70
 	squares_list = []
 	sq = shapes.Square((30, 30), 60)
 	squares_list.append(sq)
@@ -15,13 +16,13 @@ def main():
 	while num_squares < max_squares:
 		sq_valid = False
 		while not sq_valid:
-			cx = random.randint(0, width - 1)
-			cy = random.randint(0, height - 1)
+			cx = random.randint(max_length+boundary_offset, width - max_length- boundary_offset)
+			cy = random.randint(max_length+boundary_offset, height - max_length- boundary_offset)
 			length = random.randint(min_length, max_length)
 			sq = shapes.Square((cx, cy), length)
 			collision = False
 			for other in squares_list:
-				if sq.check_aabb_collision(other,70):
+				if sq.check_aabb_collision(other,20):
 					collision = True
 					break
 			if not collision:
@@ -32,7 +33,7 @@ def main():
 	# for sqs in squares_list:
 	# 	print(sqs)
 
-	f = open('id_8.polygons', 'w')
+	f = open('id_9.polygons', 'w')
 	f.write(str(width)+', '+str(height) + '\n')
 	for sqs in squares_list[1:]:
 		centre = sqs.get_centre()
