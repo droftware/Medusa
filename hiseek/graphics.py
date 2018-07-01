@@ -85,11 +85,14 @@ class Player(pyglet.sprite.Sprite):
 
 	def set_visibility_polygon_raw(self, points_tuple):
 		self.__visibility_vertices.vertices = points_tuple
+
+	def get_visibility_vertices(self):
+		return self.__visibility_vertices
 		
 
 class Graphics(pyglet.window.Window):
 
-	def __init__(self, window_width, window_height, num_hiders, num_seekers, polygon_map, conf_options):
+	def __init__(self, window_width, window_height, num_hiders, num_seekers, polygon_map, conf_options, dynamic_batching_flag=True):
 		super(Graphics, self).__init__(window_width, window_height, caption='Hiseek: Hide and Seek simulation')
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
@@ -109,6 +112,7 @@ class Graphics(pyglet.window.Window):
 		self.__save_frame = conf_options.get_save_frame()
 		self.__frame_count = 0
 		self.__key = 'NONE'
+		self.__dynamic_batching_flag = dynamic_batching_flag
 
 
 		self.__num_polygons = polygon_map.get_num_polygons()
@@ -194,7 +198,18 @@ class Graphics(pyglet.window.Window):
 	def on_draw(self):
 		# pyglet.gl.glClearColor(1,1,1,1)
 		self.clear()
-		self.__dynamic_batch.draw()
+		if self.__dynamic_batching_flag:
+			self.__dynamic_batch.draw()
+		else:
+			for i in range(self.__num_hiders):
+				if self.__hiders[i]:
+					self.__hiders[i].draw()
+					self.__hiders[i].get_visibility_vertices().draw(pyglet.gl.GL_TRIANGLES)
+			for i in range(self.__num_seekers):
+				if self.__seekers[i]:
+					self.__seekers[i].draw()
+					self.__seekers[i].get_visibility_vertices().draw(pyglet.gl.GL_TRIANGLES)
+
 		self.__static_batch.draw()
 		if self.__save_frame:
 			pyglet.image.get_buffer_manager().get_color_buffer().save('./frames/'+str(self.__frame_count)+'.png')
