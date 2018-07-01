@@ -92,7 +92,11 @@ class Player(pyglet.sprite.Sprite):
 
 class Graphics(pyglet.window.Window):
 
-	def __init__(self, window_width, window_height, num_hiders, num_seekers, polygon_map, conf_options, dynamic_batching_flag=False):
+	def __init__(self, window_width, window_height, num_hiders, num_seekers, polygon_map, conf_options, dynamic_batching_flag=True, show_hiders_flag=True, show_seekers_flag=True):
+		# Dynamic batching cannot be used alongside with hidden players
+		# It can only be used when all the players are shown on the screen
+		assert((show_seekers_flag and show_hiders_flag) or (not dynamic_batching_flag))
+		print('Hi')
 		super(Graphics, self).__init__(window_width, window_height, caption='Hiseek: Hide and Seek simulation')
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
@@ -113,6 +117,9 @@ class Graphics(pyglet.window.Window):
 		self.__frame_count = 0
 		self.__key = 'NONE'
 		self.__dynamic_batching_flag = dynamic_batching_flag
+		self.__show_hiders_flag = show_hiders_flag
+		self.__show_seekers_flag = show_seekers_flag
+
 
 
 		self.__num_polygons = polygon_map.get_num_polygons()
@@ -130,8 +137,20 @@ class Graphics(pyglet.window.Window):
 		self.__hider_active = [True for i in range(num_hiders)]
 		self.__seeker_active = [True for i in range(num_seekers)]
 
-		self.__show_hiders = [True for i in range(num_hiders)]
-		self.__show_seekers = [True for i in range(num_seekers)]
+		self.__show_hiders = None
+		self.__show_seekers = None
+
+		if self.__show_hiders_flag:
+			self.__show_hiders = [True for i in range(num_hiders)]
+		else:
+			self.__show_hiders = [False for i in range(num_hiders)]
+
+		if self.__show_seekers_flag:
+			self.__show_seekers = [True for i in range(num_seekers)]
+		else:
+			self.__show_seekers = [False for i in range(num_seekers)]
+
+
 
 		self.push_handlers(self.__seekers[0])
 
