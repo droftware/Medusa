@@ -80,19 +80,19 @@ class Player(pyglet.sprite.Sprite):
 		self.x = x
 		self.y = y
 
-	def set_rotation_raw(self, rotation):
-		self.rotation = rotation
-
 	def set_visibility_polygon_raw(self, points_tuple):
 		self.__visibility_vertices.vertices = points_tuple
 
-	def get_visibility_vertices(self):
-		return self.__visibility_vertices
-		
+	def set_rotation_raw(self, rotation):
+		self.rotation = rotation
+
+	def individual_draw(self):
+		self.draw()
+		self.__visibility_vertices.draw(pyglet.gl.GL_TRIANGLES)
 
 class Graphics(pyglet.window.Window):
 
-	def __init__(self, window_width, window_height, num_hiders, num_seekers, polygon_map, conf_options, dynamic_batching_flag=True):
+	def __init__(self, window_width, window_height, num_hiders, num_seekers, polygon_map, conf_options, dynamic_batching_flag=False):
 		super(Graphics, self).__init__(window_width, window_height, caption='Hiseek: Hide and Seek simulation')
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
@@ -129,6 +129,9 @@ class Graphics(pyglet.window.Window):
 		
 		self.__hider_active = [True for i in range(num_hiders)]
 		self.__seeker_active = [True for i in range(num_seekers)]
+
+		self.__show_hiders = [True for i in range(num_hiders)]
+		self.__show_seekers = [True for i in range(num_seekers)]
 
 		self.push_handlers(self.__seekers[0])
 
@@ -174,9 +177,25 @@ class Graphics(pyglet.window.Window):
 			player_active = self.__seeker_active
 		return player_active
 
+	def __type2player_show(self, player_type):
+		if player_type == agent.AgentType.Hider:
+			player_show = self.__show_hiders
+		elif player_type == agent.AgentType.Seeker:
+			player_show = self.__show_seekers
+		return player_show
+
+	def __total_players(self, player_type):
+		if player_type == agent.AgentType.Hider:
+			num_players = self.__num_hiders
+		elif player_type == agent.AgentType.Seeker:
+			num_players = self.__num_seekers
+		return num_players
+
 	def set_player_inactive(self, player_type, player_idx):
 		players = self.__type2player(player_type)
 		player_active = self.__type2player_active(player_type)
+		show_players = self.__type2player_show(player_type)
+		show_players[player_idx] = False
 		player_active[player_idx] = False
 		players[player_idx].remove()
 		players[player_idx] = None
@@ -195,21 +214,23 @@ class Graphics(pyglet.window.Window):
 		players = self.__type2player(player_type)
 		players[player_idx].set_visibility_polygon_raw(points_tuple)
 
+	def __draw_individual_players(self, player_type):
+		num_players = self.__total_players(player_type)
+		players = self.__type2player(player_type)
+		show_players = self.__type2player_show(player_type)
+		for i in range(num_players):
+				if players[i]:
+					if show_players[i]:
+						players[i].individual_draw()
+						
 	def on_draw(self):
 		# pyglet.gl.glClearColor(1,1,1,1)
 		self.clear()
 		if self.__dynamic_batching_flag:
 			self.__dynamic_batch.draw()
 		else:
-			for i in range(self.__num_hiders):
-				if self.__hiders[i]:
-					self.__hiders[i].draw()
-					self.__hiders[i].get_visibility_vertices().draw(pyglet.gl.GL_TRIANGLES)
-			for i in range(self.__num_seekers):
-				if self.__seekers[i]:
-					self.__seekers[i].draw()
-					self.__seekers[i].get_visibility_vertices().draw(pyglet.gl.GL_TRIANGLES)
-
+			self.__draw_individual_players(agent.AgentType.Hider)
+			self.__draw_individual_players(agent.AgentType.Seeker)
 		self.__static_batch.draw()
 		if self.__save_frame:
 			pyglet.image.get_buffer_manager().get_color_buffer().save('./frames/'+str(self.__frame_count)+'.png')
@@ -231,3 +252,7 @@ class Graphics(pyglet.window.Window):
 
 	def get_key(self):
 		return self.__key
+
+	def set_show_player(self, player_type, player_idx, flag):
+		players = self.__type2player_show(player_type)
+		players[player_idx] = flag
