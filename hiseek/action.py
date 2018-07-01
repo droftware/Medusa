@@ -28,6 +28,7 @@ class Action:
 
 	action2string = {}
 	string2action = {}
+	key2action = {}
 
 	string2action["N"] = N
 	string2action["NNE"] = NNE
@@ -64,6 +65,14 @@ class Action:
 	action2string[NW] = "NW"
 	action2string[NNW] = "NNW"
 	action2string[ST] = "ST"
+
+	key2action["NONE"] = ST
+	key2action["UP"] = N
+	key2action["DOWN"] = S
+	key2action["RIGHT"] = E
+	key2action["LEFT"] = W
+
+
 
 
 

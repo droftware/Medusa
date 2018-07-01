@@ -119,12 +119,17 @@ class Simulator(object):
 		Responsible for one complete simulation
 	"""
 
-	mode_type_hiders = ['random', 'bayesian', 'sbandit', 'hm_sbandit', 'hv_sbandit', 'hmv_sbandit']
-	mode_type_seekers = ['random', 'sbandit', 'coverage', 'cc']
+	mode_type_hiders = ['random', 'bayesian', 'sbandit', 'hm_sbandit', 'hv_sbandit', 'hmv_sbandit', 'human']
+	mode_type_seekers = ['random', 'sbandit', 'coverage', 'cc', 'human']
 
 	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, total_step_times, sim_turn, max_steps=1000, window_width=640, window_height=360):
 		assert(mode_hiders in Simulator.mode_type_hiders)
 		assert(mode_seekers in Simulator.mode_type_seekers)
+		# A human can either play as a hider or a seeker but not both (simultaneously)
+		assert(not (mode_hiders == 'human' and mode_seekers == 'human'))
+		# Human mode can only be played in graphics mode
+		assert(vis_flag or (mode_hiders != 'human' and mode_seekers != 'human'))
+
 		self.__mode_hiders = mode_hiders
 		self.__mode_seekers = mode_seekers
 		self.__num_hiders = num_hiders
@@ -178,7 +183,8 @@ class Simulator(object):
 			self.__hider_team = team.UCBPassiveTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle, False, True)
 		elif mode_hiders == 'hmv_sbandit':
 			self.__hider_team = team.UCBPassiveTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle, True, True)
-		
+		elif mode_hiders == 'human':
+			self.__hider_team = team.HumanRandomTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
 
 		if mode_seekers == 'random':
 			self.__seeker_team = team.RandomTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
@@ -188,8 +194,8 @@ class Simulator(object):
 			self.__seeker_team = team.UCBCoverageTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
 		elif mode_seekers == 'cc':
 			self.__seeker_team = team.UCBCoverageCommunicationTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
-
-
+		elif mode_seekers == 'human':
+			self.__seeker_team = team.HumanRandomTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
 
 		# Graphics setup
 		self.__window_width = self.__polygon_map.get_map_width()
@@ -550,6 +556,12 @@ class Simulator(object):
 
 		# check if any hider is caught by a seeker and inform the AI layer
 		self.__check_hider_caught()
+
+		# If a human player is involved, pass the key pressed to AI layer
+		if self.__mode_hiders == 'human':
+			self.__hider_team.set_key(self.__window.get_key())
+		if self.__mode_seekers == 'human':
+			self.__seeker_team.set_key(self.__window.get_key())	
 
 		# update the states in ai layer so that they select actions
 		self.__hider_team.select_actions()

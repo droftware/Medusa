@@ -135,6 +135,43 @@ class RandomCommanderAgent(RandomAgent):
 	def get_opening_position(self, rank, idx):
 		return self.__skill.get_opening_position(rank, idx)
 
+class HumanRandomAgent(Agent):
+
+	def __init__(self, agent_type, agent_id, team, map_manager, is_human=False):
+		super(HumanRandomAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		self._is_human = is_human
+		self._is_key = 'NONE'
+
+	def generate_messages(self):
+		pass
+
+	def analyze_messages(self):
+		pass
+
+	def set_is_human_param(self, is_human):
+		self._is_human = is_human
+
+	def set_key(self, key):
+		self._is_key = key
+
+	def select_action(self):
+		if self._is_human:
+			self._action = action.Action.key2action[self._is_key]
+		else:
+			self._action = random.choice(action.Action.all_actions)
+
+	def clear_temporary_state(self):
+		pass
+
+class HumanRandomCommanderAgent(HumanRandomAgent):
+
+	def __init__(self, agent_type, agent_id, team, map_manager, is_human=False):
+		super(HumanRandomCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager, is_human)
+		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
+		# self.__skill = skill.LineOpeningSkill(agent_type, team, map_manager)
+
+	def get_opening_position(self, rank, idx):
+		return self.__skill.get_opening_position(rank, idx)
 
 class BayesianAgent(Agent):
 

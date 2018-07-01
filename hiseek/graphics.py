@@ -108,6 +108,7 @@ class Graphics(pyglet.window.Window):
 		self.__num_rays = conf_options.get_num_rays()
 		self.__save_frame = conf_options.get_save_frame()
 		self.__frame_count = 0
+		self.__key = 'NONE'
 
 
 		self.__num_polygons = polygon_map.get_num_polygons()
@@ -200,3 +201,18 @@ class Graphics(pyglet.window.Window):
 			self.__frame_count += 1
 		self.__fps_display.draw()
 
+	def on_key_press(self, symbol, modifiers):
+		if symbol == key.LEFT:
+			self.__key = 'LEFT'
+		elif symbol == key.RIGHT:
+			self.__key = 'RIGHT'
+		elif symbol == key.UP:
+			self.__key = 'UP'
+		elif symbol == key.DOWN:
+			self.__key = 'DOWN'
+
+	def on_key_release(self, symbol, modifiers):
+		self.__key = 'NONE'
+
+	def get_key(self):
+		return self.__key

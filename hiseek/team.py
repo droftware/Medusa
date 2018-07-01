@@ -165,7 +165,7 @@ class Team(object):
 		# self.__enable_message_analysis()
 		self.__enable_action_selection()
 		self.__enable_temporal_state_clearance()
-		
+
 
 class RandomTeam(Team):
 
@@ -461,3 +461,48 @@ class UCBCoverageCommunicationTeam(Team):
 				coverage_point = commander_member.get_opening_coverage_point(agent_id)
 				self._members[i][j].set_initial_coverage_point(coverage_point)
 				agent_id += 1
+
+
+class HumanRandomTeam(Team):
+
+	ranks = 2
+
+	def __init__(self, agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta):
+		super(HumanRandomTeam, self).__init__(agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta)
+
+		# prepare a rank 1 hierarchy member list and map managers
+		self._map_managers = [] # one map manager for one level
+		self._members = [[], []]
+		self._active = [[], []]
+		self._human_id = (1, 0)
+
+		# assign a basic map manager to the only level
+		map_manager = mapmanager.BasicMapManager(self._mapworld, self._fps, self._velocity)
+		self._map_managers.append(map_manager)
+
+		# recruit the commander of the random team
+		agent_id = 'RH' + str(0)
+		commander_member = agent.HumanRandomCommanderAgent(agent_type, agent_id, self, self._map_managers[0], True)
+		self._members[1].append(commander_member)
+		self._active[1].append(True)
+
+		# recruit agents for the team
+		for i in range(self._num_agents - 1):
+			agent_id = 'RH' + str(i)
+			member = agent.HumanRandomAgent(agent_type, agent_id, self, self._map_managers[0], False)
+			self._members[0].append(member)
+			self._active[0].append(True)
+
+		# Get the opening positions from the commader member and set each agents
+		# position accordingly
+		for i in reversed(range(self.ranks)):
+			for j in range(self.get_num_rankers(i)):
+				position = commander_member.get_opening_position(i, j)
+				self._members[i][j].set_position(position)
+
+	def set_key(self, key):
+			self._members[self._human_id[0]][self._human_id[1]].set_key(key)
+			# print('Key Set:', self._key)
+
+	def toggle_human_player(self, key):
+		pass
