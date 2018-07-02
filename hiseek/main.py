@@ -62,6 +62,10 @@ def main():
 		print('Visualization needs to be enabled in human mode.')
 		safe_flag = False
 
+	if args.mode_hiders != 'human' and args.mode_seekers != 'human' and args.show_fellows:
+		print('! WARNING: You have not selected human mode but selected show-fellows option.')
+		print('! WARNING: Show fellows only effects hider or seeker visualization in human mode.')
+
 
 	if safe_flag:
 		if mode_count == 0:
