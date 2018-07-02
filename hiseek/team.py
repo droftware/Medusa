@@ -504,5 +504,8 @@ class HumanRandomTeam(Team):
 			self._members[self._human_id[0]][self._human_id[1]].set_key(key)
 			# print('Key Set:', self._key)
 
+	def get_human_agent_id(self):
+		return self._human_id
+
 	def toggle_human_player(self, key):
 		pass

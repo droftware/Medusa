@@ -198,8 +198,17 @@ class Simulator(object):
 		# Graphics setup
 		self.__window_width = self.__polygon_map.get_map_width()
 		self.__window_height = self.__polygon_map.get_map_height()
+		dynamic_batching_flag = True
+		show_hiders_flag = True
+		show_seekers_flag = True
+		if mode_hiders == 'human':
+			dynamic_batching_flag = False
+			show_seekers_flag = False
+		if mode_seekers == 'human':
+			dynamic_batching_flag = False
+			show_hiders_flag = False
 		if self.__vis_flag:
-			self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__polygon_map, self.__conf_options)
+			self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__polygon_map, self.__conf_options, dynamic_batching_flag, show_hiders_flag, show_seekers_flag)
 		else:
 			self.__window = None
 
@@ -536,6 +545,59 @@ class Simulator(object):
 			if self.__seekers_active[i]:
 				self.__update_mover_graphics_visibility(agent.AgentType.Seeker, i)
 
+	def __enable_seeker_show(self):
+		self.__window.set_show_players(agent.AgentType.Hider, False)
+		self.__window.set_show_players(agent.AgentType.Seeker, False)
+
+		seeker_ids_list = None
+		if self.__show_fellows:
+			seeker_ids_list = range(self.__num_seekers)
+			self.__window.set_show_players(agent.AgentType.Seeker, True)
+		else:
+			human_agent_id = self.__seeker_team.get_human_agent_id()
+			human_player_id = self.__seekers_agent2player[human_agent_id]
+			seeker_ids_list = [human_player_id]
+			self.__window.set_show_player(agent.AgentType.Seeker, human_player_id, True)
+
+		for seeker_id in seeker_ids_list:
+			if self.__seekers_active[seeker_id]:
+				seeker = self.__seekers[seeker_id]
+				current_percept = seeker.get_percept()
+				visible_hider_ids = current_percept.get_hider_idxs()
+				visible_seeker_ids = current_percept.get_seeker_idxs()
+				for i in visible_hider_ids:
+					self.__window.set_show_player(agent.AgentType.Hider, i, True)				
+
+				for i in visible_seeker_ids:
+					self.__window.set_show_player(agent.AgentType.Seeker, i, True)
+
+	def __enable_hider_show(self):
+		self.__window.set_show_players(agent.AgentType.Hider, False)
+		self.__window.set_show_players(agent.AgentType.Seeker, False)
+
+		hider_ids_list = None
+		if self.__show_fellows:
+			hider_ids_list = range(self.__num_hiders)
+			self.__window.set_show_players(agent.AgentType.Hider, True)
+		else:
+			human_agent_id = self.__hider_team.get_human_agent_id()
+			human_player_id = self.__hiders_agent2player[human_agent_id]
+			hider_ids_list = [human_player_id]
+			self.__window.set_show_player(agent.AgentType.Hider, human_player_id, True)
+
+		for hider_id in hider_ids_list:
+			if self.__hiders_active[hider_id]:
+				hider = self.__hiders[hider_id]
+				current_percept = hider.get_percept()
+				visible_hider_ids = current_percept.get_hider_idxs()
+				visible_seeker_ids = current_percept.get_seeker_idxs()
+				for i in visible_hider_ids:
+					self.__window.set_show_player(agent.AgentType.Hider, i, True)				
+
+				for i in visible_seeker_ids:
+					self.__window.set_show_player(agent.AgentType.Seeker, i, True)
+
+
 
 	def __update_simulation(self, dt):
 		# update the time
@@ -543,7 +605,6 @@ class Simulator(object):
 		self.__total_time += dt
 		self.__steps += 1
 		
-
 		# extract percept from simulation layer and send to AI layer
 		self.__transfer_hider_percepts()
 		self.__transfer_seeker_percepts()
@@ -574,6 +635,11 @@ class Simulator(object):
 
 		# Update the percepts obtained after incorporating the new position
 		self.__update_percepts()
+
+		if self.__mode_seekers == 'human':
+			self.__enable_seeker_show()
+		if self.__mode_hiders == 'human':
+			self.__enable_hider_show()
 
 		# If visibility flag is enabled, update the graphics
 		if self.__vis_flag:

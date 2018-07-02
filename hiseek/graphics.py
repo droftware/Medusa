@@ -272,6 +272,12 @@ class Graphics(pyglet.window.Window):
 	def get_key(self):
 		return self.__key
 
+	def set_show_players(self, player_type, flag):
+		players = self.__type2player_show(player_type)
+		num_players = self.__total_players(player_type)
+		for i in range(num_players):
+			players[i] = flag
+
 	def set_show_player(self, player_type, player_idx, flag):
 		players = self.__type2player_show(player_type)
 		players[player_idx] = flag
