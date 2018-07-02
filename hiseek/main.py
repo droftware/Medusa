@@ -1,6 +1,10 @@
+import sys
+
 import argparse
+
 import experiment
 import config
+
 
 def main():				
 	parser = argparse.ArgumentParser(description="Medusa: Simulation of a massive hide and seek game")
@@ -28,6 +32,7 @@ def main():
 	parser.add_argument("-si", "--seeker_image", default="seeker.png", help="Seeker's image used during visualisations.")
 	
 	parser.add_argument("-sf", "--save_frame", action="store_true", help="This mode saves the rendered frames.")
+	parser.add_argument("-fel", "--show_fellows", action="store_true", help="(Use only when 'human' strategy is selected) Shows other team mates")
 
 	args = parser.parse_args()
 
@@ -42,18 +47,30 @@ def main():
 	if args.replay:
 		mode_count += 1
 
+	safe_flag = True
+
 	if mode_count > 1:
 		print('More than one mode selected.')
 		print('Select only one out of visualisation, simulation, vis_sim, replay')
+		safe_flag = False
 
-	if mode_count == 0:
-		print('No mode selected, using vis_sim mode as default.')
-		args.vis_sim = True
+	if args.mode_hiders == 'human' and args.mode_seekers == 'human':
+		print('Both Hider and Seeker cannot be in human modes')
+		safe_flag = False
 
-	conf_options = config.Configuration(int(args.fps), int(args.velocity), args.time_quanta, int(args.num_rays), int(args.visibility_angle), int(args.verbose), args.save_frame, args.hider_image, args.seeker_image)
-	exp = experiment.Experiment(args.visualisation, args.simulation, args.vis_sim, args.replay, args.num_runs, args.mode_hiders, args.mode_seekers, args.num_hiders, args.num_seekers, args.map_id, args.input_file, args.output_file, conf_options)
-	exp.run()
-	
+	if args.simulation and (args.mode_hiders == 'human' or args.mode_seekers == 'human'):
+		print('Visualization needs to be enabled in human mode.')
+		safe_flag = False
+
+
+	if safe_flag:
+		if mode_count == 0:
+			print('No mode selected, using vis_sim mode as default.')
+			args.vis_sim = True
+		conf_options = config.Configuration(int(args.fps), int(args.velocity), args.time_quanta, int(args.num_rays), int(args.visibility_angle), int(args.verbose), args.save_frame, args.hider_image, args.seeker_image, args.show_fellows)
+		exp = experiment.Experiment(args.visualisation, args.simulation, args.vis_sim, args.replay, args.num_runs, args.mode_hiders, args.mode_seekers, args.num_hiders, args.num_seekers, args.map_id, args.input_file, args.output_file, conf_options)
+		exp.run()
+
 
 
 if __name__ == '__main__':

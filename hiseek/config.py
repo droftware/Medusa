@@ -1,6 +1,6 @@
 class Configuration(object):
 
-	def __init__(self, fps, velocity, fixed_time_quanta, num_rays, visibility_angle, verbose, save_frame, hider_image, seeker_image):
+	def __init__(self, fps, velocity, fixed_time_quanta, num_rays, visibility_angle, verbose, save_frame, hider_image, seeker_image, show_fellows):
 		self.__fps = fps * 1.0
 		self.__velocity = velocity * 1.0
 		self.__fixed_time_quanta = fixed_time_quanta
@@ -10,6 +10,7 @@ class Configuration(object):
 		self.__save_frame = save_frame
 		self.__hider_image = hider_image
 		self.__seeker_image = seeker_image
+		self.__show_fellows = show_fellows
 
 	def get_fps(self):
 		return self.__fps
@@ -38,3 +39,5 @@ class Configuration(object):
 	def get_seeker_image(self):
 		return self.__seeker_image
 
+	def get_show_fellows(self):
+		return self.__show_fellows

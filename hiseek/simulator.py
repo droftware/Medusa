@@ -125,10 +125,6 @@ class Simulator(object):
 	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, total_step_times, sim_turn, max_steps=1000, window_width=640, window_height=360):
 		assert(mode_hiders in Simulator.mode_type_hiders)
 		assert(mode_seekers in Simulator.mode_type_seekers)
-		# A human can either play as a hider or a seeker but not both (simultaneously)
-		assert(not (mode_hiders == 'human' and mode_seekers == 'human'))
-		# Human mode can only be played in graphics mode
-		assert(vis_flag or (mode_hiders != 'human' and mode_seekers != 'human'))
 
 		self.__mode_hiders = mode_hiders
 		self.__mode_seekers = mode_seekers
@@ -145,6 +141,8 @@ class Simulator(object):
 		self.__verbose = self.__conf_options.get_verbose()
 		self.__num_rays = self.__conf_options.get_num_rays()
 		self.__visibility_angle = self.__conf_options.get_visibility_angle()
+		self.__show_fellows = self.__conf_options.get_show_fellows()
+
 
 		self.__sim_turn = sim_turn
 		self.__stats = statistic.Statistic(num_hiders, num_seekers, self.__map_id, self.__sim_turn)
