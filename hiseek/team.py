@@ -507,12 +507,23 @@ class HumanRandomTeam(Team):
 	def get_human_agent_id(self):
 		return self._human_id
 
+	def set_member_inactive(self, rank, idx):
+		assert(rank < self.ranks)
+		assert(idx < len(self._members[rank]))
+		assert(self._active[rank][idx])
+		self._active[rank][idx] = False
+		if rank == self._human_id[0] and idx == self._human_id[1]:
+			self.toggle_human_player()
+
 	def toggle_human_player(self):
 		total_ranks = len(self._members)
 		self._members[self._human_id[0]][self._human_id[1]].set_is_human_param(False)
-
-		if self._human_id[1] == len(self._members[self._human_id[0]]) - 1:
-			self._human_id = ((self._human_id[0] + 1) % total_ranks, 0)
-		else:
-			self._human_id = (self._human_id[0], self._human_id[1] + 1)
+		prev_human_id = (self._human_id[0], self._human_id[1])
+		while True:
+			if self._human_id[1] == len(self._members[self._human_id[0]]) - 1:
+				self._human_id = ((self._human_id[0] + 1) % total_ranks, 0)
+			else:
+				self._human_id = (self._human_id[0], self._human_id[1] + 1)
+			if self.is_member_active(self._human_id[0], self._human_id[1]) or self._human_id == prev_human_id:
+				break
 		self._members[self._human_id[0]][self._human_id[1]].set_is_human_param(True)
