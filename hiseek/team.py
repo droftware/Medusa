@@ -507,5 +507,12 @@ class HumanRandomTeam(Team):
 	def get_human_agent_id(self):
 		return self._human_id
 
-	def toggle_human_player(self, key):
-		pass
+	def toggle_human_player(self):
+		total_ranks = len(self._members)
+		self._members[self._human_id[0]][self._human_id[1]].set_is_human_param(False)
+
+		if self._human_id[1] == len(self._members[self._human_id[0]]) - 1:
+			self._human_id = ((self._human_id[0] + 1) % total_ranks, 0)
+		else:
+			self._human_id = (self._human_id[0], self._human_id[1] + 1)
+		self._members[self._human_id[0]][self._human_id[1]].set_is_human_param(True)

@@ -265,6 +265,9 @@ class Graphics(pyglet.window.Window):
 			self.__key = 'UP'
 		elif symbol == key.DOWN:
 			self.__key = 'DOWN'
+		elif symbol == key.SPACE:
+			print('Space pressed')
+			self.__key = 'SPACE'
 
 	def on_key_release(self, symbol, modifiers):
 		self.__key = 'NONE'
