@@ -198,6 +198,7 @@ class Simulator(object):
 		# Graphics setup
 		self.__window_width = self.__polygon_map.get_map_width()
 		self.__window_height = self.__polygon_map.get_map_height()
+		self.__texture_flag = self.__conf_options.get_texture_flag()
 		dynamic_batching_flag = True
 		show_hiders_flag = True
 		show_seekers_flag = True
@@ -208,7 +209,7 @@ class Simulator(object):
 			dynamic_batching_flag = False
 			show_hiders_flag = False
 		if self.__vis_flag:
-			self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__polygon_map, self.__conf_options, dynamic_batching_flag, show_hiders_flag, show_seekers_flag)
+			self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__polygon_map, self.__conf_options, dynamic_batching_flag, show_hiders_flag, show_seekers_flag, self.__texture_flag)
 		else:
 			self.__window = None
 
