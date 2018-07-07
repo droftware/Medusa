@@ -276,3 +276,74 @@ class Square(Polygon):
 			Get a coordinate tuple in accordance to the rtree specifics
 		'''
 		return (self.__left, self.__bottom, self.__right, self.__top)
+
+class Rectangle(Polygon):
+
+	def __init__(self, centre, width, height):
+		self.__centre = centre
+		self.__width = width
+		self.__height = height
+		w2 = int(self.__width/2)
+		h2 = int(self.__height/2)
+		self.__left = centre[0] - w2
+		self.__right = centre[0] + w2
+		self.__top = centre[1] + h2
+		self.__bottom = centre[1] - h2
+
+		points_list = [centre[0] - w2, centre[1] - h2, centre[0] - w2, centre[1] + h2, centre[0] + w2, centre[1] + h2, centre[0] + w2, centre[1] - h2]
+		points_tuple = tuple(points_list)
+		# print(points_tuple)
+		super(Rectangle, self).__init__(points_tuple)
+
+	def is_point_inside(self, point):
+		# assert(isinstance(point, coord.Coord))
+		x = point.get_x()
+		y = point.get_y()
+		if self.__left < x < self.__right and self.__bottom < y < self.__top:
+			return True
+		else:
+			return False 
+
+	def check_aabb_collision(self, other, offset=0):
+		# print('offset:',offset)
+		if (self.__centre[0] < other.__centre[0] + other.__width + offset) and (other.__centre[0] < self.__centre[0] + self.__width + offset) and (self.__centre[1] < other.__centre[1] + other.__height + offset) and (other.__centre[1] < self.__centre[1] + self.__height + offset):
+			return True
+		else:
+			return False
+
+	def get_mid_edge_points(self, epsilon=0):
+		'''
+			A mid-edge point is defined as a point which lies on the middle of one of the edges of a rectangle. Since a 
+			a rectangle has 4 edges, it will have 4 such mid-edge points
+
+			epsilon: Distance by which a mid-edge point should be distant from the edge
+		'''
+		mid_edge_points = []
+		w2 = self.__width/2 + epsilon
+		h2 = self.__height/2 + epsilon
+		factor = [-1,1]
+		for fa in factor:
+			a = self.__centre[0] + w2 * fa
+			b = self.__centre[1]
+			mid_edge_points.append(coord.Coord(a, b))
+			a = self.__centre[0]
+			b = self.__centre[1] + h2 * fa
+			mid_edge_points.append(coord.Coord(a, b))
+
+		return mid_edge_points 
+
+	def get_centre(self):
+		return self.__centre
+
+	def get_width(self):
+		return self.__width
+
+	def get_height(self):
+		return self.__height
+
+	def get_rtree_bbox(self):
+		'''
+			Get a coordinate tuple in accordance to the rtree specifics
+		'''
+		return (self.__left, self.__bottom, self.__right, self.__top)
+
