@@ -87,16 +87,15 @@ class Player(pyglet.sprite.Sprite):
 		self.rotation = rotation
 
 	def individual_draw(self):
-		self.draw()
 		self.__visibility_vertices.draw(pyglet.gl.GL_TRIANGLES)
+		self.draw()
 
 class Graphics(pyglet.window.Window):
 
-	def __init__(self, window_width, window_height, num_hiders, num_seekers, polygon_map, conf_options, dynamic_batching_flag=True, show_hiders_flag=True, show_seekers_flag=True):
+	def __init__(self, window_width, window_height, num_hiders, num_seekers, polygon_map, conf_options, dynamic_batching_flag=True, show_hiders_flag=True, show_seekers_flag=True, texture_flag=False):
 		# Dynamic batching cannot be used alongside with hidden players
 		# It can only be used when all the players are shown on the screen
 		assert((show_seekers_flag and show_hiders_flag) or (not dynamic_batching_flag))
-		print('Hi')
 		super(Graphics, self).__init__(window_width, window_height, caption='Hiseek: Hide and Seek simulation')
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
@@ -119,6 +118,12 @@ class Graphics(pyglet.window.Window):
 		self.__dynamic_batching_flag = dynamic_batching_flag
 		self.__show_hiders_flag = show_hiders_flag
 		self.__show_seekers_flag = show_seekers_flag
+
+		# Texture Setup
+		self.__texture_flag = texture_flag
+		self.texture_image = pyglet.image.load('./resources/brickWall.png')
+		self.texture = self.texture_image.get_texture()
+		
 
 
 
@@ -166,12 +171,21 @@ class Graphics(pyglet.window.Window):
 				color_list.append(polygon_color[1])
 				color_list.append(polygon_color[2])
 			color_tuple = tuple(color_list)
+			texture_coords = (1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0)
 			if polygon.get_num_vertices() == 4:
-				self.__static_batch.add_indexed(4, pyglet.gl.GL_TRIANGLES, self.__background, 
-				[0,1,2,2,3,0],
-				('v2i', polygon.get_points_tuple()),
-				('c3B', color_tuple)
-				)
+				if not self.__texture_flag:
+					self.__static_batch.add_indexed(4, pyglet.gl.GL_TRIANGLES, self.__background, 
+					[0,1,2,2,3,0],
+					('v2i', polygon.get_points_tuple()),
+					('c3B', color_tuple)
+					)
+				else:
+					
+					self.__static_batch.add_indexed(4, pyglet.gl.GL_TRIANGLES, self.__background, 
+					[0,1,2,2,3,0],
+					('v2i', polygon.get_points_tuple()),
+					('t2f', texture_coords)
+					)
 		elif not is_filled:
 			if polygon.get_num_vertices() == 4:
 				self.__static_batch.add_indexed(4, pyglet.gl.GL_LINES, self.__background, 
@@ -243,14 +257,17 @@ class Graphics(pyglet.window.Window):
 						players[i].individual_draw()
 						
 	def on_draw(self):
-		# pyglet.gl.glClearColor(1,1,1,1)
+		pyglet.gl.glClearColor(1,1,1,1)
 		self.clear()
 		if self.__dynamic_batching_flag:
 			self.__dynamic_batch.draw()
 		else:
 			self.__draw_individual_players(agent.AgentType.Hider)
 			self.__draw_individual_players(agent.AgentType.Seeker)
+		pyglet.gl.glEnable(self.texture.target)
+		pyglet.gl.glBindTexture(self.texture.target, self.texture.id)
 		self.__static_batch.draw()
+		pyglet.gl.glDisable(self.texture.target)
 		if self.__save_frame:
 			pyglet.image.get_buffer_manager().get_color_buffer().save('./frames/'+str(self.__frame_count)+'.png')
 			self.__frame_count += 1
