@@ -16,7 +16,7 @@ class Player(pyglet.sprite.Sprite):
 	def __init__(self, img, batch, background, foreground, polygon_map, pos_x, pos_y, pos_rot, num_rays):
 		super(Player, self).__init__(img, pos_x, pos_y, batch=batch, group=foreground)
 		Player.center_anchor(img)
-		self.scale = 0.6
+		self.scale = 0.4
 		self.rotation = pos_rot
 		self.dx = 0
 		self.dy = 0
