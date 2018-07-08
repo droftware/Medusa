@@ -96,7 +96,7 @@ class Graphics(pyglet.window.Window):
 		# Dynamic batching cannot be used alongside with hidden players
 		# It can only be used when all the players are shown on the screen
 		assert((show_seekers_flag and show_hiders_flag) or (not dynamic_batching_flag))
-		super(Graphics, self).__init__(window_width, window_height, caption='Hiseek: Hide and Seek simulation')
+		super(Graphics, self).__init__(window_width, window_height, caption='Hiseek: Hide and Seek simulation', fullscreen=conf_options.get_full_screen())
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
 		self.__background = pyglet.graphics.OrderedGroup(0)
