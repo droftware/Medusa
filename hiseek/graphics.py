@@ -16,7 +16,7 @@ class Player(pyglet.sprite.Sprite):
 	def __init__(self, img, batch, background, foreground, polygon_map, pos_x, pos_y, pos_rot, num_rays):
 		super(Player, self).__init__(img, pos_x, pos_y, batch=batch, group=foreground)
 		Player.center_anchor(img)
-		self.scale = 0.4
+		self.scale = 0.7
 		self.rotation = pos_rot
 		self.dx = 0
 		self.dy = 0
@@ -162,11 +162,10 @@ class Graphics(pyglet.window.Window):
 	def __add_batch_polygon(self, polygon, is_filled):
 		assert(polygon.get_num_vertices() == 4 or polygon.get_num_vertices() == 3)
 		if is_filled:
-			polygon_color = 74, 35, 90 
-			# polygon_color = 20, 20, 20
+			# polygon_color = 74, 35, 90
+			polygon_color = 20, 20, 20
 			color_list = []
 			for i in range(4):
-				# 149, 165, 166
 				color_list.append(polygon_color[0])
 				color_list.append(polygon_color[1])
 				color_list.append(polygon_color[2])
@@ -180,7 +179,6 @@ class Graphics(pyglet.window.Window):
 					('c3B', color_tuple)
 					)
 				else:
-					
 					self.__static_batch.add_indexed(4, pyglet.gl.GL_TRIANGLES, self.__background, 
 					[0,1,2,2,3,0],
 					('v2i', polygon.get_points_tuple()),
@@ -264,10 +262,12 @@ class Graphics(pyglet.window.Window):
 		else:
 			self.__draw_individual_players(agent.AgentType.Hider)
 			self.__draw_individual_players(agent.AgentType.Seeker)
-		pyglet.gl.glEnable(self.texture.target)
-		pyglet.gl.glBindTexture(self.texture.target, self.texture.id)
+		if self.__texture_flag:
+			pyglet.gl.glEnable(self.texture.target)
+			pyglet.gl.glBindTexture(self.texture.target, self.texture.id)
 		self.__static_batch.draw()
-		pyglet.gl.glDisable(self.texture.target)
+		if self.__texture_flag:
+			pyglet.gl.glDisable(self.texture.target)
 		if self.__save_frame:
 			pyglet.image.get_buffer_manager().get_color_buffer().save('./frames/'+str(self.__frame_count)+'.png')
 			self.__frame_count += 1
