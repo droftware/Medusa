@@ -7,8 +7,8 @@ def main():
 	height = int(sys.argv[2])
 	max_squares = int(sys.argv[3])
 	boundary_offset = 10
-	min_length = 40
-	max_length = 70
+	min_length = 20
+	max_length = 30
 	squares_list = []
 	sq = shapes.Square((30, 30), 60)
 	squares_list.append(sq)
