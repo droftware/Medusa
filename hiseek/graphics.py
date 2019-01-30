@@ -269,7 +269,7 @@ class Graphics(pyglet.window.Window):
 		if self.__texture_flag:
 			pyglet.gl.glDisable(self.texture.target)
 		if self.__save_frame:
-			pyglet.image.get_buffer_manager().get_color_buffer().save('./frames/'+str(self.__frame_count)+'.png')
+			pyglet.image.get_buffer_manager().get_color_buffer().save('./frames/test_'+str(self.__frame_count)+'.png')
 			self.__frame_count += 1
 		self.__fps_display.draw()
 
