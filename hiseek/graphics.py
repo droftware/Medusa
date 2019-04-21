@@ -121,8 +121,11 @@ class Graphics(pyglet.window.Window):
 
 		# Texture Setup
 		self.__texture_flag = texture_flag
-		self.texture_image = pyglet.image.load('./resources/brickWall.png')
-		self.texture = self.texture_image.get_texture()
+		self.texture_image = None
+		self.texture = None
+		if self.__texture_flag:
+			self.texture_image = pyglet.image.load('./resources/brickWall.png')
+			self.texture = self.texture_image.get_texture()
 		
 
 		self.__num_polygons = polygon_map.get_num_polygons()
