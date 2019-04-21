@@ -213,32 +213,23 @@ class Polygon(object):
 		print('Not CALLABLE')
 		return
 
-class Rectangle(Polygon):
+class BoundedPolygon(Polygon):
+	'''
+		Polygon bounded by a rectangle
+	'''
 
-	def __init__(self, centre, width, height):
+	def __init__(self, centre, width, height, points_tuple):
+		super(BoundedPolygon, self).__init__(points_tuple)
+
 		self.__centre = centre
 		self.__width = width
 		self.__height = height
 		w2 = int(self.__width/2)
 		h2 = int(self.__height/2)
-		self.__left = centre[0] - w2
-		self.__right = centre[0] + w2
-		self.__top = centre[1] + h2
-		self.__bottom = centre[1] - h2
-
-		points_list = [centre[0] - w2, centre[1] - h2, centre[0] - w2, centre[1] + h2, centre[0] + w2, centre[1] + h2, centre[0] + w2, centre[1] - h2]
-		points_tuple = tuple(points_list)
-		# print(points_tuple)
-		super(Rectangle, self).__init__(points_tuple)
-
-	def is_point_inside(self, point):
-		# assert(isinstance(point, coord.Coord))
-		x = point.get_x()
-		y = point.get_y()
-		if self.__left < x < self.__right and self.__bottom < y < self.__top:
-			return True
-		else:
-			return False 
+		self._left = centre[0] - w2
+		self._right = centre[0] + w2
+		self._top = centre[1] + h2
+		self._bottom = centre[1] - h2
 
 	def check_aabb_collision(self, other, offset=0):
 		# print('offset:',offset)
@@ -281,7 +272,26 @@ class Rectangle(Polygon):
 		'''
 			Get a coordinate tuple in accordance to the rtree specifics
 		'''
-		return (self.__left, self.__bottom, self.__right, self.__top)
+		return (self._left, self._bottom, self._right, self._top)
+
+
+class Rectangle(BoundedPolygon):
+
+	def __init__(self, centre, width, height):
+		w2 = int(width/2)
+		h2 = int(height/2)
+		points_list = [centre[0] - w2, centre[1] - h2, centre[0] - w2, centre[1] + h2, centre[0] + w2, centre[1] + h2, centre[0] + w2, centre[1] - h2]
+		points_tuple = tuple(points_list)
+		super(Rectangle, self).__init__(centre, width, height, points_tuple)
+
+	def is_point_inside(self, point):
+		# assert(isinstance(point, coord.Coord))
+		x = point.get_x()
+		y = point.get_y()
+		if self._left < x < self._right and self._bottom < y < self._top:
+			return True
+		else:
+			return False 
 
 class Square(Rectangle):
 
@@ -292,19 +302,16 @@ class Square(Rectangle):
 	def get_length(self):
 		return self.__length
 
-class Circle(Polygon):
+class Circle(BoundedPolygon):
 
 	def __init__(self, centre, radius, num_approx_points):
 		self.__centre = centre
 		self.__radius = radius
 		self.__num_approx_points = num_approx_points
-		self.__bounding_square = Square(centre, 2*radius)
+		diameter = 2 * radius
 		points_list = self.__get_circle_points_list()
 		points_tuple = tuple(points_list)
-
-		super(Circle, self).__init__(points_tuple)
-
-
+		super(Circle, self).__init__(centre, diameter, diameter, points_tuple)
 
 	def __get_circle_points_list(self):
 		points_list = []
@@ -314,10 +321,7 @@ class Circle(Polygon):
 			y = self.__radius * math.sin(angle) + self.__centre[1]
 			points_list += [x,y]
 		return points_list
-
-	def get_centre(self):
-		return self.__centre
-
+	
 	def get_radius(self):
 		return self.__radius
 
@@ -327,19 +331,3 @@ class Circle(Polygon):
 		y = point.get_y()
 		dist2 = (x - self.__centre[0])**2 + (y - self.__centre[1])**2
 		return dist2 < (self.__radius**2)
-
-	def check_aabb_collision(self, other, offset=0):
-		return self.__bounding_square.check_aabb_collision(other, offset)
-
-	def get_mid_edge_points(self, epsilon=0):
-		return self.__bounding_square.get_mid_edge_points(epsilon)
-
-	def get_rtree_bbox(self):
-		return self.__bounding_square.get_rtree_bbox()
-
-
-
-
-
-
-
