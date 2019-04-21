@@ -213,70 +213,6 @@ class Polygon(object):
 		print('Not CALLABLE')
 		return
 
-class Square(Polygon):
-
-	def __init__(self, centre, length):
-		self.__centre = centre
-		self.__length = length
-		l2 = int(self.__length/2)
-		self.__left = centre[0] - l2
-		self.__right = centre[0] + l2
-		self.__top = centre[1] + l2
-		self.__bottom = centre[1] - l2
-
-		points_list = [centre[0] - l2, centre[1] - l2, centre[0] - l2, centre[1] + l2, centre[0] + l2, centre[1] + l2, centre[0] + l2, centre[1] - l2]
-		points_tuple = tuple(points_list)
-		# print(points_tuple)
-		super(Square, self).__init__(points_tuple)
-
-	def is_point_inside(self, point):
-		# assert(isinstance(point, coord.Coord))
-		x = point.get_x()
-		y = point.get_y()
-		if self.__left < x < self.__right and self.__bottom < y < self.__top:
-			return True
-		else:
-			return False 
-
-	def check_aabb_collision(self, other, offset=0):
-		# print('offset:',offset)
-		if (self.__centre[0] < other.__centre[0] + other.__length + offset) and (other.__centre[0] < self.__centre[0] + self.__length + offset) and (self.__centre[1] < other.__centre[1] + other.__length + offset) and (other.__centre[1] < self.__centre[1] + self.__length + offset):
-			return True
-		else:
-			return False
-
-	def get_mid_edge_points(self, epsilon=0):
-		'''
-			A mid-edge point is defined as a point which lies on the middle of one of the edges of a square. Since a 
-			a square has 4 edges, it will have 4 such mid-edge points
-
-			epsilon: Distance by which a mid-edge point should be distant from the edge
-		'''
-		mid_edge_points = []
-		l2 = self.__length/2 + epsilon
-		factor = [-1,1]
-		for fa in factor:
-			a = self.__centre[0] + l2 * fa
-			b = self.__centre[1]
-			mid_edge_points.append(coord.Coord(a, b))
-			a = self.__centre[0]
-			b = self.__centre[1] + l2 * fa
-			mid_edge_points.append(coord.Coord(a, b))
-
-		return mid_edge_points 
-
-	def get_centre(self):
-		return self.__centre
-
-	def get_length(self):
-		return self.__length
-
-	def get_rtree_bbox(self):
-		'''
-			Get a coordinate tuple in accordance to the rtree specifics
-		'''
-		return (self.__left, self.__bottom, self.__right, self.__top)
-
 class Rectangle(Polygon):
 
 	def __init__(self, centre, width, height):
@@ -346,6 +282,15 @@ class Rectangle(Polygon):
 			Get a coordinate tuple in accordance to the rtree specifics
 		'''
 		return (self.__left, self.__bottom, self.__right, self.__top)
+
+class Square(Rectangle):
+
+	def __init__(self, centre, length):
+		super(Square, self).__init__(centre, length, length)
+		self.__length = length
+
+	def get_length(self):
+		return self.__length
 
 class Circle(Polygon):
 
