@@ -76,12 +76,16 @@ class PolygonMap(object):
 						# print(length)
 						polygon = shapes.Rectangle(centre, width, height)
 						print(str(polygon))
+					if geometry_type == 'circle':
+						centre = (points_tuple[0], points_tuple[1])
+						radius = points_tuple[2]
+						num_approx_points = points_tuple[3]
+						polygon = shapes.Circle(centre, radius, num_approx_points)
+						print(str(polygon))
+
 					self.__rtree_idx.insert(len(self.__polygons), polygon.get_rtree_bbox(), obj=polygon)
 					self.__polygons.append(polygon)
 					
-				
-
-
 		self.__num_polygons = len(self.__polygons)
 		self.__all_polygons = self.__polygons + [self.__boundary_polygon]
 

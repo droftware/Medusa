@@ -347,3 +347,54 @@ class Rectangle(Polygon):
 		'''
 		return (self.__left, self.__bottom, self.__right, self.__top)
 
+class Circle(Polygon):
+
+	def __init__(self, centre, radius, num_approx_points):
+		self.__centre = centre
+		self.__radius = radius
+		self.__num_approx_points = num_approx_points
+		self.__bounding_square = Square(centre, 2*radius)
+		points_list = self.__get_circle_points_list()
+		points_tuple = tuple(points_list)
+
+		super(Circle, self).__init__(points_tuple)
+
+
+
+	def __get_circle_points_list(self):
+		points_list = []
+		for i in range(self.__num_approx_points):
+			angle = math.radians(float(i)/self.__num_approx_points * 360)
+			x = self.__radius * math.cos(angle) + self.__centre[0]
+			y = self.__radius * math.sin(angle) + self.__centre[1]
+			points_list += [x,y]
+		return points_list
+
+	def get_centre(self):
+		return self.__centre
+
+	def get_radius(self):
+		return self.__radius
+
+	def is_point_inside(self, point):
+		# assert(isinstance(point, coord.Coord))
+		x = point.get_x()
+		y = point.get_y()
+		dist2 = (x - self.__centre[0])**2 + (y - self.__centre[1])**2
+		return dist2 < (self.__radius**2)
+
+	def check_aabb_collision(self, other, offset=0):
+		return self.__bounding_square.check_aabb_collision(other, offset)
+
+	def get_mid_edge_points(self, epsilon=0):
+		return self.__bounding_square.get_mid_edge_points(epsilon)
+
+	def get_rtree_bbox(self):
+		return self.__bounding_square.get_rtree_bbox()
+
+
+
+
+
+
+

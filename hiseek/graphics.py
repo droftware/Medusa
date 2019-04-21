@@ -96,7 +96,7 @@ class Graphics(pyglet.window.Window):
 		# Dynamic batching cannot be used alongside with hidden players
 		# It can only be used when all the players are shown on the screen
 		assert((show_seekers_flag and show_hiders_flag) or (not dynamic_batching_flag))
-		super(Graphics, self).__init__(window_width, window_height, caption='Hiseek: Hide and Seek simulation', fullscreen=conf_options.get_full_screen())
+		super(Graphics, self).__init__(window_width, window_height, caption='Medusa: Hide-and-Seek simulation', fullscreen=conf_options.get_full_screen())
 		pyglet.resource.path.append('resources')
 		pyglet.resource.reindex()
 		self.__background = pyglet.graphics.OrderedGroup(0)
@@ -124,8 +124,6 @@ class Graphics(pyglet.window.Window):
 		self.texture_image = pyglet.image.load('./resources/brickWall.png')
 		self.texture = self.texture_image.get_texture()
 		
-
-
 
 		self.__num_polygons = polygon_map.get_num_polygons()
 		for i in range(self.__num_polygons):
@@ -155,44 +153,46 @@ class Graphics(pyglet.window.Window):
 		else:
 			self.__show_seekers = [False for i in range(num_seekers)]
 
-
-
 		self.push_handlers(self.__seekers[0])
 
 	def __add_batch_polygon(self, polygon, is_filled):
-		assert(polygon.get_num_vertices() == 4 or polygon.get_num_vertices() == 3)
 		if is_filled:
 			# polygon_color = 74, 35, 90
 			polygon_color = 20, 20, 20
 			color_list = []
-			for i in range(4):
+			for i in range(polygon.get_num_vertices()):
 				color_list.append(polygon_color[0])
 				color_list.append(polygon_color[1])
 				color_list.append(polygon_color[2])
 			color_tuple = tuple(color_list)
-			texture_coords = (1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0)
-			if polygon.get_num_vertices() == 4:
-				if not self.__texture_flag:
-					self.__static_batch.add_indexed(4, pyglet.gl.GL_TRIANGLES, self.__background, 
-					[0,1,2,2,3,0],
-					('v2i', polygon.get_points_tuple()),
-					('c3B', color_tuple)
-					)
-				else:
-					self.__static_batch.add_indexed(4, pyglet.gl.GL_TRIANGLES, self.__background, 
-					[0,1,2,2,3,0],
-					('v2i', polygon.get_points_tuple()),
-					('t2f', texture_coords)
-					)
+
+			vertices_idxs = []
+			for i in range(polygon.get_num_vertices() - 1):
+				vertices_idxs.append(0)
+				vertices_idxs.append(i)
+				vertices_idxs.append(i+1)
+
+			if not self.__texture_flag:
+				self.__static_batch.add_indexed(polygon.get_num_vertices(), pyglet.gl.GL_TRIANGLES, self.__background, 
+				vertices_idxs,
+				('v2f', polygon.get_points_tuple()),
+				('c3B', color_tuple)
+				)
+			else:
+				assert(polygon.get_num_vertices() == 4)
+				texture_coords = (1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0)
+				self.__static_batch.add_indexed(polygon.get_num_vertices(), pyglet.gl.GL_TRIANGLES, self.__background, 
+				vertices_idxs,
+				('v2i', polygon.get_points_tuple()),
+				('t2f', texture_coords)
+				)
 		elif not is_filled:
+			assert(polygon.get_num_vertices() == 4)
 			if polygon.get_num_vertices() == 4:
 				self.__static_batch.add_indexed(4, pyglet.gl.GL_LINES, self.__background, 
 				[0,1,1,2,2,3,3,0],
 				('v2i', polygon.get_points_tuple()),)
-		# if polygon.get_num_vertices() == 3:
-		# 	self.__static_batch.add_indexed(3, pyglet.gl.GL_LINES, self.__background, 
-		# 	[0,1,1,2,2,0],
-		# 	('v2i', polygon.get_points_tuple() ),)
+
 
 	def __type2player(self, player_type):
 		if player_type == agent.AgentType.Hider:
