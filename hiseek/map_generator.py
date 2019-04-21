@@ -58,10 +58,12 @@ def main():
 	f.write(str(width)+', '+str(height) + '\n')
 	for obs, obs_type in zip(obstacles_list[1:], obstacles_type[1:]):
 		centre = obs.get_centre()
-		length = obs.get_length()
-		token = obs_type + ': ' + str(centre[0]) + ', ' + str(centre[1]) + ', ' + str(length) 
+		token = obs_type + ': ' + str(centre[0]) + ', ' + str(centre[1])
 		if obs_type == 'circle':
-			token += ',' + str(num_approx_points)
+			token += ', ' + str(obs.get_radius()) + ',' + str(num_approx_points)
+		elif obs_type == 'square':
+			token += ', ' + str(obs.get_length())
+
 		token += '\n'
 		f.write(token)
 
