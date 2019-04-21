@@ -351,8 +351,7 @@ class StrategicPointsMapManager(BasicMapManager):
 		cy = point.get_y()
 		bound_box = (cx, cy, cx, cy)
 		closest_st_pts = list(self.__strategic_pts_idx.nearest(bound_box, num_points))
-		# print('Closest points:', closest_st_pts)
-		if len(closest_st_pts) != num_points:
+		if len(closest_st_pts) > num_points:
 			closest_st_pts = list(np.random.choice(closest_st_pts, num_points, replace=False))
 		return closest_st_pts
 
