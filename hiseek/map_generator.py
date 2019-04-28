@@ -3,7 +3,7 @@ import sys
 import random
 import os
 
-# SampleInput: python2 map_generator.py 600 500 10 25 id_10.polygons
+# SampleInput: python2 map_generator.py 600 500 30 25 id_10.polygons
 
 def main():
 	width = int(sys.argv[1]) 
@@ -16,8 +16,8 @@ def main():
 		print('The map with the give name already exists. Please delete it manually before proceeding to overwrite it.')
 
 	boundary_offset = 10
-	min_length = 20
-	max_length = 30
+	min_length = 30
+	max_length = 50
 	obstacles_list = []
 	obstacles_type = []
 

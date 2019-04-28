@@ -231,6 +231,18 @@ class BoundedPolygon(Polygon):
 		self._top = centre[1] + h2
 		self._bottom = centre[1] - h2
 
+	def get_left_edge(self):
+		return self._left
+
+	def get_right_edge(self):
+		return self._right
+
+	def get_top_edge(self):
+		return self._top
+
+	def get_bottom_edge(self):
+		return self._bottom
+
 	def check_aabb_collision(self, other, offset=0):
 		# print('offset:',offset)
 		if (self.__centre[0] < other.__centre[0] + other.__width + offset) and (other.__centre[0] < self.__centre[0] + self.__width + offset) and (self.__centre[1] < other.__centre[1] + other.__height + offset) and (other.__centre[1] < self.__centre[1] + self.__height + offset):
@@ -258,6 +270,7 @@ class BoundedPolygon(Polygon):
 			mid_edge_points.append(coord.Coord(a, b))
 
 		return mid_edge_points 
+
 
 	def get_centre(self):
 		return self.__centre

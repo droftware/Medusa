@@ -10,10 +10,11 @@ import networkx as nx
 import gamemap
 import coord
 import action
+import shapes
 
 class BasicMapManager(object):
 	'''
-		Each agent is asoociated with a map manager which helps it to manage
+		Each agent is associated with a map manager which helps it to manage
 		its map related data.
 		visibility inference map: Average number of cells visible from a given cell
 							      Greater the visbility value, greater the number
@@ -810,3 +811,134 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		nx.draw(self.__coverage_graph)
 		plt.savefig(self._map_name +'_coverage_graph.png')
 		print('Coverage Graph saved')
+
+class OffsetPoint(coord.Coord):
+	
+	def __init__(self, pnt_it, x, y):
+		super(OffsetPoint, self).__init__(x, y)
+		self.__pnt_id = pnt_it
+
+	def get_point_id(self):
+		return self.__pnt_id
+
+class OffsetPointRectangle(OffsetPoint):
+
+	def __init__(self, x, y, point_action):
+		super(OffsetPointRectangle, self).__init__(x, y)
+		self.__point_action = point_action
+
+	def get_point_action(self):
+		return self.__point_action
+
+class OffsetPointCircle(OffsetPoint):
+
+	def __init__(self, x, y, point_action_clkwise, point_action_anti_clkwise):
+		super(OffsetPointCircle, self).__init__(x, y)
+		self.__point_action_clkwise = point_action_clkwise
+		self.__point_action_anti_clkwise = point_action_anti_clkwise
+
+	def get_point_action_clkwise(self):
+		return self.__point_action_clkwise
+
+	def get_point_action_anti_clkwise(self):
+		return self.__point_action_anti_clkwise
+
+class OffsetObstacle(object):
+	def __init__(self, polygon):
+		self._polygon = polygon
+		self._offset_points = []
+
+class OffsetObstacleRectangle(OffsetObstacle):
+
+	def __init__(self, polygon, horizontal_gap, vertical_gap):
+		super(OffsetObstacleRectangle, self).__init__(polygon)
+		self.__horizontal_gap = horizontal_gap
+		self.__vertical_gap = vertical_gap
+		self.__left_edge = self.__polygon.get_left_edge()
+		self.__right_edge = self.__polygon.get_right_edge()
+		self.__top_edge = self.__polygon.get_top_edge()
+		self.__bottom_edge = self.__polygon.get_bottom_edge()
+
+		self.__extract_offset_points()
+		
+	def __append_offset_point(self, x, y, x_factor, y_factor, point_action):
+		x_offset = x_factor * self.__horizontal_gap
+		y_offset = y_factor * self.__vertical_gap
+		offx, offy = x + x_offset, y + y_offset
+		offset_point = OffsetPoint(len(self._offset_points), offx, offy, point_action)
+		self._offset_points.append(offset_point)
+
+	def __extract_offset_points(self):
+		
+		self.__append_offset_point(self.__left_edge, self.__top_edge, 1, 1, Action.W)
+		self.__append_offset_point(self.__right_edge, self.__top_edge, -1, 1, Action.E)
+		self.__append_offset_point(self.__right_edge, self.__top_edge, 1, -1, Action.N)
+		self.__append_offset_point(self.__right_edge, self.__bottom_edge, 1, 1, Action.S)
+		self.__append_offset_point(self.__right_edge, self.__bottom_edge, -1, -1, Action.E)
+		self.__append_offset_point(self.__left_edge, self.__bottom_edge, 1, -1, Action.W)
+		self.__append_offset_point(self.__left_edge, self.__bottom_edge, -1, 1, Action.S)
+		self.__append_offset_point(self.__left_edge, self.__top_edge, -1, -1, Action.N)
+
+	def get_hiding_offset_point(self, offset_point):
+		pnt_id = offset_point.get_point_id()
+		idx = None
+		if pnt_id % 2 == 0:
+			idx = (pnt_id + 2) % len(self.__offset_points)
+		else:
+			idx = pnt_id - 2
+			if idx < 0:
+				idx += len(self.__offset_points)
+		return self.__offset_points[idx]
+
+
+class OffsetObstacleCircle(OffsetObstacle):
+	
+	def __init__(self, polygon, radial_gap):
+		super(OffsetObstacleCircle, self).__init__(polygon)
+		self.__radial_gap = radia2l_gap
+		self.__radius = self.__polygon.get_radius()
+		self.__centre_tuple = self.__polygon.get_centre()
+
+	def __append_offset_point(self, direction):
+		radial_vector = Action.VECTOR[direction].multiply_scalar(self.__radius + self.__radial_gap)
+		x = radial_vector.get_x_component() + self.__centre_tuple[0]
+		y = radial_vector.get_y_component() + self.__centre_tuple[1]
+		point_action = Action.OBLIQUE_DIR_CLOCKWISE[direction]
+		alt_point_action = Action.OBLIQUE_DIR_ANTI_CLOCKWISE[direction]
+		offset_point = OffsetPoint(len(self._offset_points), x, y, point_action, alt_point_action)
+		self.__offset_points.append(offset_point)
+
+	def __extract_offset_points(self):
+		for direction in Action.all_directions:
+			self.__append_rectangle_offset_point(direction)
+
+	def get_hiding_offset_point(self, offset_point, direction):
+		pnt_id = offset_point.get_point_id()
+		idx = None
+		if direction == offset_point.get_point_action_clkwise():
+			idx = pnt_id - 4
+			if idx < 0:
+				idx += len(self.__offset_points)
+		elif direction == offset_point.get_point_action_anti_clkwise():
+			idx = (pnt_id + 4) % len(self.__offset_points)
+		return self.__offset_points[idx]
+
+class OffsetPointsMapManager(BasicMapManager):
+
+	def __init__(self, mapworld, fps, velocity, offset = 10, inference_map=True):
+		super(OffsetPointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
+		self.__offset_obstacles = []
+		num_obstacles = self._mapworld.get_num_polygons()
+		for idx in range(num_obstacles):
+			polygon = self._mapworld.get_polygon(idx)
+			offset_obstacle = None
+			# A square type polygon will also be an instance of Rectangle
+			if isinstance(polygon, shapes.Rectangle):
+				offset_obstacle = OffsetObstacleRectangle(polygon)
+			elif isinstance(polygon, shapes.Circle):
+				offset_obstacle = OffsetObstacleCircle(polygon)
+			self.__offset_obstacles.append(offset_obstacle)
+
+	def get_offset_obstacle(self, idx):
+		return self.__offset_obstacles[idx] 
+			

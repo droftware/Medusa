@@ -8,6 +8,12 @@ class Vector2D(object):
 
 		self.__magnitude = math.sqrt(self.__x * self.__x + self.__y * self.__y)
 
+	def get_x_component(self):
+		return self.__x
+
+	def get_y_component(self):
+		return self.__y
+
 	def __str__(self):
 		vector_string = str(self.__x)+':x , ' + str(self.__y) +':y'
 		return vector_string
@@ -38,3 +44,6 @@ class Vector2D(object):
 	def dot_product(self, other):
 		dot_product = self.__x * other.__x + self.__y * other.__y
 		return dot_product
+
+	def multiply_scalar(self, scalar):
+		return Vector2D(scalar * self.__x, scalar * self.__y)

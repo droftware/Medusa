@@ -22,7 +22,10 @@ class Action:
 	NNW = 15
 	ST = 16
 
-	all_actions = [E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW, N, NNE, NE, ENE, ST]
+	all_directions = [E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW, N, NNE, NE, ENE]
+	num_directions = len(all_directions)
+
+	all_actions = all_directions + [ST]
 	major_actions = [N, NE, E, SE, S, SW, W, NW]
 	num_actions = len(all_actions)
 
@@ -73,9 +76,6 @@ class Action:
 	key2action["LEFT"] = W
 
 
-
-
-
 # Rotation and vector mappings
 ROTATION = [None] * (Action.num_actions - 1)
 VECTOR = [None] * (Action.num_actions - 1)
@@ -91,9 +91,19 @@ for act in Action.all_actions:
 		VECTOR[act].normalize()
 		current_angle += offset_angle
 
+OBLIQUE_DIR_CLOCKWISE = [None] * (Action.num_actions - 1)
+OBLIQUE_DIR_ANTI_CLOCKWISE = [None] * (Action.num_actions - 1)
+
+for idx in range(Action.num_directions):
+	act = Action.all_directions[idx]
+	jdx = (idx+4)%Action.num_directions
+	OBLIQUE_DIR_CLOCKWISE[act] = Action.all_directions[jdx]
+	jdx = (idx-4)
+	if jdx < 0:
+		jdx += Action.num_directions
+	OBLIQUE_DIR_ANTI_CLOCKWISE[act] = Action.all_directions[jdx] 
+
 
 # for i in range(Action.num_actions):
 # 	if i != Action.ST:
 # 		print(Action.action2string[i], '-->', ROTATION[i], '-->', str(VECTOR[i]))
-
-
