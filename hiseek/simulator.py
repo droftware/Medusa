@@ -119,7 +119,7 @@ class Simulator(object):
 		Responsible for one complete simulation
 	"""
 
-	mode_type_hiders = ['random', 'bayesian', 'sbandit', 'hm_sbandit', 'hv_sbandit', 'hmv_sbandit', 'human']
+	mode_type_hiders = ['random', 'bayesian', 'sbandit', 'hm_sbandit', 'hv_sbandit', 'hmv_sbandit', 'human', 'offset']
 	mode_type_seekers = ['random', 'sbandit', 'coverage', 'cc', 'human']
 
 	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, total_step_times, sim_turn, max_steps=1000, window_width=640, window_height=360):
@@ -183,6 +183,8 @@ class Simulator(object):
 			self.__hider_team = team.UCBPassiveTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle, True, True)
 		elif mode_hiders == 'human':
 			self.__hider_team = team.HumanRandomTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
+		elif mode_hiders == 'offset':
+			self.__hider_team = team.OffsetTeam(agent.AgentType.Hider, num_hiders, hider_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
 
 		if mode_seekers == 'random':
 			self.__seeker_team = team.RandomTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)

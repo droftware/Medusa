@@ -527,3 +527,40 @@ class HumanRandomTeam(Team):
 			if self.is_member_active(self._human_id[0], self._human_id[1]) or self._human_id == prev_human_id:
 				break
 		self._members[self._human_id[0]][self._human_id[1]].set_is_human_param(True)
+
+
+class OffsetTeam(Team):
+
+	ranks = 2
+
+	def __init__(self, agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta):
+		super(OffsetTeam, self).__init__(agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta)
+
+		# prepare a rank 1 hierarchy member list and map managers
+		self._map_managers = [] # one map manager for one level
+		self._members = [[], []]
+		self._active = [[], []]
+
+		# assign a basic map manager to the only level
+		map_manager = mapmanager.OffsetPointsMapManager(self._mapworld, self._fps, self._velocity)
+		self._map_managers.append(map_manager)
+
+		# recruit the commander of the random team
+		agent_id = 'RH' + str(0)
+		commander_member = agent.OffsetCommanderAgent(agent_type, agent_id, self, self._map_managers[0])
+		self._members[1].append(commander_member)
+		self._active[1].append(True)
+
+		# recruit agents for the team
+		for i in range(self._num_agents - 1):
+			agent_id = 'RH' + str(i)
+			member = agent.OffsetAgent(agent_type, agent_id, self, self._map_managers[0])
+			self._members[0].append(member)
+			self._active[0].append(True)
+
+		# Get the opening positions from the commader member and set each agents
+		# position accordingly
+		for i in reversed(range(self.ranks)):
+			for j in range(self.get_num_rankers(i)):
+				position = commander_member.get_opening_position(i, j)
+				self._members[i][j].set_position(position)

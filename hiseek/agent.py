@@ -1165,6 +1165,36 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 		super(UCBCoverageCommunicationCommanderAgent, self).select_action()
 
 
+class OffsetAgent(Agent):
+	'''
+		An agent which takes a random move each turn
+	'''
+
+	def generate_messages(self):
+		pass
+
+	def analyze_messages(self):
+		pass
+
+	def select_action(self):
+		self._action = random.choice(action.Action.all_actions)
+
+	def clear_temporary_state(self):
+		pass
+
+
+class OffsetCommanderAgent(OffsetAgent):
+
+	def __init__(self, agent_type, agent_id, team, map_manager):
+		super(OffsetCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
+		# self.__skill = skill.LineOpeningSkill(agent_type, team, map_manager)
+
+	def get_opening_position(self, rank, idx):
+		return self.__skill.get_opening_position(rank, idx)
+
+
+
 
 # class FidgetingAgent(Agent):
 # 	'''
