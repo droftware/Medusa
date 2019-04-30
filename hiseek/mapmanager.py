@@ -814,17 +814,17 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 
 class OffsetPoint(coord.Coord):
 	
-	def __init__(self, pnt_it, x, y):
+	def __init__(self, pnt_id, x, y):
 		super(OffsetPoint, self).__init__(x, y)
-		self.__pnt_id = pnt_it
+		self.__pnt_id = pnt_id
 
 	def get_point_id(self):
 		return self.__pnt_id
 
 class OffsetPointRectangle(OffsetPoint):
 
-	def __init__(self, x, y, point_action):
-		super(OffsetPointRectangle, self).__init__(x, y)
+	def __init__(self, pnt_id, x, y, point_action):
+		super(OffsetPointRectangle, self).__init__(pnt_id, x, y)
 		self.__point_action = point_action
 
 	def get_point_action(self):
@@ -832,8 +832,8 @@ class OffsetPointRectangle(OffsetPoint):
 
 class OffsetPointCircle(OffsetPoint):
 
-	def __init__(self, x, y, point_action_clkwise, point_action_anti_clkwise):
-		super(OffsetPointCircle, self).__init__(x, y)
+	def __init__(self, pnt_id, x, y, point_action_clkwise, point_action_anti_clkwise):
+		super(OffsetPointCircle, self).__init__(pnt_id, x, y)
 		self.__point_action_clkwise = point_action_clkwise
 		self.__point_action_anti_clkwise = point_action_anti_clkwise
 
@@ -844,20 +844,27 @@ class OffsetPointCircle(OffsetPoint):
 		return self.__point_action_anti_clkwise
 
 class OffsetObstacle(object):
-	def __init__(self, polygon):
+	def __init__(self, obs_id, polygon):
+		self.__obs_id = obs_id
 		self._polygon = polygon
 		self._offset_points = []
 
+	def get_obstacle_id(self):
+		return self.__obs_id
+
+	def get_polygon(self):
+		return self._polygon
+
 class OffsetObstacleRectangle(OffsetObstacle):
 
-	def __init__(self, polygon, horizontal_gap, vertical_gap):
-		super(OffsetObstacleRectangle, self).__init__(polygon)
+	def __init__(self, obs_id, polygon, horizontal_gap, vertical_gap):
+		super(OffsetObstacleRectangle, self).__init__(obs_id, polygon)
 		self.__horizontal_gap = horizontal_gap
 		self.__vertical_gap = vertical_gap
-		self.__left_edge = self.__polygon.get_left_edge()
-		self.__right_edge = self.__polygon.get_right_edge()
-		self.__top_edge = self.__polygon.get_top_edge()
-		self.__bottom_edge = self.__polygon.get_bottom_edge()
+		self.__left_edge = self._polygon.get_left_edge()
+		self.__right_edge = self._polygon.get_right_edge()
+		self.__top_edge = self._polygon.get_top_edge()
+		self.__bottom_edge = self._polygon.get_bottom_edge()
 
 		self.__extract_offset_points()
 		
@@ -865,19 +872,19 @@ class OffsetObstacleRectangle(OffsetObstacle):
 		x_offset = x_factor * self.__horizontal_gap
 		y_offset = y_factor * self.__vertical_gap
 		offx, offy = x + x_offset, y + y_offset
-		offset_point = OffsetPoint(len(self._offset_points), offx, offy, point_action)
+		offset_point = OffsetPointRectangle(len(self._offset_points), offx, offy, point_action)
 		self._offset_points.append(offset_point)
 
 	def __extract_offset_points(self):
 		
-		self.__append_offset_point(self.__left_edge, self.__top_edge, 1, 1, Action.W)
-		self.__append_offset_point(self.__right_edge, self.__top_edge, -1, 1, Action.E)
-		self.__append_offset_point(self.__right_edge, self.__top_edge, 1, -1, Action.N)
-		self.__append_offset_point(self.__right_edge, self.__bottom_edge, 1, 1, Action.S)
-		self.__append_offset_point(self.__right_edge, self.__bottom_edge, -1, -1, Action.E)
-		self.__append_offset_point(self.__left_edge, self.__bottom_edge, 1, -1, Action.W)
-		self.__append_offset_point(self.__left_edge, self.__bottom_edge, -1, 1, Action.S)
-		self.__append_offset_point(self.__left_edge, self.__top_edge, -1, -1, Action.N)
+		self.__append_offset_point(self.__left_edge, self.__top_edge, 1, 1, action.Action.W)
+		self.__append_offset_point(self.__right_edge, self.__top_edge, -1, 1, action.Action.E)
+		self.__append_offset_point(self.__right_edge, self.__top_edge, 1, -1, action.Action.N)
+		self.__append_offset_point(self.__right_edge, self.__bottom_edge, 1, 1, action.Action.S)
+		self.__append_offset_point(self.__right_edge, self.__bottom_edge, -1, -1, action.Action.E)
+		self.__append_offset_point(self.__left_edge, self.__bottom_edge, 1, -1, action.Action.W)
+		self.__append_offset_point(self.__left_edge, self.__bottom_edge, -1, 1, action.Action.S)
+		self.__append_offset_point(self.__left_edge, self.__top_edge, -1, -1, action.Action.N)
 
 	def get_hiding_offset_point(self, offset_point):
 		pnt_id = offset_point.get_point_id()
@@ -893,11 +900,11 @@ class OffsetObstacleRectangle(OffsetObstacle):
 
 class OffsetObstacleCircle(OffsetObstacle):
 	
-	def __init__(self, polygon, radial_gap):
-		super(OffsetObstacleCircle, self).__init__(polygon)
+	def __init__(self, obs_id, polygon, radial_gap):
+		super(OffsetObstacleCircle, self).__init__(obs_id, polygon)
 		self.__radial_gap = radia2l_gap
-		self.__radius = self.__polygon.get_radius()
-		self.__centre_tuple = self.__polygon.get_centre()
+		self.__radius = self._polygon.get_radius()
+		self.__centre_tuple = self._polygon.get_centre()
 
 	def __append_offset_point(self, direction):
 		radial_vector = Action.VECTOR[direction].multiply_scalar(self.__radius + self.__radial_gap)
@@ -923,22 +930,63 @@ class OffsetObstacleCircle(OffsetObstacle):
 			idx = (pnt_id + 4) % len(self.__offset_points)
 		return self.__offset_points[idx]
 
+
 class OffsetPointsMapManager(BasicMapManager):
 
 	def __init__(self, mapworld, fps, velocity, offset = 10, inference_map=True):
 		super(OffsetPointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
 		self.__offset_obstacles = []
+		self.__obstacle_graph = nx.Graph()
+		self.__obstacles_explored = []
+		self.__horizontal_gap = 5
+		self.__vertical_gap = 5
+		self.__radial_gap = 5
+		self.__graph_edge_gap = 40
+
+		self.__add_offset_obstacles()
+		self.__create_obstacle_graph()
+
+	def __add_offset_obstacles(self):
 		num_obstacles = self._mapworld.get_num_polygons()
 		for idx in range(num_obstacles):
 			polygon = self._mapworld.get_polygon(idx)
 			offset_obstacle = None
 			# A square type polygon will also be an instance of Rectangle
+			obs_id = len(self.__offset_obstacles)
 			if isinstance(polygon, shapes.Rectangle):
-				offset_obstacle = OffsetObstacleRectangle(polygon)
+				offset_obstacle = OffsetObstacleRectangle(obs_id, polygon, self.__horizontal_gap, self.__vertical_gap)
 			elif isinstance(polygon, shapes.Circle):
-				offset_obstacle = OffsetObstacleCircle(polygon)
+				offset_obstacle = OffsetObstacleCircle(obs_id, polygon, self.__radial_gap)
 			self.__offset_obstacles.append(offset_obstacle)
 
+	def __get_nearby_obstacle_ids(self, idx):
+		polygon = self.__offset_obstacles[idx].get_polygon()
+		centre_tuple = polygon.get_centre()
+		width = polygon.get_width() + self.__graph_edge_gap
+		height = polygon.get_height() + self.__graph_edge_gap
+		bound_rect = shapes.Rectangle(centre_tuple, width, height)
+		nearby_obs_ids = self._mapworld.get_intersected_polygon_ids(bound_rect)
+		return nearby_obs_ids
+
+	def __create_obstacle_graph(self):
+		num_obstacles = len(self.__offset_obstacles)
+		for idx in range(num_obstacles):
+			self.__obstacle_graph.add_node(idx)
+			self.__obstacles_explored.append(False)
+
+		for idx in range(num_obstacles):
+			if self.__obstacles_explored[idx] == False:
+				self.__expand_obstacle_graph(idx)
+
+	def __expand_obstacle_graph(self, idx):
+		self.__obstacles_explored[idx] = True
+		nearby_obstacle_ids = self.__get_nearby_obstacle_ids(idx)
+		for nid in nearby_obstacle_ids:
+			# networkx graph library ignores duplicate edges
+			self.__obstacle_graph.add_edge(idx, nid)
+			if self.__obstacles_explored[nid] == False:
+				self.__expand_obstacle_graph(nid)
+
+
 	def get_offset_obstacle(self, idx):
-		return self.__offset_obstacles[idx] 
-			
+		return self.__offset_obstacles[idx]

@@ -136,6 +136,8 @@ class PolygonMap(object):
 				return True
 		return False
 
+	def get_intersected_polygon_ids(self, polygon):
+		return list(self.__rtree_idx.intersection(polygon.get_rtree_bbox()))
 
 	def get_visibility_polygon(self, current_position, current_rotation, num_rays, visibility_angle):
 		# c = coord.Coord(self.x, self.y)
