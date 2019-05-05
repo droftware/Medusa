@@ -812,18 +812,14 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		plt.savefig(self._map_name +'_coverage_graph.png')
 		print('Coverage Graph saved')
 
-class OffsetPoint(object):
+class OffsetPoint(coord.Coord):
 	
 	def __init__(self, pnt_id, x, y):
-		# super(OffsetPoint, self).__init__(x, y)
+		super(OffsetPoint, self).__init__(x, y)
 		self.__pnt_id = pnt_id
-		self.__offset_coord = coord.Coord(x, y)
 
 	def get_point_id(self):
 		return self.__pnt_id
-
-	def get_offset_coord(self):
-		return self.__offset_coord
 
 class OffsetPointRectangle(OffsetPoint):
 

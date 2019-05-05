@@ -149,6 +149,5 @@ class OffsetOpeningSkill(Skill):
 				obstacle = self._map_manager.get_offset_obstacle(obs_id)
 				num_offset_points = obstacle.get_count_offset_points()
 				pnt_id = random.randint(0, num_offset_points-1)
-				offset_pnt = obstacle.get_offset_point(pnt_id)
-				position = offset_pnt.get_offset_coord()
+				position = obstacle.get_offset_point(pnt_id)
 				self.__opening_positions[(i, j)] = position
