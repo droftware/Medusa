@@ -122,3 +122,33 @@ class UCBOpeningSkill(Skill):
 					# print('Opening position:', str(position))
 					st_idx += 1
 					
+class OffsetOpeningSkill(Skill):
+
+	def __init__(self, agent_type, team, map_manager):
+		super(OffsetOpeningSkill, self).__init__(agent_type, team, map_manager)
+		self.__opening_positions = {}
+		self.__openings_created = False	
+
+	def get_opening_position(self, rank, idx):
+		assert(rank < self._team.get_ranks())
+		assert(idx < self._team.get_num_rankers(rank))
+		if not self.__openings_created:
+			self.__set_opening()
+			self.__openings_created = True
+		return self.__opening_positions[(rank, idx)]
+
+	def __set_opening(self):
+		num_offset_obstacles = self._map_manager.get_count_offset_obstacles()
+		obstacles_ids = np.random.permutation(num_offset_obstacles)
+		obs_idx = 0
+		max_rank = self._team.get_ranks()
+		for i in reversed(range(max_rank)):
+			for j in range(self._team.get_num_rankers(i)):
+				obs_id = obstacles_ids[obs_idx]
+				obs_idx = (obs_idx + 1) % num_offset_obstacles
+				obstacle = self._map_manager.get_offset_obstacle(obs_id)
+				num_offset_points = obstacle.get_count_offset_points()
+				pnt_id = random.randint(0, num_offset_points-1)
+				offset_pnt = obstacle.get_offset_point(pnt_id)
+				position = offset_pnt.get_offset_coord()
+				self.__opening_positions[(i, j)] = position

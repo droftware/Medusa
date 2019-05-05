@@ -1177,7 +1177,7 @@ class OffsetAgent(Agent):
 		pass
 
 	def select_action(self):
-		self._action = random.choice(action.Action.all_actions)
+		self._action = action.Action.all_actions[-1]
 
 	def clear_temporary_state(self):
 		pass
@@ -1187,8 +1187,7 @@ class OffsetCommanderAgent(OffsetAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager):
 		super(OffsetCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager)
-		self.__skill = skill.RandomOpeningSkill(agent_type, team, map_manager)
-		# self.__skill = skill.LineOpeningSkill(agent_type, team, map_manager)
+		self.__skill = skill.OffsetOpeningSkill(agent_type, team, map_manager)
 
 	def get_opening_position(self, rank, idx):
 		return self.__skill.get_opening_position(rank, idx)
