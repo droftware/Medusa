@@ -127,7 +127,16 @@ class OffsetOpeningSkill(Skill):
 	def __init__(self, agent_type, team, map_manager):
 		super(OffsetOpeningSkill, self).__init__(agent_type, team, map_manager)
 		self.__opening_positions = {}
-		self.__openings_created = False	
+		self.__opening_obstacles = {}
+		self.__openings_created = False
+
+	def get_opening_obstacle(self, rank, idx):
+		assert(rank < self._team.get_ranks())
+		assert(idx < self._team.get_num_rankers(rank))
+		if not self.__openings_created:
+			self.__set_opening()
+			self.__openings_created = True
+		return self.__opening_obstacles[(rank, idx)]
 
 	def get_opening_position(self, rank, idx):
 		assert(rank < self._team.get_ranks())
@@ -147,6 +156,8 @@ class OffsetOpeningSkill(Skill):
 				obs_id = obstacles_ids[obs_idx]
 				obs_idx = (obs_idx + 1) % num_offset_obstacles
 				obstacle = self._map_manager.get_offset_obstacle(obs_id)
+				self.__opening_obstacles[(i, j)] = obstacle
+
 				num_offset_points = obstacle.get_count_offset_points()
 				pnt_id = random.randint(0, num_offset_points-1)
 				position = obstacle.get_offset_point(pnt_id)

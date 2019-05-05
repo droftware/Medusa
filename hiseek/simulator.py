@@ -23,6 +23,7 @@ class Mover(object):
 		self.__rotation_x = 0
 		self.__rotation_y = 0
 		self.__action = None
+		self.__motion = None
 
 		self.__current_percept = percept.GraphicsPercept([],[],[],[])
 
@@ -35,7 +36,6 @@ class Mover(object):
 		self.__velocity = velocity
 		self.__fixed_time_quanta = fixed_time_quanta
 
-
 	def get_current_coordinate(self):
 		return coord.Coord(self.__x, self.__y)
 
@@ -45,6 +45,10 @@ class Mover(object):
 	def set_action(self, act):
 		assert(act, action.Action)
 		self.__action = act
+
+	def set_motion(self, motion):
+		# assert(motion, action.Action)
+		self.__motion = motion
 
 	def get_action(self):
 		return self.__action
@@ -101,8 +105,10 @@ class Mover(object):
 			time_quanta = 1.0/self.__fps
 		else:
 			time_quanta = dt
-		self.__x = self.__x + self.__dx * time_quanta
-		self.__y = self.__y + self.__dy * time_quanta
+
+		if self.__motion:
+			self.__x = self.__x + self.__dx * time_quanta
+			self.__y = self.__y + self.__dy * time_quanta
 
 		current_position = self.get_current_coordinate()
 		collided = self.__polygon_map.check_obstacle_collision(current_position) or self.__polygon_map.check_boundary_collision(current_position)
@@ -319,6 +325,24 @@ class Simulator(object):
 				graphics_idx = self.__seekers_agent2player[(rank, ai_idx)]
 				act = self.__seeker_team.get_action(rank, ai_idx)
 				self.__seekers[graphics_idx].set_action(act)
+
+	def __transfer_hider_motions(self):
+		for i in range(self.__hider_team.get_ranks()):
+			for j in range(self.__hider_team.get_num_rankers(i)):
+				rank, ai_idx = i, j
+				graphics_idx = self.__hiders_agent2player[(rank, ai_idx)]
+				# if not self.__caught[rank][ai_idx]:
+				if self.__hiders_active[graphics_idx]:
+					motion = self.__hider_team.get_motion(rank, ai_idx)
+					self.__hiders[graphics_idx].set_motion(motion)
+
+	def __transfer_seeker_motions(self):
+		for i in range(self.__seeker_team.get_ranks()):
+			for j in range(self.__seeker_team.get_num_rankers(i)):
+				rank, ai_idx = i, j
+				graphics_idx = self.__seekers_agent2player[(rank, ai_idx)]
+				motion = self.__seeker_team.get_motion(rank, ai_idx)
+				self.__seekers[graphics_idx].set_motion(motion)
 
 	def __set_hider_openings(self):
 		for i in range(self.__hider_team.get_ranks()):
@@ -645,9 +669,18 @@ class Simulator(object):
 		self.__hider_team.select_actions()
 		self.__seeker_team.select_actions()
 
+		# update the states in ai layer so that they select wether they want 
+		# to move or not
+		self.__hider_team.select_motions()
+		self.__seeker_team.select_motions()
+
 		# extract actions from ai layer and send it to simulation layer
 		self.__transfer_hider_actions()
 		self.__transfer_seeker_actions()
+
+		# extract actions from ai layer and send it to simulation layer
+		self.__transfer_hider_motions()
+		self.__transfer_seeker_motions()
 			
 		# Update the position of players after incorporating the actions obtained
 		self.__update_game(dt)

@@ -83,6 +83,13 @@ class Team(object):
 		member = self._members[rank][idx]
 		return member.get_action()
 
+	def get_motion(self, rank, idx):
+		assert(rank < self.ranks)
+		assert(idx < len(self._members[rank]))
+		assert(self._active[rank][idx])
+		member = self._members[rank][idx]
+		return member.get_motion()
+
 	def set_position(self, rank, idx, position):
 		assert(rank < self.ranks)
 		assert(idx < len(self._members[rank]))
@@ -152,6 +159,17 @@ class Team(object):
 					member = self._members[i][j]
 					member.clear_temporary_state()
 
+	def __enable_motion_selection(self):
+		'''
+		Based on the percept as well as temporary state changes(due to prior)
+		message analysis, action is chosen
+		'''
+		for i in reversed(range(0, self.ranks)):
+			for j in range(len(self._members[i])):
+				if self._active[i][j]:
+					member = self._members[i][j]
+					member.select_motion()
+
 
 	def select_actions(self):
 		'''
@@ -165,6 +183,19 @@ class Team(object):
 		# self.__enable_message_analysis()
 		self.__enable_action_selection()
 		self.__enable_temporal_state_clearance()
+
+	def select_motions(self):
+		'''
+			Assigns motions to each of its members.
+			If motion if True, member will move in the selected 
+			direction. 
+			If motion is False, member will only rotate in the selected
+			direction and will not move.
+			Based on the current percept, as well as the message passed 
+			b/w the members, each agent takes an action
+		'''
+		
+		self.__enable_motion_selection()
 
 
 class RandomTeam(Team):
@@ -562,5 +593,8 @@ class OffsetTeam(Team):
 		# position accordingly
 		for i in reversed(range(self.ranks)):
 			for j in range(self.get_num_rankers(i)):
+				obstacle = commander_member.get_opening_obstacle(i, j)
 				position = commander_member.get_opening_position(i, j)
 				self._members[i][j].set_position(position)
+				self._members[i][j].set_offset_point(position)
+				self._members[i][j].set_offset_obstacle(obstacle)

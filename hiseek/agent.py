@@ -14,6 +14,7 @@ import planner
 import vector
 import skill
 import ucb
+import mapmanager
 
 class AgentType(object):
 	Hider = 0
@@ -74,6 +75,9 @@ class Agent(object):
 	def get_action(self):
 		return self._action
 
+	def get_motion(self):
+		return self._motion
+
 
 	@abstractmethod
 	def generate_messages(self):
@@ -98,6 +102,14 @@ class Agent(object):
 			state which has been affected by prior message analysis
 		'''
 		pass
+
+	def select_motion(self):
+		'''
+			If motion is True, agent moves along the selected action direction,
+			otherwise, the agent only rotates in the action direction but
+			does not move. By default motion is set to True
+		'''
+		self._motion = True
 
 	@abstractmethod
 	def clear_temporary_state(self):
@@ -1170,14 +1182,68 @@ class OffsetAgent(Agent):
 		An agent which takes a random move each turn
 	'''
 
+	def __init__(self, agent_type, agent_id, team, map_manager):
+		super(OffsetAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		self.__in_scan_state = True
+
+		self.__current_offset_obstacle = None
+		self.__current_offset_point = None
+
+	def set_offset_obstacle(self, offset_obstacle):
+		self.__current_offset_obstacle = offset_obstacle
+
+	def set_offset_point(self, offset_point):
+		self.__current_offset_point = offset_point
+
 	def generate_messages(self):
 		pass
 
 	def analyze_messages(self):
 		pass
 
+	def __update_exploration(self):
+		pass
+
+	def __get_scan_state_action(self):
+		scan_action = None
+		if isinstance(self.__current_offset_point, mapmanager.OffsetPointRectangle):
+			scan_action = self.__current_offset_point.get_point_action()
+		elif isinstance(self.__current_offset_point, mapmanager.OffsetPointCircle):
+			choice = random.randint(0,1)
+			if choice == 0:
+				scan_action = self.__current_offset_point.get_point_action_clkwise()
+			else:
+				scan_action = self.__current_offset_point.get_point_action_anti_clkwise()
+		return scan_action
+
 	def select_action(self):
-		self._action = action.Action.all_actions[-1]
+		# self._action = action.Action.all_actions[-1]
+
+		self.__update_exploration()
+
+		if self.__in_scan_state:
+			self._action = self.__get_scan_state_action()
+		# else:
+		# 	direction_vec = self.__select_direction() 
+		# 	if direction_vec == None:
+		# 		# print('@ Direction vec is None, action chosen randomly')
+		# 		self._action = random.choice(action.Action.all_actions)
+		# 		# if self._position != self.__next_state:
+		# 			# self._action = random.choice(action.Action.all_actions)
+		# 		# else:
+		# 			# self.action = action.Action.ST
+		# 	else:
+		# 		if self._stop_counter >= 3:
+		# 			# print('@ Agent got stuck, action chosen randomly')
+		# 			self._action = random.choice(action.Action.all_actions)
+		# 		else:
+		# 			self._action = self.__select_closest_action(direction_vec)
+
+	def select_motion(self):
+		if self.__in_scan_state:
+			self._motion = False
+		else:
+			self._motion = True
 
 	def clear_temporary_state(self):
 		pass
@@ -1192,6 +1258,8 @@ class OffsetCommanderAgent(OffsetAgent):
 	def get_opening_position(self, rank, idx):
 		return self.__skill.get_opening_position(rank, idx)
 
+	def get_opening_obstacle(self, rank, idx):
+		return self.__skill.get_opening_obstacle(rank, idx)
 
 
 
