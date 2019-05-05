@@ -812,14 +812,18 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		plt.savefig(self._map_name +'_coverage_graph.png')
 		print('Coverage Graph saved')
 
-class OffsetPoint(coord.Coord):
+class OffsetPoint(object):
 	
 	def __init__(self, pnt_id, x, y):
-		super(OffsetPoint, self).__init__(x, y)
+		# super(OffsetPoint, self).__init__(x, y)
 		self.__pnt_id = pnt_id
+		self.__offset_coord = coord.Coord(x, y)
 
 	def get_point_id(self):
 		return self.__pnt_id
+
+	def get_offset_coord(self):
+		return self.__offset_coord
 
 class OffsetPointRectangle(OffsetPoint):
 
@@ -829,6 +833,7 @@ class OffsetPointRectangle(OffsetPoint):
 
 	def get_point_action(self):
 		return self.__point_action
+
 
 class OffsetPointCircle(OffsetPoint):
 
@@ -849,11 +854,18 @@ class OffsetObstacle(object):
 		self._polygon = polygon
 		self._offset_points = []
 
+	def get_count_offset_points(self):
+		return len(self._offset_points)
+
 	def get_obstacle_id(self):
 		return self.__obs_id
 
 	def get_polygon(self):
 		return self._polygon
+
+	def get_offset_point(self, pnt_id):
+		assert(pnt_id < len(self._offset_points))
+		return self._offset_points[pnt_id]
 
 class OffsetObstacleRectangle(OffsetObstacle):
 
@@ -902,22 +914,24 @@ class OffsetObstacleCircle(OffsetObstacle):
 	
 	def __init__(self, obs_id, polygon, radial_gap):
 		super(OffsetObstacleCircle, self).__init__(obs_id, polygon)
-		self.__radial_gap = radia2l_gap
+		self.__radial_gap = radial_gap
 		self.__radius = self._polygon.get_radius()
 		self.__centre_tuple = self._polygon.get_centre()
 
+		self.__extract_offset_points()
+
 	def __append_offset_point(self, direction):
-		radial_vector = Action.VECTOR[direction].multiply_scalar(self.__radius + self.__radial_gap)
+		radial_vector = action.VECTOR[direction].multiply_scalar(self.__radius + self.__radial_gap)
 		x = radial_vector.get_x_component() + self.__centre_tuple[0]
 		y = radial_vector.get_y_component() + self.__centre_tuple[1]
-		point_action = Action.OBLIQUE_DIR_CLOCKWISE[direction]
-		alt_point_action = Action.OBLIQUE_DIR_ANTI_CLOCKWISE[direction]
-		offset_point = OffsetPoint(len(self._offset_points), x, y, point_action, alt_point_action)
-		self.__offset_points.append(offset_point)
+		point_action = action.OBLIQUE_DIR_CLOCKWISE[direction]
+		alt_point_action = action.OBLIQUE_DIR_ANTI_CLOCKWISE[direction]
+		offset_point = OffsetPointCircle(len(self._offset_points), x, y, point_action, alt_point_action)
+		self._offset_points.append(offset_point)
 
 	def __extract_offset_points(self):
-		for direction in Action.all_directions:
-			self.__append_rectangle_offset_point(direction)
+		for direction in action.Action.all_directions:
+			self.__append_offset_point(direction)
 
 	def get_hiding_offset_point(self, offset_point, direction):
 		pnt_id = offset_point.get_point_id()
@@ -987,6 +1001,18 @@ class OffsetPointsMapManager(BasicMapManager):
 			if self.__obstacles_explored[nid] == False:
 				self.__expand_obstacle_graph(nid)
 
-
 	def get_offset_obstacle(self, idx):
+		assert(idx < len(self.__offset_obstacles))
 		return self.__offset_obstacles[idx]
+
+	def get_count_offset_obstacles(self):
+		return len(self.__offset_obstacles)
+
+	# def get_offset_obstacle_point(self, obs_id, pnt_id):
+	# 	obstacle = self.get_offset_obstacle(obs_id)
+	# 	offset_point = obstacle.get_offset_point(pnt_id)
+	# 	return offset_point
+
+	# def get_offset_obstacle_point_coord(self, obs_id, pnt_id):
+	# 	offset_point = self.get_offset_obstacle_point(obs_id, pnt_id)
+	# 	return offset_point.get_offset_coord()		
