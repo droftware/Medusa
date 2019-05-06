@@ -1277,7 +1277,13 @@ class OffsetAgent(Agent):
 			self.__in_transit_state = False
 
 	def __initiate_sneak_transit(self):
-		self.__current_offset_point = self.__current_offset_obstacle.get_hiding_offset_point(self.__current_offset_point)
+		next_offset_point = None
+		if isinstance(self.__current_offset_obstacle, mapmanager.OffsetObstacleRectangle):
+			next_offset_point = self.__current_offset_obstacle.get_hiding_offset_point(self.__current_offset_point)
+		elif isinstance(self.__current_offset_obstacle, mapmanager.OffsetObstacleCircle):
+			next_offset_point = self.__current_offset_obstacle.get_hiding_offset_point(self.__current_offset_point, self._action)
+			
+		self.__current_offset_point = next_offset_point
 		self.__initiate_transit(self.__current_offset_point)
 
 	def __initiate_change_transit(self):
@@ -1303,11 +1309,12 @@ class OffsetAgent(Agent):
 			self.__update_scan()
 		if self.__in_scan_state == False:
 			if self.__sneak_trigger_condition():
-				# self.__initiate_sneak_transit()
-				self.__initiate_change_transit()
+				self.__initiate_sneak_transit()
 				self.__reset_scan_state_params()
 			elif self.__change_trigger_condition():
-				self.__initiate_change_transit()
+				# self.__initiate_change_transit()
+				self.__initiate_sneak_transit()
+				
 				self.__reset_scan_state_params()
 			if self.__in_transit_state:
 				self.__update_transit()

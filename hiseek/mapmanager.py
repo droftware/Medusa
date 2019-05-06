@@ -898,12 +898,12 @@ class OffsetObstacleRectangle(OffsetObstacle):
 		pnt_id = offset_point.get_point_id()
 		idx = None
 		if pnt_id % 2 == 0:
-			idx = (pnt_id + 2) % len(self.__offset_points)
+			idx = (pnt_id + 2) % len(self._offset_points)
 		else:
 			idx = pnt_id - 2
 			if idx < 0:
-				idx += len(self.__offset_points)
-		return self.__offset_points[idx]
+				idx += len(self._offset_points)
+		return self._offset_points[idx]
 
 
 class OffsetObstacleCircle(OffsetObstacle):
@@ -935,10 +935,10 @@ class OffsetObstacleCircle(OffsetObstacle):
 		if direction == offset_point.get_point_action_clkwise():
 			idx = pnt_id - 4
 			if idx < 0:
-				idx += len(self.__offset_points)
+				idx += len(self._offset_points)
 		elif direction == offset_point.get_point_action_anti_clkwise():
-			idx = (pnt_id + 4) % len(self.__offset_points)
-		return self.__offset_points[idx]
+			idx = (pnt_id + 4) % len(self._offset_points)
+		return self._offset_points[idx]
 
 
 class OffsetPointsMapManager(BasicMapManager):
