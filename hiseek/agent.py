@@ -1184,10 +1184,20 @@ class OffsetAgent(Agent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager):
 		super(OffsetAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		self.__planner = planner.BasicPlanner(self._map_manager)
+		self.__margin = 8
+		
 		self.__in_scan_state = True
+		self.__in_transit_state = False
+
+		self.__scan_counter_max_val = 25
+		self.__scan_counter = self.__scan_counter_max_val
+		self.__seeker_observed = False
 
 		self.__current_offset_obstacle = None
 		self.__current_offset_point = None
+
+		self.__next_state = None
 
 	def set_offset_obstacle(self, offset_obstacle):
 		self.__current_offset_obstacle = offset_obstacle
@@ -1201,8 +1211,106 @@ class OffsetAgent(Agent):
 	def analyze_messages(self):
 		pass
 
+	def __select_closest_action(self, direction_vec):
+		max_cos_prod = -1 * float('inf')
+		max_action = 0
+		# print('*** Selecting action')
+		for i in range(action.Action.num_actions):
+			if i == action.Action.ST:
+				continue
+			action_vec = action.VECTOR[i]
+			action_vec.normalize()
+			direction_vec.normalize()
+			cos_prod = direction_vec.dot_product(action_vec)
+			
+			if cos_prod >= max_cos_prod:
+				# print('Changing min')
+				max_cos_prod = cos_prod
+				max_action = i
+		# print('Action choosen:', action.Action.action2string[max_action])
+		return max_action
+
+	def __select_direction(self):
+		# If the next state is vaid, calculate the vector and return
+		if self._position != self.__next_state and self.__next_state != None:
+			# print(' next state is valid, finding and returning the direction vec ...')
+			# print('Next state:', str(self.__next_state), 'Current position:', str(self._position))
+			direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
+			# print('Direction vec:', str(direction_vec))
+			direction_vec.normalize()
+			return direction_vec
+		
+		return None
+
+	def __select_path(self, destination_point):
+		start_coord = self._position
+		# goal_coord = self._map_manager.get_coverage_point(coverage_point)
+		self.__planner.plan(start_coord, destination_point)
+
+	def __update_scan(self):
+		self.__scan_counter -= 1
+		if self._percept.are_seekers_visible():
+			self.__seeker_observed = True
+		if self.__scan_counter == 0 or self.__seeker_observed == True:
+			self.__in_scan_state = False
+
+	def __sneak_trigger_condition(self):
+		return self.__seeker_observed
+
+	def __change_trigger_condition(self):
+		return (self.__scan_counter == 0)
+
+	def __reset_scan_state_params(self):
+		self.__seeker_observed = False
+		self.__scan_counter = self.__scan_counter_max_val
+
+	def __initiate_transit(self, destination_point):
+		self.__select_path(destination_point)
+		self.__next_state = self.__planner.get_paths_next_coord()
+		# print('S Starting contour transit from:', str(self._position))
+		# print('S Next state:', str(self.__next_state))
+		if self.__next_state != None:
+			# print('S long transits path is valid')
+			self.__in_transit_state = True
+		else:
+			print('**** transits path is NOT valid')
+			self.__in_transit_state = False
+
+	def __initiate_sneak_transit(self):
+		self.__current_offset_point = self.__current_offset_obstacle.get_hiding_offset_point(self.__current_offset_point)
+		self.__initiate_transit(self.__current_offset_point)
+
+	def __initiate_change_transit(self):
+		num_offset_points = self.__current_offset_obstacle.get_count_offset_points()
+		pnt_id = random.randint(0, num_offset_points-1)
+		self.__current_offset_point = self.__current_offset_obstacle.get_offset_point(pnt_id)
+		self.__initiate_transit(self.__current_offset_point)
+
+	def __update_transit(self):
+			
+		# Decides wether the next_state needs to change or not
+		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
+			self.__next_state = self.__planner.get_paths_next_coord()
+			# print('S State reached, changing to next state:', str(self.__next_state))
+			if self.__next_state == None:
+				# Agent reached its destination
+				print('S Change transit completed')
+				self.__in_scan_state = True
+				self.__in_transit_state = False
+
 	def __update_exploration(self):
-		pass
+		if self.__in_scan_state:
+			self.__update_scan()
+		if self.__in_scan_state == False:
+			if self.__sneak_trigger_condition():
+				# self.__initiate_sneak_transit()
+				self.__initiate_change_transit()
+				self.__reset_scan_state_params()
+			elif self.__change_trigger_condition():
+				self.__initiate_change_transit()
+				self.__reset_scan_state_params()
+			if self.__in_transit_state:
+				self.__update_transit()
 
 	def __get_scan_state_action(self):
 		scan_action = None
@@ -1223,21 +1331,21 @@ class OffsetAgent(Agent):
 
 		if self.__in_scan_state:
 			self._action = self.__get_scan_state_action()
-		# else:
-		# 	direction_vec = self.__select_direction() 
-		# 	if direction_vec == None:
-		# 		# print('@ Direction vec is None, action chosen randomly')
-		# 		self._action = random.choice(action.Action.all_actions)
-		# 		# if self._position != self.__next_state:
-		# 			# self._action = random.choice(action.Action.all_actions)
-		# 		# else:
-		# 			# self.action = action.Action.ST
-		# 	else:
-		# 		if self._stop_counter >= 3:
-		# 			# print('@ Agent got stuck, action chosen randomly')
-		# 			self._action = random.choice(action.Action.all_actions)
-		# 		else:
-		# 			self._action = self.__select_closest_action(direction_vec)
+		else:
+			direction_vec = self.__select_direction() 
+			if direction_vec == None:
+				# print('@ Direction vec is None, action chosen randomly')
+				self._action = random.choice(action.Action.all_actions)
+				# if self._position != self.__next_state:
+					# self._action = random.choice(action.Action.all_actions)
+				# else:
+					# self.action = action.Action.ST
+			else:
+				if self._stop_counter >= 3:
+					# print('@ Agent got stuck, action chosen randomly')
+					self._action = random.choice(action.Action.all_actions)
+				else:
+					self._action = self.__select_closest_action(direction_vec)
 
 	def select_motion(self):
 		if self.__in_scan_state:
