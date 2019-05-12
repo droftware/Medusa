@@ -81,7 +81,7 @@ class PolygonMap(object):
 						radius = points_tuple[2]
 						num_approx_points = points_tuple[3]
 						polygon = shapes.Circle(centre, radius, num_approx_points)
-						print(str(polygon))
+						# print(str(polygon))
 
 					self.__rtree_idx.insert(len(self.__polygons), polygon.get_rtree_bbox(), obj=polygon)
 					self.__polygons.append(polygon)

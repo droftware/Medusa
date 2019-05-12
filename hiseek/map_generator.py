@@ -16,8 +16,8 @@ def main():
 		print('The map with the give name already exists. Please delete it manually before proceeding to overwrite it.')
 
 	boundary_offset = 10
-	min_length = 30
-	max_length = 50
+	min_length = 40
+	max_length = 70
 	obstacles_list = []
 	obstacles_type = []
 
@@ -35,6 +35,7 @@ def main():
 			cy = random.randint(max_length+boundary_offset, height - max_length - boundary_offset)
 			length = random.randint(min_length, max_length)
 			choice = random.randint(0, 1)
+			choice = 1
 			if choice == 0:
 				obs = shapes.Square((cx, cy), length)
 				obs_type = 'square'
