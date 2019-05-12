@@ -1312,9 +1312,7 @@ class OffsetAgent(Agent):
 				self.__initiate_sneak_transit()
 				self.__reset_scan_state_params()
 			elif self.__change_trigger_condition():
-				# self.__initiate_change_transit()
-				self.__initiate_sneak_transit()
-				
+				self.__initiate_change_transit()				
 				self.__reset_scan_state_params()
 			if self.__in_transit_state:
 				self.__update_transit()
@@ -1375,46 +1373,3 @@ class OffsetCommanderAgent(OffsetAgent):
 
 	def get_opening_obstacle(self, rank, idx):
 		return self.__skill.get_opening_obstacle(rank, idx)
-
-
-
-# class FidgetingAgent(Agent):
-# 	'''
-# 		A hider agent which takes a random action on seeing a seeker. It also 
-# 		communicates this fact(sighting of a seeker) to all its fellow hiders.
-# 	'''
-# 	def __init__(self, agent_type, agent_id, team, map_manager):
-# 		super(FidgetingAgent, self).__init__(agent_type, agent_id, team, map_manager)
-# 		self.__seeker_spotted = False
-
-# 	def generate_messages(self):
-# 		if self._percept.are_seekers_visible():
-# 			self._agent_messenger.broadcast('seeker spotted')
-
-# 	def analyze_messages(self):
-# 		unread_messages = self._agent_messenger.get_new_messages()
-# 		for message in unread_messages:
-# 			if message.get_content() == 'seeker spotted':
-# 				self.__seeker_spotted = True
-
-# 	def select_action(self):
-# 		if self.__seeker_spotted or self._percept.are_hiders_visible():
-# 			valid_actions = []
-# 			available_actions = coord.Coord.get_all_actions()
-# 			test_position = copy.deepcopy(self._position)
-# 			for move in available_actions:
-# 				test_position.move_action(move)
-# 				if self._map_manager.is_inside(test_position):
-# 					if not self._map_manager.is_obstacle(test_position):
-# 						valid_actions.append(move)
-# 				test_position.revert_action()
-
-# 			if valid_actions:
-# 				self._action = random.choice(valid_actions)
-# 			else:
-# 				self._action = None
-# 		else:
-# 			self._action = None
-
-# 	def clear_temporary_state(self):
-# 		self.__seeker_spotted = False
