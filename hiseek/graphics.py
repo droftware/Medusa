@@ -277,17 +277,18 @@ class Graphics(pyglet.window.Window):
 		self.__fps_display.draw()
 
 	def on_key_press(self, symbol, modifiers):
-		if symbol == key.LEFT:
+		if symbol == key.LEFT or symbol == key.A:
 			self.__key = 'LEFT'
-		elif symbol == key.RIGHT:
+		elif symbol == key.RIGHT or symbol == key.D:
 			self.__key = 'RIGHT'
-		elif symbol == key.UP:
+		elif symbol == key.UP or symbol == key.W:
 			self.__key = 'UP'
-		elif symbol == key.DOWN:
+		elif symbol == key.DOWN or symbol == key.S:
 			self.__key = 'DOWN'
 		elif symbol == key.SPACE:
 			print('Space pressed')
 			self.__key = 'SPACE'
+
 
 	def on_key_release(self, symbol, modifiers):
 		self.__key = 'NONE'
