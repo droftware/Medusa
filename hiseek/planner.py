@@ -30,7 +30,9 @@ class BasicPlanner(object):
 
         self._si = self._setup.getSpaceInformation()
         self._si.setStateValidityCheckingResolution(1.0 / self._space.getMaximumExtent())
-        self._planner = og.RRTConnect(self._si)
+        self._planner = og.RRTstar(self._si)
+        # self._planner = og.RRTConnect(self._si)
+
 
         self._setup.setPlanner(self._planner)
         self._space.setup()
@@ -89,10 +91,8 @@ class BasicPlanner(object):
         goal_state()[0] = goal_coord.get_x()
         goal_state()[1] = goal_coord.get_y()
 
-
         return self.__solve_path(start_state, goal_state)
         
-
     def __solve_path(self, start_state, goal_state):
         self._setup.setStartAndGoalStates(start_state, goal_state)
 
