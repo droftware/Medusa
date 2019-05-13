@@ -148,7 +148,7 @@ class Simulator(object):
 		self.__num_rays = self.__conf_options.get_num_rays()
 		self.__visibility_angle = self.__conf_options.get_visibility_angle()
 		self.__show_fellows = self.__conf_options.get_show_fellows()
-
+		self.__show_opponent = self.__conf_options.get_show_opponent()
 
 		self.__sim_turn = sim_turn
 		self.__stats = statistic.Statistic(num_hiders, num_seekers, self.__map_id, self.__sim_turn)
@@ -212,10 +212,10 @@ class Simulator(object):
 		show_seekers_flag = True
 		if mode_hiders == 'human':
 			dynamic_batching_flag = False
-			show_seekers_flag = False
+			show_seekers_flag = self.__show_opponent
 		if mode_seekers == 'human':
 			dynamic_batching_flag = False
-			show_hiders_flag = False
+			show_hiders_flag = self.__show_opponent
 		if self.__vis_flag:
 			self.__window = graphics.Graphics(self.__window_width, self.__window_height, num_hiders, num_seekers, self.__polygon_map, self.__conf_options, dynamic_batching_flag, show_hiders_flag, show_seekers_flag, self.__texture_flag)
 		else:
@@ -591,14 +591,19 @@ class Simulator(object):
 
 	def __enable_seeker_show(self):
 		if self.__mode_seekers == 'human':
-			self.__window.set_show_players(agent.AgentType.Hider, False)
-			self.__window.set_show_players(agent.AgentType.Seeker, False)
+
+			if self.__show_opponent:
+				self.__window.set_show_players(agent.AgentType.Hider, True)
+			else:
+				self.__window.set_show_players(agent.AgentType.Hider, False)
+
 
 			seeker_ids_list = None
 			if self.__show_fellows:
 				seeker_ids_list = range(self.__num_seekers)
 				self.__window.set_show_players(agent.AgentType.Seeker, True)
 			else:
+				self.__window.set_show_players(agent.AgentType.Seeker, False)
 				human_agent_id = self.__seeker_team.get_human_agent_id()
 				human_player_id = self.__seekers_agent2player[human_agent_id]
 				seeker_ids_list = [human_player_id]
@@ -618,14 +623,18 @@ class Simulator(object):
 
 	def __enable_hider_show(self):
 		if self.__mode_hiders == 'human':
-			self.__window.set_show_players(agent.AgentType.Hider, False)
-			self.__window.set_show_players(agent.AgentType.Seeker, False)
+
+			if self.__show_opponent:
+				self.__window.set_show_players(agent.AgentType.Seeker, True)
+			else:
+				self.__window.set_show_players(agent.AgentType.Seeker, False)
 
 			hider_ids_list = None
 			if self.__show_fellows:
 				hider_ids_list = range(self.__num_hiders)
 				self.__window.set_show_players(agent.AgentType.Hider, True)
 			else:
+				self.__window.set_show_players(agent.AgentType.Hider, False)
 				human_agent_id = self.__hider_team.get_human_agent_id()
 				human_player_id = self.__hiders_agent2player[human_agent_id]
 				hider_ids_list = [human_player_id]
@@ -689,10 +698,8 @@ class Simulator(object):
 		self.__update_percepts()
 
 		# If a human player is involved, handle selective show of players
-		if self.__mode_seekers == 'human':
-			self.__enable_seeker_show()
-		if self.__mode_hiders == 'human':
-			self.__enable_hider_show()
+		self.__enable_seeker_show()
+		self.__enable_hider_show()
 
 		# If visibility flag is enabled, update the graphics
 		if self.__vis_flag:
