@@ -1178,9 +1178,6 @@ class UCBCoverageCommunicationCommanderAgent(UCBCoverageCommanderAgent):
 
 
 class OffsetAgent(Agent):
-	'''
-		An agent which takes a random move each turn
-	'''
 
 	def __init__(self, agent_type, agent_id, team, map_manager):
 		super(OffsetAgent, self).__init__(agent_type, agent_id, team, map_manager)
@@ -1190,7 +1187,7 @@ class OffsetAgent(Agent):
 		self.__in_scan_state = True
 		self.__in_transit_state = False
 
-		self.__scan_counter_max_val = 25
+		self.__scan_counter_max_val = 50
 		self.__scan_counter = self.__scan_counter_max_val
 		self.__seeker_observed = False
 
@@ -1286,7 +1283,16 @@ class OffsetAgent(Agent):
 		self.__current_offset_point = next_offset_point
 		self.__initiate_transit(self.__current_offset_point)
 
+	def __change_offset_obstacle(self):
+		print('** Obstacle Changed **')
+		self.__current_offset_obstacle = self._map_manager.get_random_adjacent_obstacle(self.__current_offset_obstacle)
+
 	def __initiate_change_transit(self):
+		# Change obstacle with proability 1/4
+		chance_num = random.randint(0,3)
+		print('** Change Num {}'.format(chance_num))
+		if chance_num == 0:
+			self.__change_offset_obstacle()
 		num_offset_points = self.__current_offset_obstacle.get_count_offset_points()
 		pnt_id = random.randint(0, num_offset_points-1)
 		self.__current_offset_point = self.__current_offset_obstacle.get_offset_point(pnt_id)
@@ -1312,7 +1318,7 @@ class OffsetAgent(Agent):
 				self.__initiate_sneak_transit()
 				self.__reset_scan_state_params()
 			elif self.__change_trigger_condition():
-				self.__initiate_change_transit()				
+				self.__initiate_change_transit()
 				self.__reset_scan_state_params()
 			if self.__in_transit_state:
 				self.__update_transit()
@@ -1323,6 +1329,7 @@ class OffsetAgent(Agent):
 			scan_action = self.__current_offset_point.get_point_action()
 		elif isinstance(self.__current_offset_point, mapmanager.OffsetPointCircle):
 			choice = random.randint(0,1)
+			choice = 0
 			if choice == 0:
 				scan_action = self.__current_offset_point.get_point_action_clkwise()
 			else:

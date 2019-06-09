@@ -1,6 +1,7 @@
 import math
 import os
 import pickle
+import random
 
 import numpy as np
 import rtree
@@ -986,10 +987,12 @@ class OffsetPointsMapManager(BasicMapManager):
 
 		for idx in range(num_obstacles):
 			if self.__obstacles_explored[idx] == False:
+				print('* Expanding graph')
 				self.__expand_obstacle_graph(idx)
 
 	def __expand_obstacle_graph(self, idx):
 		self.__obstacles_explored[idx] = True
+		print('* Node {} added'.format(idx))
 		nearby_obstacle_ids = self.__get_nearby_obstacle_ids(idx)
 		for nid in nearby_obstacle_ids:
 			# networkx graph library ignores duplicate edges
@@ -1003,6 +1006,13 @@ class OffsetPointsMapManager(BasicMapManager):
 
 	def get_count_offset_obstacles(self):
 		return len(self.__offset_obstacles)
+
+	def get_random_adjacent_obstacle(self, offset_obstacle):
+		obs_id = offset_obstacle.get_obstacle_id()
+		neighbor_ids = self.__obstacle_graph.neighbors(obs_id)
+		random_idx = random.randint(0, len(neighbor_ids)-1)
+		random_obs_id = neighbor_ids[random_idx]
+		return self.get_offset_obstacle(random_obs_id)
 
 	# def get_offset_obstacle_point(self, obs_id, pnt_id):
 	# 	obstacle = self.get_offset_obstacle(obs_id)
