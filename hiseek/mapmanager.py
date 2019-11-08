@@ -2,6 +2,7 @@ import math
 import os
 import pickle
 import random
+import collections
 
 import numpy as np
 import rtree
@@ -348,12 +349,12 @@ class StrategicPointsMapManager(BasicMapManager):
 	def get_strategic_points(self):
 		return self._strategic_points
 
-	def get_closest_strategic_point(self, point, num_points = 1):
+	def get_closest_strategic_point(self, point, num_points = 1, exact_num=True):
 		cx = point.get_x()
 		cy = point.get_y()
 		bound_box = (cx, cy, cx, cy)
 		closest_st_pts = list(self.__strategic_pts_idx.nearest(bound_box, num_points))
-		if len(closest_st_pts) > num_points:
+		if exact_num and len(closest_st_pts) > num_points:
 			closest_st_pts = list(np.random.choice(closest_st_pts, num_points, replace=False))
 		return closest_st_pts
 
@@ -403,7 +404,6 @@ class CoveragePoint(coord.Coord):
 		self.__clique = clique
 		self.__explored = False
 
-
 	def is_explored(self):
 		return self.__explored
 
@@ -417,13 +417,14 @@ class CoveragePoint(coord.Coord):
 		return self.__clique
 
 
+
 class CoveragePointsMapManager(StrategicPointsMapManager):
 
 	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
 		super(CoveragePointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
 		self.__visibility_graph = nx.Graph()
 		self.__coverage_graph = nx.Graph()
-		self.__cliques = []
+		self._cliques = []
 		self.__strategic_points2cliques = [[] for stp in self._strategic_points]
 		
 		self.__num_rays = num_rays * 4
@@ -503,6 +504,12 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		if len(closest_coverage_pts) != num_points:
 			closest_coverage_pts = list(np.random.choice(closest_coverage_pts, num_points, replace=False))
 		return closest_coverage_pts
+
+	def get_strategic_point_clique_ids(self, strategic_point_id):
+		return self.__strategic_points2cliques[strategic_point_id]
+
+	def get_clique(self, coverage_point_id):
+		return self._cliques[coverage_point_id]
 
 	def __store_coverage_points(self):
 		cpfile = open(self.__cp_file, 'wb')
@@ -720,7 +727,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 				bound_box = (cx, cy, cx, cy)
 				self._coverage_pts_idx.insert(counter, bound_box, obj=counter)
 				self._coverage_points.append(coverage_point)
-				self.__cliques.append(coverage_clique)
+				self._cliques.append(coverage_clique)
 				total_sts_covered += len(coverage_clique)
 				counter += 1
 		print('Strategic points:')
@@ -735,12 +742,12 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		print('Average strategic points covered:', total_sts_covered*1.0/len(self._coverage_points))
 
 	def __associate_strategic_points2cliques(self):
-		for i in range(len(self.__cliques)):
-			clique = self.__cliques[i]
+		for i in range(len(self._cliques)):
+			clique = self._cliques[i]
 			for stp_id in clique:
 				self.__strategic_points2cliques[stp_id].append(i)
-		# for i in range(len(self.__cliques)):
-		# 	clique = self.__cliques[i]
+		# for i in range(len(self._cliques)):
+		# 	clique = self._cliques[i]
 		# 	print('Clique:', i, 'associated strategic points:', clique)
 		# print()
 		# for i in range(len(self._strategic_points)):
@@ -771,7 +778,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			adjacent_coverage_point_ids = adjacent_clique_ids
 			for ad_id in adjacent_coverage_point_ids:
 				adjacent_coverage_point = self._coverage_points[ad_id]
-				adjacent_clique = self.__cliques[ad_id]
+				adjacent_clique = self._cliques[ad_id]
 				# print('Edge')
 				# print('Clique set:', set(clique))
 				# print('Adjacent clique set:', set(adjacent_clique))
@@ -812,6 +819,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		nx.draw(self.__coverage_graph)
 		plt.savefig(self._map_name +'_coverage_graph.png')
 		print('Coverage Graph saved')
+
 
 class OffsetPoint(coord.Coord):
 	
@@ -905,7 +913,6 @@ class OffsetObstacleRectangle(OffsetObstacle):
 			if idx < 0:
 				idx += len(self._offset_points)
 		return self._offset_points[idx]
-
 
 class OffsetObstacleCircle(OffsetObstacle):
 	
@@ -1021,4 +1028,149 @@ class OffsetPointsMapManager(BasicMapManager):
 
 	# def get_offset_obstacle_point_coord(self, obs_id, pnt_id):
 	# 	offset_point = self.get_offset_obstacle_point(obs_id, pnt_id)
-	# 	return offset_point.get_offset_coord()		
+	# 	return offset_point.get_offset_coord()
+
+class HikerGraphComponent(object):
+
+	def __init__(self, strategic_node_set, map_manager):
+		self.__strategic_node_set = strategic_node_set
+		self.__map_manager = map_manager
+
+		self.__coverage_node_set = set()
+		self.__capture_graph = nx.Graph()
+		self.__coverage_layers = None
+		self.__strategic_layers = None
+		self.__min_seekers = 0
+		self.__cov_node2layer = {}
+		self.__strat_node2layer = {}
+
+		self.__find_coverage_nodes()
+		self.__create_capture_graph()
+		self.__find_optimal_layers()
+		self.__associate_covnodes2layers()
+		self.__associate_stratnodes2layers()
+
+	def __find_coverage_nodes(self):
+		for strat_node in self.__strategic_node_set:
+			clique_ids = self.__map_manager.get_strategic_point_clique_ids(strat_node)
+			# clque id = cov_node id
+			for cov_node in clique_ids:
+				self.__coverage_node_set.add(cov_node)
+
+	def __create_capture_graph(self):
+		for cov_node in self.__coverage_node_set:
+			self.__capture_graph.add_node(cov_node)
+
+		for cov_node in self.__capture_graph:
+			# clique id = coverage point id
+			clique = self.__map_manager.get_clique(cov_node)
+			adj_strat_nodes = [x for x in clique if x in self.__strategic_node_set]
+			for strat_node in adj_strat_nodes:
+				adj_cov_nodes = self.__map_manager.get_trans_coverage_nodes(strat_node)
+				adj_cov_nodes = [x for x in adj_cov_nodes if x in self.__coverage_node_set]
+				for adj_cov_node in adj_cov_nodes:
+					self.__capture_graph.add_edge(cov_node, adj_cov_node)
+
+	def __capture_bfs(self, source_cov_node):
+		explored = {cov_node: False for cov_node in self.__capture_graph}
+		q = collections.deque()
+
+		q.append(source_cov_node)
+		explored[source_cov_node] = True
+		layers = []
+
+		while not q.empty():
+			n = len(q)
+			layers.append([])
+			for i in range(n):
+				cur_cov_node = q.popleft()
+				layers[-1].append(cur_cov_node)
+				for cov_node in self.__capture_graph.neighbors(cur_cov_node):
+					if not explored[cov_node]:
+						q.append(cov_node)
+						explored[cov_node] = True
+		return layers
+
+	def __min_seekers_required(self, layers):
+		max_sum = len(layers[0])
+		current_sum = 0
+		for i in range(1, len(layers)):
+			current_sum = len(layers[i]) + len(layers[i-1])
+			max_sum = max(max_sum, current_sum)
+		return max_sum
+
+	def __find_optimal_layers(self):
+		self.__min_seekers = 100000000
+		for cov_node in self.__capture_graph:
+			layers = self.__capture_bfs(cov_node)
+			reqd_seekers = self.__min_seekers_required(layers)
+			if reqd_seekers < self.__min_seekers:
+				self.__coverage_layers = layers
+				self.__min_seekers = reqd_seekers
+
+	def __associate_covnodes2layers(self):
+		for layer_id, layer in enumerate(self.__coverage_layers):
+			for cov_node in layer:
+				self.__cov_node2layer[cov_node] = layer_id
+
+	def __associate_stratnodes2layers(self):
+		self.__strategic_layers = [[] for x in self.__coverage_layers]
+		for strat_node in self.__strategic_node_set:
+			clique_ids = self.__map_manager.get_strategic_point_clique_ids(strat_node)
+			layer_ids = [self.__cov_node2layer[cov_node] for cov_node in clique_ids]
+			self.__strat_node2layer[strat_node] = min(layer_ids)
+			self.__strategic_layers[layer_ids].append(strat_node)
+
+	def get_layer_coverage_nodes(self, layer_id):
+		return self.__coverage_layers[layer_id]
+
+	def get_layer_strategic_nodes(self, layer_id):
+		return self.__strategic_nodes[layer_id]
+
+	def get_num_layer_coverage_nodes(self, layer_id):
+		return len(self.__coverage_layers[layer_id])
+
+	def get_num_layers(self):
+		return len(self.__coverage_layers)
+
+class HikerMapManager(CoveragePointsMapManager):
+
+	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
+			super(HikerMapManager, self).__init__(mapworld, fps, velocity, num_rays, visibility_angle, offset, inference_map)
+			
+			self.__htrav_graph = nx.Graph()
+			self.__strat_node2adj_cov_nodes = [set() for i in range(self._num_strategic_points)]
+			self.__hiker_components = []
+
+			self.__create_htrav_graph()
+			self.__associate_strats2adjacent_covs()
+			self.__create_hiker_components()
+
+	def __create_htrav_graph(self):
+		for strat_node in range(self._num_strategic_points):
+			self.__htrav_graph.add_node(strat_node)
+			strat_pt = self._strategic_points[strat_node]
+			adj_srat_nodes = self.get_closest_strategic_point(strat_pt, 5, False)
+			for adj_strat_node in adj_strat_nodes:
+				self.__htrav_graph.add_edge(strat_node, adj_strat_node)
+
+	def __associate_strats2adjacent_covs(self):
+		for strat_node in self.__htrav_graph:
+			for adj_st_node in self.__htrav_graph.neighbors(strat_node):
+				# clique id = coverage point id
+				for adj_cov_id in self.__strategic_points2cliques[adj_st_node]:
+					self.__strat_node2adj_cov_nodes[strat_node].add(adj_cov_id)
+
+	def __create_hiker_components(self):
+		for strat_node_set in nx.connected_components(self.__htrav_graph):
+			hiker_component = HikerGraphComponent(strat_node_set, self)
+			self.__hiker_components.append(hiker_component)
+
+	def get_trans_coverage_nodes(self, strat_node):
+		return self.__strat_node2adj_cov_nodes[strat_node]
+
+	def get_hiker_component(self, component_id):
+		return self.__hiker_components[component_id]
+
+	def get_num_hiker_components(self):
+		return len(self.__hiker_components)

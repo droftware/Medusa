@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 import copy
 import random
 import math
+import collections
 
 import numpy as np
 
@@ -1380,3 +1381,319 @@ class OffsetCommanderAgent(OffsetAgent):
 
 	def get_opening_obstacle(self, rank, idx):
 		return self.__skill.get_opening_obstacle(rank, idx)
+
+
+class CoverageAgent(Agent):
+
+	def __init__(self, agent_type, agent_id, team, map_manager):
+		super(CoverageAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		self.__planner = planner.BasicPlanner(self._map_manager)
+		
+		self.__next_state = None
+		self.__current_coverage_node = None
+
+		self.__in_scan_state = True
+		self.__scan_counter = 0
+		self.__scan_directions = [action.Action.N, action.Action.S, action.Action.E, action.Action.W]
+
+		self.__commander_id = 0
+		self.__message_sent = False
+
+		self.__in_change_transit = False
+
+	def __select_path(self, coverage_node):
+		start_coord = self._position
+		goal_coord = self._map_manager.get_coverage_point(coverage_node)
+		self.__planner.plan(start_coord, goal_coord)
+
+	def __select_closest_action(self, direction_vec):
+		max_cos_prod = -1 * float('inf')
+		max_action = 0
+		# print('*** Selecting action')
+		for i in range(action.Action.num_actions):
+			if i == action.Action.ST:
+				continue
+			action_vec = action.VECTOR[i]
+			action_vec.normalize()
+			direction_vec.normalize()
+			cos_prod = direction_vec.dot_product(action_vec)
+			
+			if cos_prod >= max_cos_prod:
+				# print('Changing min')
+				max_cos_prod = cos_prod
+				max_action = i
+		# print('Action choosen:', action.Action.action2string[max_action])
+		return max_action
+
+	def __select_direction(self):
+		# If the next state is vaid, calculate the vector and return
+		if self._position != self.__next_state and self.__next_state != None:
+			# print(' next state is valid, finding and returning the direction vec ...')
+			# print('Next state:', str(self.__next_state), 'Current position:', str(self._position))
+			direction_vec = vector.Vector2D.from_coordinates(self.__next_state, self._position)
+			# print('Direction vec:', str(direction_vec))
+			direction_vec.normalize()
+			return direction_vec
+		
+		return None
+
+	def __get_next_coverage_node(self):
+		# print()
+		# print('Commander: analyzing messages')
+		messages = self._agent_messenger.get_new_messages()
+		assert(len(messages) <= 1)
+		if len(messages) == 1:
+			content = messages[0].get_content().strip()
+			if content[0] == 'T':
+				token = content.split(',')
+				coverage_node = int(token[1])
+				return coverage_node
+		return None
+
+	def __check_commander_update(self):
+		coverage_node = self.__get_next_coverage_node()
+		if coverage_node is not None:
+			self.__current_coverage_node = current_node
+			return True
+		return False
+
+	def __update_transit(self):
+		 # Decides wether the next_state needs to change or not
+		if self._position.get_euclidean_distance(self.__next_state) <= self.__margin:
+			self.__next_state = self.__planner.get_paths_next_coord()
+			# print('S State reached, changing to next state:', str(self.__next_state))
+			if self.__next_state == None:
+				# Agent reached its destination
+				print('S Change transit completed')
+				self.__in_change_transit = False
+				self.__in_scan_state = True
+				
+	def __initiate_transit(self):
+		self.__select_path(self.__current_coverage_node)
+		self.__next_state = self.__planner.get_paths_next_coord()
+		# print('S Starting Long contour transit from:', str(self._position))
+		# print('S Next state:', str(self.__next_state))
+		if self.__next_state != None:
+			# print('S long transits path is valid')
+			self.__in_change_transit = True
+		else:
+			# print('S long transits path is NOT valid')
+			self.__in_change_transit = False
+
+	def __reset_scan_state(self):
+		self.__in_scan_state = False
+		self.__scan_counter = 0
+		self.__message_sent = False
+
+	def __inform_completion(self):
+		if self.__current_coverage_node is not None:
+			self._agent_messenger.compose(self.__commander_id, 'D')
+
+	def __update_scan(self):
+		self.__scan_counter = (self.__scan_counter + 1) % len(self.__scan_directions)
+		if self.__message_sent and self.__check_commander_update():
+			self.__reset_scan_state()
+		elif not self.__message_sent and self.__scan_counter == 0:
+			self.__inform_completion()
+			self.__message_sent = True
+
+	def __update_exploration(self):
+		if self.__in_scan_state:
+			self.__update_scan()
+		else:
+			if not self.__in_change_transit:
+				self.__initiate_transit()
+			if self.__in_change_transit:
+				self.__update_transit()
+
+	def select_action(self):
+		# print('')
+		# print('Agent id:', self._id)
+		
+		self.__update_exploration()
+
+		if self.__in_scan_state:
+			self._action = self.__scan_directions[self.__scan_counter]
+		else:
+			direction_vec = self.__select_direction() 
+			if direction_vec == None:
+				# print('@ Direction vec is None, action chosen randomly')
+				self._action = random.choice(action.Action.all_actions)
+				# if self._position != self.__next_state:
+					# self._action = random.choice(action.Action.all_actions)
+				# else:
+					# self.action = action.Action.ST
+			else:
+				if self._stop_counter >= 3:
+					# print('@ Agent got stuck, action chosen randomly')
+					self._action = random.choice(action.Action.all_actions)
+				else:
+					self._action = self.__select_closest_action(direction_vec)
+
+	def clear_temporary_state(self):
+		pass
+
+class HikerCommanderAgent(Agent):
+
+	def __init__(self, agent_type, agent_id, team, map_manager):
+		super(HikerCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager)
+		self.__skill = skill.LineOpeningSkill(agent_type, team, map_manager)
+		self.__num_agents = team.get_num_agents()
+		self.__num_hiker_components = map_manager.get_num_hiker_components()
+		self.__layer_counter = 0
+		self.__first_layer = -1
+		self.__second_layer = -1
+		self.__first_seekers = []
+		self.__second_seekers = []
+		self.__extra_seekers = []
+		self.__commander_self_messages = collections.deque()
+
+		self.__current_component_id = 0
+		self.__current_component = map_manager.get_hiker_component(0)
+		self.__new_component_flag = True
+
+	def get_opening_position(self, rank, idx):
+		return self.__skill.get_opening_position(rank, idx)
+
+	def __inform_completion(self):
+		if self.__current_coverage_node is not None:
+			self.__contour_counter += 1
+
+	def __get_next_coverage_node(self):
+		if len(self.__commander_self_messages) > 0:
+			return self.__commander_self_messages.pop()
+		return None
+
+	def analyze_team_messages(self):
+		messages = self._agent_messenger.get_new_messages()
+		for mail in messages:
+			print('Agent ID:', self._id ,'Commander: Mail:',str(mail),'sender:', mail.get_sender(), 'receiver:', mail.get_receiver())
+			content = mail.get_content().strip()
+			if content[0] == 'D':
+				sender_id = mail.get_sender()
+				# if sender_id in self.__first_seekers or sender_id in self.__second_seekers:
+				self.__layer_counter += 1
+
+	def __second_layer_exists(self):
+		'''
+			Returns True if the current component has >= 2 layers
+		'''
+		return self.__current_component.get_num_layers() >= 2
+
+	def __get_layer_coverage_node(self, layer_id, idx):
+		'''
+		Returns the idx'th coverage node belonging to layer
+		'''
+		coverage_nodes = self.__current_component.get_layer_coverage_nodes(layer_id)
+		return coverage_nodes[idx]
+
+	
+	# def __total_current_coverage_nodes(self):
+	# 	'''
+	# 		Total number of coverage nodes in the current layers
+	# 	'''
+	# 	total_nodes = self.__get_num_layer_coverage_nodes(self.__first_layer)
+	# 	if self.__second_layer_exists():
+	# 		total_nodes += self.__get_num_layer_coverage_nodes(self.__second_layer)
+	# 	return total_nodes
+
+	def __inform_solo_seeker(self, seeker_id, coverage_node):
+		if seeker_id == 0:
+			self.__commander_self_messages.append(coverage_node)
+		else:
+			self._agent_messenger.compose(seeker_id, str(coverage_node))
+
+	def __inform_seekers(self, layer_id, seekers):
+		for idx, seeker_id in enumerate(seekers):
+			coverage_node = self.__get_layer_coverage_node(layer_id, idx)
+			self.__inform_solo_seeker(seeker_id, coverage_node)
+
+	def __inform_random_seekers(self, layer_ids, seekers):
+		for seeker_id in seekers:
+			layer_id = random.choice(layer_ids)
+			idx = random.choice(range(self.__get_num_layer_coverage_nodes(layer_id)))
+			coverage_node = self.__get_layer_coverage_node(layer_id, idx)
+			self.__inform_solo_seeker(seeker_id, coverage_node)
+
+	def __handle_new_component(self):
+		self.__layer_counter = 0
+		self.__first_layer = 0
+		if self.__second_layer_exists():
+			self.__second_layer = 1
+
+		del self.__first_seekers[:]
+		del self.__second_seekers[:]
+		del self.__extra_seekers[:]
+
+		# Allot seekers to layers
+		num_first_seekers = self.__current_component.get_num_layer_coverage_nodes(self.__first_layer)
+		num_second_seekers = 0
+		if self.__second_layer_exists():
+			num_second_seekers = self.__current_component.get_num_layer_coverage_nodes(self.__second_layer)
+		for seeker_id in range(self.__num_agents):
+			if len(self.__first_seekers) < num_first_seekers:
+				self.__first_seekers.append(seeker_id)
+			elif self.__second_layer_exists() and len(self.__second_seekers) < num_second_seekers:
+				self.__second_seekers.append(seeker_id)
+			else:
+				self.__extra_seekers.append(seeker_id)
+
+		self.__inform_seekers(self.__first_layer, self.__first_seekers)
+		if self.__second_layer_exists():
+			self.__inform_seekers(self.__second_layer, self.__second_seekers)
+
+		random_layers = [self.__first_layer]
+		if self.__second_layer_exists():
+			random_layers.append(self.__second_layer)
+		self.__inform_random_seekers(random_layers, self.__extra_seekers)
+		self.__new_component_flag = False
+
+	def __are_last_layers(self):
+		num_layers = self.__current_component.get_num_layers()
+		if num_layers >= 2:
+			return self.__second_layer == (num_layers-1)
+		return True
+
+	def __switch_next_layers(self):
+		self.__first_layer += 1
+		self.__second_layer += 1
+
+		num_first_seekers = self.__current_component.get_num_layer_coverage_nodes(self.__first_layer)
+		num_second_seekers = self.__current_component.get_num_layer_coverage_nodes(self.__second_layer)
+
+		self.__layer_counter = num_first_seekers
+
+		prev_first_seekers = self.__first_seekers
+		prev_extra_seekers = self.__extra_seekers
+		self.__first_seekers = self.__second_seekers
+		self.__second_seekers = []
+		self.__extra_seekers = []
+		unalloted_seeker_ids = prev_first_seekers + prev_extra_seekers:
+		for seeker_id in unalloted_seeker_ids:
+			if len(self.__second_seekers) < num_second_seekers:
+				self.__second_seekers.append(seeker_id)
+			else:
+				self.__extra_seekers.append(seeker_id)
+		
+		self.__inform_seekers(self.__second_layer, self.__second_seekers)
+		self.__inform_random_seekers([self.__first_layer, self.__second_layer], self.__extra_seekers)
+
+	def __switch_next_component(self):
+		self.__current_component_id = (self.__current_component_id + 1) % self.__num_hiker_components
+		self.__current_component = self._map_manager.get_hiker_component(self.__current_component_id)
+		self.__new_component_flag = True
+
+	def generate_team_messages(self):
+		if self.__new_component_flag:
+			self.__handle_new_component()
+		elif not self.__are_last_layers() and self.__layer_counter == self.__num_agents:
+			self.__switch_next_layers()
+		elif self.__are_last_layers():
+			self.__switch_next_component()
+			
+	def select_action(self):
+		# print('')
+		# print('Seeker:', self._id)
+		self.analyze_team_messages()
+		self.generate_team_messages()
+		super(HikerCommanderAgent, self).select_action()
