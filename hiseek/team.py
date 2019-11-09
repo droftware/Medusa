@@ -615,6 +615,20 @@ class HikerTeam(Team):
 
 		map_manager = mapmanager.HikerMapManager(self._mapworld, self._fps, self._velocity, self.__num_rays, self.__visibility_angle)
 		reqd_min_seekers = map_manager.get_min_reqd_seekers()
+
+		num_hiker_components = map_manager.get_num_hiker_components()
+		print('* Hiker Info *')
+		print('Required minimum seekers :{}'.format(reqd_min_seekers))
+		print('Num hiker graph components:{}'.format(num_hiker_components))
+		for idx in range(num_hiker_components):
+			hiker_component = map_manager.get_hiker_component(idx)
+			num_layers = hiker_component.get_num_layers()
+			print('')
+			print('Component #:{}, Num layers:{}'.format(idx, num_layers))
+			for jdx in range(num_layers):
+				cov_layer = hiker_component.get_layer_coverage_nodes(jdx)
+				print('Layer:#{} NumNodes:{} CoverageNodes:{}'.format(jdx, len(cov_layer), cov_layer))
+		
 		assert(self._num_agents >= reqd_min_seekers)
 
 		self._map_managers.append(map_manager)

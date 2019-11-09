@@ -421,6 +421,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 
 	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
 		super(CoveragePointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
+		print('Loading CoveragePointsMapManager')
 		self.__visibility_graph = nx.Graph()
 		self.__coverage_graph = nx.Graph()
 		self._cliques = []
@@ -439,10 +440,12 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		self.__contours_file = self._map_name + '.contours'
 		# also coverage pt 2 contour
 
-		if os.path.isfile(self.__cp_file) and os.path.isfile(self.__cp_idx_file + '.idx') and os.path.isfile(self.__contours_file):
+		if False and os.path.isfile(self.__cp_file) and os.path.isfile(self.__cp_idx_file + '.idx') and os.path.isfile(self.__contours_file):
+			print('Loading coverage point files')
 			self.__load_coverage_points()
 			self.__load_coverage_points_index()
 			self.__load_coverage_contours()
+			self.__associate_strategic_points2cliques()
 		else:
 			self._coverage_points = []
 			self._coverage_pts_idx = rtree.index.Index(self.__cp_idx_file)
@@ -505,6 +508,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		return closest_coverage_pts
 
 	def get_strategic_point_clique_ids(self, strategic_point_id):
+		print(self.__strategic_points2cliques)
 		return self.__strategic_points2cliques[strategic_point_id]
 
 	def get_clique(self, coverage_point_id):
@@ -1055,6 +1059,7 @@ class HikerGraphComponent(object):
 			# clque id = cov_node id
 			for cov_node in clique_ids:
 				self.__coverage_node_set.add(cov_node)
+		print('	Found coverage nodes:{}'.format(self.__coverage_node_set))
 
 	def __create_capture_graph(self):
 		for cov_node in self.__coverage_node_set:
@@ -1078,7 +1083,7 @@ class HikerGraphComponent(object):
 		explored[source_cov_node] = True
 		layers = []
 
-		while not q.empty():
+		while q:
 			n = len(q)
 			layers.append([])
 			for i in range(n):
@@ -1116,9 +1121,10 @@ class HikerGraphComponent(object):
 		self.__strategic_layers = [[] for x in self.__coverage_layers]
 		for strat_node in self.__strategic_node_set:
 			clique_ids = self.__map_manager.get_strategic_point_clique_ids(strat_node)
-			layer_ids = [self.__cov_node2layer[cov_node] for cov_node in clique_ids]
-			self.__strat_node2layer[strat_node] = min(layer_ids)
-			self.__strategic_layers[layer_ids].append(strat_node)
+			layer_id = min([self.__cov_node2layer[cov_node] for cov_node in clique_ids])
+			
+			self.__strat_node2layer[strat_node] = layer_id
+			self.__strategic_layers[layer_id].append(strat_node)
 
 	def get_layer_coverage_nodes(self, layer_id):
 		return self.__coverage_layers[layer_id]
@@ -1152,7 +1158,7 @@ class HikerMapManager(CoveragePointsMapManager):
 		for strat_node in range(self._num_strategic_points):
 			self.__htrav_graph.add_node(strat_node)
 			strat_pt = self._strategic_points[strat_node]
-			adj_srat_nodes = self.get_closest_strategic_point(strat_pt, 5, False)
+			adj_strat_nodes = self.get_closest_strategic_point(strat_pt, 5, False)
 			for adj_strat_node in adj_strat_nodes:
 				self.__htrav_graph.add_edge(strat_node, adj_strat_node)
 
@@ -1160,11 +1166,12 @@ class HikerMapManager(CoveragePointsMapManager):
 		for strat_node in self.__htrav_graph:
 			for adj_st_node in self.__htrav_graph.neighbors(strat_node):
 				# clique id = coverage point id
-				for adj_cov_id in self.__strategic_points2cliques[adj_st_node]:
+				for adj_cov_id in self.get_strategic_point_clique_ids(adj_st_node):
 					self.__strat_node2adj_cov_nodes[strat_node].add(adj_cov_id)
 
 	def __create_hiker_components(self):
 		for strat_node_set in nx.connected_components(self.__htrav_graph):
+			# print('Connected component:{}'.format(strat_node_set))
 			hiker_component = HikerGraphComponent(strat_node_set, self)
 			self.__hiker_components.append(hiker_component)
 

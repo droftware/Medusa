@@ -1388,6 +1388,7 @@ class CoverageAgent(Agent):
 	def __init__(self, agent_type, agent_id, team, map_manager):
 		super(CoverageAgent, self).__init__(agent_type, agent_id, team, map_manager)
 		self.__planner = planner.BasicPlanner(self._map_manager)
+		self.__margin = 8
 		
 		self.__next_state = None
 		self.__current_coverage_node = None
@@ -1396,7 +1397,7 @@ class CoverageAgent(Agent):
 		self.__scan_counter = 0
 		self.__scan_directions = [action.Action.N, action.Action.S, action.Action.E, action.Action.W]
 
-		self.__commander_id = 0
+		self._commander_id = 0
 		self.__message_sent = False
 
 		self.__in_change_transit = False
@@ -1437,9 +1438,10 @@ class CoverageAgent(Agent):
 		
 		return None
 
-	def __get_next_coverage_node(self):
+	def _get_next_coverage_node(self):
 		# print()
 		# print('Commander: analyzing messages')
+		# print('calling next cov node:{}'.format(self._id))
 		messages = self._agent_messenger.get_new_messages()
 		assert(len(messages) <= 1)
 		if len(messages) == 1:
@@ -1451,9 +1453,10 @@ class CoverageAgent(Agent):
 		return None
 
 	def __check_commander_update(self):
-		coverage_node = self.__get_next_coverage_node()
+		# print('checking commander update agent_id:{}'.format(self._id))
+		coverage_node = self._get_next_coverage_node()
 		if coverage_node is not None:
-			self.__current_coverage_node = current_node
+			self.__current_coverage_node = coverage_node
 			return True
 		return False
 
@@ -1464,7 +1467,7 @@ class CoverageAgent(Agent):
 			# print('S State reached, changing to next state:', str(self.__next_state))
 			if self.__next_state == None:
 				# Agent reached its destination
-				print('S Change transit completed')
+				# print('S Change transit completed')
 				self.__in_change_transit = False
 				self.__in_scan_state = True
 				
@@ -1486,10 +1489,13 @@ class CoverageAgent(Agent):
 		self.__message_sent = False
 
 	def __inform_completion(self):
+		print('Informing completion:{}'.format(self._id))
 		if self.__current_coverage_node is not None:
-			self._agent_messenger.compose(self.__commander_id, 'D')
+			self._agent_messenger.compose(self._commander_id, 'D')
 
 	def __update_scan(self):
+		# if self._id == self._commander_id:
+			# print('Scanning state for commander, message_sent:{}, scan_counter:{}'.format(self.__message_sent, self.__scan_counter))
 		self.__scan_counter = (self.__scan_counter + 1) % len(self.__scan_directions)
 		if self.__message_sent and self.__check_commander_update():
 			self.__reset_scan_state()
@@ -1533,6 +1539,12 @@ class CoverageAgent(Agent):
 	def clear_temporary_state(self):
 		pass
 
+	def generate_messages(self):
+		pass
+
+	def analyze_messages(self):
+		pass
+
 class HikerCommanderAgent(CoverageAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager):
@@ -1556,10 +1568,13 @@ class HikerCommanderAgent(CoverageAgent):
 		return self.__skill.get_opening_position(rank, idx)
 
 	def __inform_completion(self):
-		if self.__current_coverage_node is not None:
-			self.__contour_counter += 1
+		# if self.__current_coverage_node is not None:
+		print('Informing completion:{}'.format(self._id))
+		self.__layer_counter += 1
+		# print('Informing self, layer_counter:{}'.format(self.__layer_counter))
 
-	def __get_next_coverage_node(self):
+	def _get_next_coverage_node(self):
+		# print('*** calling next cov node:{}'.format(self._id))
 		if len(self.__commander_self_messages) > 0:
 			return self.__commander_self_messages.pop()
 		return None
@@ -1567,12 +1582,13 @@ class HikerCommanderAgent(CoverageAgent):
 	def analyze_team_messages(self):
 		messages = self._agent_messenger.get_new_messages()
 		for mail in messages:
-			print('Agent ID:', self._id ,'Commander: Mail:',str(mail),'sender:', mail.get_sender(), 'receiver:', mail.get_receiver())
+			# print('Agent ID:', self._id ,'Commander: Mail:',str(mail),'sender:', mail.get_sender(), 'receiver:', mail.get_receiver())
 			content = mail.get_content().strip()
 			if content[0] == 'D':
 				sender_id = mail.get_sender()
 				# if sender_id in self.__first_seekers or sender_id in self.__second_seekers:
 				self.__layer_counter += 1
+				# print('Message recieved from:{}, layer_counter:{}'.format(sender_id,self.__layer_counter))
 
 	def __second_layer_exists(self):
 		'''
@@ -1598,7 +1614,8 @@ class HikerCommanderAgent(CoverageAgent):
 	# 	return total_nodes
 
 	def __inform_solo_seeker(self, seeker_id, coverage_node):
-		if seeker_id == self.__commander_id:
+		if seeker_id == self._commander_id:
+			# print('Comander go to:{}'.format(coverage_node))
 			self.__commander_self_messages.append(coverage_node)
 		else:
 			self._agent_messenger.compose(seeker_id, 'T, ' + str(coverage_node))
@@ -1606,16 +1623,20 @@ class HikerCommanderAgent(CoverageAgent):
 	def __inform_seekers(self, layer_id, seekers):
 		for idx, seeker_id in enumerate(seekers):
 			coverage_node = self.__get_layer_coverage_node(layer_id, idx)
+			print('Agent:{} Going to:{}'.format(seeker_id, coverage_node))
 			self.__inform_solo_seeker(seeker_id, coverage_node)
 
 	def __inform_random_seekers(self, layer_ids, seekers):
 		for seeker_id in seekers:
 			layer_id = random.choice(layer_ids)
-			idx = random.choice(range(self.__get_num_layer_coverage_nodes(layer_id)))
+			idx = random.choice(range(self.__current_component.get_num_layer_coverage_nodes(layer_id)))
 			coverage_node = self.__get_layer_coverage_node(layer_id, idx)
 			self.__inform_solo_seeker(seeker_id, coverage_node)
 
 	def __handle_new_component(self):
+		print('# Handling Component :{}'.format(self.__current_component_id))
+		print('')
+
 		self.__layer_counter = 0
 		self.__first_layer = 0
 		if self.__second_layer_exists():
@@ -1658,6 +1679,9 @@ class HikerCommanderAgent(CoverageAgent):
 		self.__first_layer += 1
 		self.__second_layer += 1
 
+		print('# Switching to layers:{} and {}'.format(self.__first_layer, self.__second_layer))
+		print('')
+
 		num_first_seekers = self.__current_component.get_num_layer_coverage_nodes(self.__first_layer)
 		num_second_seekers = self.__current_component.get_num_layer_coverage_nodes(self.__second_layer)
 
@@ -1668,7 +1692,7 @@ class HikerCommanderAgent(CoverageAgent):
 		self.__first_seekers = self.__second_seekers
 		self.__second_seekers = []
 		self.__extra_seekers = []
-		unalloted_seeker_ids = prev_first_seekers + prev_extra_seekers:
+		unalloted_seeker_ids = prev_first_seekers + prev_extra_seekers
 		for seeker_id in unalloted_seeker_ids:
 			if len(self.__second_seekers) < num_second_seekers:
 				self.__second_seekers.append(seeker_id)
@@ -1680,16 +1704,27 @@ class HikerCommanderAgent(CoverageAgent):
 
 	def __switch_next_component(self):
 		self.__current_component_id = (self.__current_component_id + 1) % self.__num_hiker_components
+		print('# Switching to component:{}'.format(self.__current_component_id))
+		print('')
 		self.__current_component = self._map_manager.get_hiker_component(self.__current_component_id)
 		self.__new_component_flag = True
 
 	def generate_team_messages(self):
 		if self.__new_component_flag:
+			print('* Handling new component')
 			self.__handle_new_component()
-		elif not self.__are_last_layers() and self.__layer_counter == self.__num_agents:
-			self.__switch_next_layers()
-		elif self.__are_last_layers():
-			self.__switch_next_component()
+		elif self.__layer_counter == self.__num_agents:
+			if self.__are_last_layers():
+				print('* Switching next component')
+				self.__switch_next_component()
+			else:
+				print('* Switching layers')
+				self.__switch_next_layers()
+
+		# elif not self.__are_last_layers() and self.__layer_counter == self.__num_agents:
+		# 	self.__switch_next_layers()
+		# elif self.__are_last_layers() and self.__layer_counter == self.__num_agents:
+		# 	self.__switch_next_component()
 			
 	def select_action(self):
 		# print('')
