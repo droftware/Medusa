@@ -126,7 +126,7 @@ class Simulator(object):
 	"""
 
 	mode_type_hiders = ['random', 'bayesian', 'sbandit', 'hm_sbandit', 'hv_sbandit', 'hmv_sbandit', 'human', 'offset']
-	mode_type_seekers = ['random', 'sbandit', 'coverage', 'cc', 'human']
+	mode_type_seekers = ['random', 'sbandit', 'coverage', 'cc', 'human', 'hiker']
 
 	def __init__(self, mode_hiders, mode_seekers, num_hiders, num_seekers, map_id, input_file, output_file, conf_options, log_flag, vis_flag, total_step_times, sim_turn, max_steps=1000, window_width=640, window_height=360):
 		assert(mode_hiders in Simulator.mode_type_hiders)
@@ -202,6 +202,8 @@ class Simulator(object):
 			self.__seeker_team = team.UCBCoverageCommunicationTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
 		elif mode_seekers == 'human':
 			self.__seeker_team = team.HumanRandomTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta)
+		elif mode_seekers == 'hiker':
+			self.__seeker_team = team.HikerTeam(agent.AgentType.Seeker, num_seekers, seeker_map_copy, self.__fps, self.__velocity, self.__fixed_time_quanta, self.__num_rays, self.__visibility_angle)
 
 		# Graphics setup
 		self.__window_width = self.__polygon_map.get_map_width()

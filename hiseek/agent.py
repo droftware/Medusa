@@ -1533,7 +1533,7 @@ class CoverageAgent(Agent):
 	def clear_temporary_state(self):
 		pass
 
-class HikerCommanderAgent(Agent):
+class HikerCommanderAgent(CoverageAgent):
 
 	def __init__(self, agent_type, agent_id, team, map_manager):
 		super(HikerCommanderAgent, self).__init__(agent_type, agent_id, team, map_manager)
@@ -1598,10 +1598,10 @@ class HikerCommanderAgent(Agent):
 	# 	return total_nodes
 
 	def __inform_solo_seeker(self, seeker_id, coverage_node):
-		if seeker_id == 0:
+		if seeker_id == self.__commander_id:
 			self.__commander_self_messages.append(coverage_node)
 		else:
-			self._agent_messenger.compose(seeker_id, str(coverage_node))
+			self._agent_messenger.compose(seeker_id, 'T, ' + str(coverage_node))
 
 	def __inform_seekers(self, layer_id, seekers):
 		for idx, seeker_id in enumerate(seekers):

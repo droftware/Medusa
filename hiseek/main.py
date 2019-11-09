@@ -5,10 +5,9 @@ import argparse
 import experiment
 import config
 
-
-def main():				
+def main():
 	parser = argparse.ArgumentParser(description="Medusa: Simulation of a massive hide and seek game")
-	# 4 main modes of the game   
+	# 4 main modes of the game
 	parser.add_argument("-v", "--visualisation", action="store_true", help=" This mode displays the simulation in a window but replay of the game is not saved in a file.")
 	parser.add_argument("-s", "--simulation", action="store_true", help="This mode does not display the simulation but replay of the game is saved in a file.")
 	parser.add_argument("-vs", "--vis_sim", action="store_true", help="This mode displays the simulation as well as saves the replay of the game in a file.")

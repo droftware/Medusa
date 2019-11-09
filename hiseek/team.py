@@ -404,7 +404,6 @@ class UCBCoverageTeam(Team):
 		self._map_managers = [] # one map manager for one level
 		self._members = [[], []]
 		self._active = [[], []]
-		
 
 		self.__num_rays = num_rays
 		self.__visibility_angle = visibility_angle
@@ -598,3 +597,46 @@ class OffsetTeam(Team):
 				self._members[i][j].set_position(position)
 				self._members[i][j].set_offset_point(position)
 				self._members[i][j].set_offset_obstacle(obstacle)
+
+class HikerTeam(Team):
+
+	ranks = 2
+
+	def __init__(self, agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta, num_rays, visibility_angle):
+		super(HikerTeam, self).__init__(agent_type, num_agents, mapworld, fps, velocity, fixed_time_quanta)
+
+		# prepare a rank 1 hierarchy member list and map managers
+		self._map_managers = [] # one map manager for one level
+		self._members = [[], []]
+		self._active = [[], []]
+		
+		self.__num_rays = num_rays
+		self.__visibility_angle = visibility_angle
+
+		map_manager = mapmanager.HikerMapManager(self._mapworld, self._fps, self._velocity, self.__num_rays, self.__visibility_angle)
+		reqd_min_seekers = map_manager.get_min_reqd_seekers()
+		assert(self._num_agents >= reqd_min_seekers)
+
+		self._map_managers.append(map_manager)
+
+		# recruit the commander of the random team
+		agent_id = 0
+		commander_member = agent.HikerCommanderAgent(agent_type, agent_id, self, self._map_managers[0])
+		self._members[1].append(commander_member)
+		self._active[1].append(True)
+
+		# recruit agents for the team
+		for i in range(self._num_agents - 1):
+			agent_id = i+1
+			member = agent.CoverageAgent(agent_type, agent_id, self, self._map_managers[0])
+			self._members[0].append(member)
+			self._active[0].append(True)
+
+		# print('Members:', self._members)
+
+		# Get the opening positions from the commader member and set each agents
+		# position accordingly
+		for i in reversed(range(self.ranks)):
+			for j in range(self.get_num_rankers(i)):
+				position = commander_member.get_opening_position(i, j)
+				self._members[i][j].set_position(position)

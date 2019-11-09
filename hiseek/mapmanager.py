@@ -417,7 +417,6 @@ class CoveragePoint(coord.Coord):
 		return self.__clique
 
 
-
 class CoveragePointsMapManager(StrategicPointsMapManager):
 
 	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
@@ -1133,6 +1132,9 @@ class HikerGraphComponent(object):
 	def get_num_layers(self):
 		return len(self.__coverage_layers)
 
+	def get_min_seekers(self):
+		return self.__min_seekers
+
 class HikerMapManager(CoveragePointsMapManager):
 
 	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
@@ -1165,6 +1167,12 @@ class HikerMapManager(CoveragePointsMapManager):
 		for strat_node_set in nx.connected_components(self.__htrav_graph):
 			hiker_component = HikerGraphComponent(strat_node_set, self)
 			self.__hiker_components.append(hiker_component)
+
+	def get_min_reqd_seekers(self):
+		'''
+		Minimum number of seekers required for the strategy to work
+		'''
+		return min([comp.get_min_seekers() for comp in self.__hiker_components])
 
 	def get_trans_coverage_nodes(self, strat_node):
 		return self.__strat_node2adj_cov_nodes[strat_node]
