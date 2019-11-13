@@ -3,8 +3,11 @@ import os
 import pickle
 import random
 import collections
+import json
+from abc import ABCMeta, abstractmethod
 
 import numpy as np
+import cvxpy as cp
 import rtree
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -41,8 +44,8 @@ class BasicMapManager(object):
 		self._visibility_penta = [0, 0, 0, 0, 0]
 		self.__max_cells_visible = 0
 		self.__inference_map = inference_map
-
 		self._map_name = mapworld.get_map_name().split('.')[0]
+
 		vis_file = self._map_name + '.visibility'
 		obs_file = self._map_name + '.obstruction'
 		idx_file = self._map_name + '.index'
@@ -120,6 +123,9 @@ class BasicMapManager(object):
 
 	def get_map(self):
 		return self._mapworld
+
+	def get_map_name(self):
+		return self._map_name
 
 	def get_visibility_polygon(self, current_position, current_rotation, num_rays, visibility_angle):
 		return self._mapworld.get_visibility_polygon(current_position, current_rotation, num_rays, visibility_angle)
@@ -349,12 +355,12 @@ class StrategicPointsMapManager(BasicMapManager):
 	def get_strategic_points(self):
 		return self._strategic_points
 
-	def get_closest_strategic_point(self, point, num_points = 1, exact_num=True):
+	def get_closest_strategic_point(self, point, num_points = 1):
 		cx = point.get_x()
 		cy = point.get_y()
 		bound_box = (cx, cy, cx, cy)
 		closest_st_pts = list(self.__strategic_pts_idx.nearest(bound_box, num_points))
-		if exact_num and len(closest_st_pts) > num_points:
+		if len(closest_st_pts) > num_points:
 			closest_st_pts = list(np.random.choice(closest_st_pts, num_points, replace=False))
 		return closest_st_pts
 
@@ -419,7 +425,7 @@ class CoveragePoint(coord.Coord):
 
 class CoveragePointsMapManager(StrategicPointsMapManager):
 
-	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
+	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True, redo=False):
 		super(CoveragePointsMapManager, self).__init__(mapworld, fps, velocity, offset, inference_map)
 		print('Loading CoveragePointsMapManager')
 		self.__visibility_graph = nx.Graph()
@@ -440,12 +446,11 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 		self.__contours_file = self._map_name + '.contours'
 		# also coverage pt 2 contour
 
-		if False and os.path.isfile(self.__cp_file) and os.path.isfile(self.__cp_idx_file + '.idx') and os.path.isfile(self.__contours_file):
+		if not redo and os.path.isfile(self.__cp_file) and os.path.isfile(self.__cp_idx_file + '.idx') and os.path.isfile(self.__contours_file):
 			print('Loading coverage point files')
 			self.__load_coverage_points()
 			self.__load_coverage_points_index()
 			self.__load_coverage_contours()
-			self.__associate_strategic_points2cliques()
 		else:
 			self._coverage_points = []
 			self._coverage_pts_idx = rtree.index.Index(self.__cp_idx_file)
@@ -1034,49 +1039,79 @@ class OffsetPointsMapManager(BasicMapManager):
 	# 	return offset_point.get_offset_coord()
 
 class HikerGraphComponent(object):
+	def __init__(self, map_manager, idx, strategic_node_set=None):
 
-	def __init__(self, strategic_node_set, map_manager):
-		self.__strategic_node_set = strategic_node_set
-		self.__map_manager = map_manager
+		self._strategic_node_set = strategic_node_set
+		self._map_manager = map_manager
+		self._map_name = map_manager.get_map_name()
 
-		self.__coverage_node_set = set()
-		self.__capture_graph = nx.Graph()
-		self.__coverage_layers = None
-		self.__strategic_layers = None
-		self.__min_seekers = 0
-		self.__cov_node2layer = {}
-		self.__strat_node2layer = {}
+		self._cap_graph_file = self._map_name + '_' + str(idx) + '_.cap_graph'
 
-		self.__find_coverage_nodes()
-		self.__create_capture_graph()
-		self.__find_optimal_layers()
-		self.__associate_covnodes2layers()
-		self.__associate_stratnodes2layers()
-
-	def __find_coverage_nodes(self):
-		for strat_node in self.__strategic_node_set:
-			clique_ids = self.__map_manager.get_strategic_point_clique_ids(strat_node)
+		self._capture_graph = None
+		
+	def _find_coverage_nodes(self):
+		coverage_node_set = set()
+		for strat_node in self._strategic_node_set:
+			clique_ids = self._map_manager.get_strategic_point_clique_ids(strat_node)
 			# clque id = cov_node id
 			for cov_node in clique_ids:
-				self.__coverage_node_set.add(cov_node)
-		print('	Found coverage nodes:{}'.format(self.__coverage_node_set))
+				coverage_node_set.add(cov_node)
+		print('	Found coverage nodes:{}'.format(coverage_node_set))
+		return coverage_node_set
 
-	def __create_capture_graph(self):
-		for cov_node in self.__coverage_node_set:
-			self.__capture_graph.add_node(cov_node)
+	def _fetch_capture_graph(self):
+		if os.path.isfile(self._cap_graph_file):
+			self._capture_graph = nx.read_gpickle(self._cap_graph_file)
+		else:
+			self._create_capture_graph()
+			nx.write_gpickle(self._capture_graph, self._cap_graph_file)
 
-		for cov_node in self.__capture_graph:
+	def _create_capture_graph(self):
+		coverage_node_set = self._find_coverage_nodes()
+
+		self._capture_graph = nx.Graph()
+		for cov_node in coverage_node_set:
+			self._capture_graph.add_node(cov_node)
+
+		for cov_node in self._capture_graph:
 			# clique id = coverage point id
-			clique = self.__map_manager.get_clique(cov_node)
-			adj_strat_nodes = [x for x in clique if x in self.__strategic_node_set]
+			clique = self._map_manager.get_clique(cov_node)
+			adj_strat_nodes = [x for x in clique if x in self._strategic_node_set]
 			for strat_node in adj_strat_nodes:
-				adj_cov_nodes = self.__map_manager.get_trans_coverage_nodes(strat_node)
-				adj_cov_nodes = [x for x in adj_cov_nodes if x in self.__coverage_node_set]
+				adj_cov_nodes = self._map_manager.get_trans_coverage_nodes(strat_node)
+				adj_cov_nodes = [x for x in adj_cov_nodes if x in coverage_node_set]
+				adj_cov_nodes = [x for x in adj_cov_nodes if x != cov_node]
 				for adj_cov_node in adj_cov_nodes:
-					self.__capture_graph.add_edge(cov_node, adj_cov_node)
+					self._capture_graph.add_edge(cov_node, adj_cov_node)
+
+class WaveGraphComponent(HikerGraphComponent):
+
+	def __init__(self, map_manager, idx, strategic_node_set=None):
+		super(WaveGraphComponent, self).__init__(map_manager, idx, strategic_node_set)
+		
+		self.__cov_layer_file = self._map_name + '_' + str(idx) + '_.cov_layer'
+		
+		self._cov_node2layer = {}
+		self.__coverage_layers = None
+		self.__min_seekers = None
+
+		# self._strat_node2layer = {}
+		# self.__strategic_layers = None
+
+		if os.path.isfile(self.__cov_layer_file):
+			print('Hiker component cache FOUND, loading')
+			self.__load_coverage_layers()
+		else:
+			print('Hiker component cache NOT FOUND, creating')
+			self._fetch_capture_graph()
+			self.__find_optimal_layers()
+			self.__associate_covnodes2layers()
+			self.__store_coverage_layers()
+
+			# self.__associate_stratnodes2layers()
 
 	def __capture_bfs(self, source_cov_node):
-		explored = {cov_node: False for cov_node in self.__capture_graph}
+		explored = {cov_node: False for cov_node in self._capture_graph}
 		q = collections.deque()
 
 		q.append(source_cov_node)
@@ -1089,7 +1124,7 @@ class HikerGraphComponent(object):
 			for i in range(n):
 				cur_cov_node = q.popleft()
 				layers[-1].append(cur_cov_node)
-				for cov_node in self.__capture_graph.neighbors(cur_cov_node):
+				for cov_node in self._capture_graph.neighbors(cur_cov_node):
 					if not explored[cov_node]:
 						q.append(cov_node)
 						explored[cov_node] = True
@@ -1105,7 +1140,7 @@ class HikerGraphComponent(object):
 
 	def __find_optimal_layers(self):
 		self.__min_seekers = 100000000
-		for cov_node in self.__capture_graph:
+		for cov_node in self._capture_graph:
 			layers = self.__capture_bfs(cov_node)
 			reqd_seekers = self.__min_seekers_required(layers)
 			if reqd_seekers < self.__min_seekers:
@@ -1115,22 +1150,33 @@ class HikerGraphComponent(object):
 	def __associate_covnodes2layers(self):
 		for layer_id, layer in enumerate(self.__coverage_layers):
 			for cov_node in layer:
-				self.__cov_node2layer[cov_node] = layer_id
+				self._cov_node2layer[cov_node] = layer_id
 
-	def __associate_stratnodes2layers(self):
-		self.__strategic_layers = [[] for x in self.__coverage_layers]
-		for strat_node in self.__strategic_node_set:
-			clique_ids = self.__map_manager.get_strategic_point_clique_ids(strat_node)
-			layer_id = min([self.__cov_node2layer[cov_node] for cov_node in clique_ids])
+	def __store_coverage_layers(self):
+		clfile = open(self.__cov_layer_file, 'wb')
+		print('Storing coverage layers:', self.__coverage_layers)
+		pickle.dump(self.__coverage_layers, clfile, pickle.HIGHEST_PROTOCOL)
+		clfile.close()
+
+	def __load_coverage_layers(self):
+		clfile = open(self.__cov_layer_file, 'rb')
+		self.__coverage_layers = pickle.load(clfile)
+		clfile.close()
+
+	# def __associate_stratnodes2layers(self):
+	# 	self.__strategic_layers = [[] for x in self.__coverage_layers]
+	# 	for strat_node in self._strategic_node_set:
+	# 		clique_ids = self._map_manager.get_strategic_point_clique_ids(strat_node)
+	# 		layer_id = min([self._cov_node2layer[cov_node] for cov_node in clique_ids])
 			
-			self.__strat_node2layer[strat_node] = layer_id
-			self.__strategic_layers[layer_id].append(strat_node)
+	# 		self._strat_node2layer[strat_node] = layer_id
+	# 		self.__strategic_layers[layer_id].append(strat_node)
+
+	# def get_layer_strategic_nodes(self, layer_id):
+	# 	return self.__strategic_layers[layer_id]
 
 	def get_layer_coverage_nodes(self, layer_id):
 		return self.__coverage_layers[layer_id]
-
-	def get_layer_strategic_nodes(self, layer_id):
-		return self.__strategic_nodes[layer_id]
 
 	def get_num_layer_coverage_nodes(self, layer_id):
 		return len(self.__coverage_layers[layer_id])
@@ -1139,53 +1185,193 @@ class HikerGraphComponent(object):
 		return len(self.__coverage_layers)
 
 	def get_min_seekers(self):
+		if self.__min_seekers is not None:
+			return self.__min_seekers
+		self.__min_seekers = self.__min_seekers_required(self.__coverage_layers)
 		return self.__min_seekers
+
+class TrapGraphComponent(HikerGraphComponent):
+
+	def __init__(self, map_manager, idx, strategic_node_set=None):
+		super(TrapGraphComponent, self).__init__(map_manager, idx, strategic_node_set)
+		
+		self.__trap_file = self._map_name + '_' + str(idx) + '_trap.json'
+		self.__trap_occupancy = None
+
+		if os.path.isfile(self.__trap_file):
+			print('Trap component cache FOUND, loading')
+			self.__load_trap_occupancies()
+		else: 
+			print('Trap component cache NOT FOUND, creating')
+
+			self._fetch_capture_graph()
+
+			self.__find_trap_occupancies()
+			self.__store_trap_occupancies()
+		print('Occupied Nodes:{}'.format(self.__trap_occupancy['occupied']))
+		print('Non Occupied Nodes:{}'.format(self.__trap_occupancy['non_occupied']))
+
+
+	def __get_adjacent_vector(self, coverage_nodes, cov_node):
+		adj_vec = np.zeros(len(coverage_nodes), dtype=int)
+		for idx, cur_cov_node in enumerate(coverage_nodes):
+			if cur_cov_node in self._capture_graph.neighbors(cov_node):
+				adj_vec[idx] = 1
+		return adj_vec
+
+	def __find_trap_occupancies(self):
+		coverage_nodes = sorted(list(self._capture_graph))
+		print('** Coverage Nodes:{}'.format(coverage_nodes))
+		selection = cp.Variable(len(coverage_nodes), boolean=True)
+		constraints = []
+		for idx, cov_node in enumerate(coverage_nodes):
+			adj_vec = self.__get_adjacent_vector(coverage_nodes, cov_node)
+			degree = np.sum(adj_vec)
+			constraint = adj_vec * selection >= ((1 - selection[idx]) * degree)
+			constraints.append(constraint)
+
+		objective = cp.Minimize(cp.sum(selection))
+
+		opt_problem = cp.Problem(objective, constraints)
+		print('Solving TRAP IP')
+		opt_problem.solve(solver='GLPK_MI')
+		print('Solution:{}'.format(selection.value))
+
+		assert(selection.value is not None)
+
+		self.__trap_occupancy = {'occupied':[], 'non_occupied':[]}
+		for idx, cov_node in enumerate(coverage_nodes):
+			if int(round(selection.value[idx])) == 1:
+				self.__trap_occupancy['occupied'].append(cov_node)
+			else:
+				self.__trap_occupancy['non_occupied'].append(cov_node)
+
+	def __store_trap_occupancies(self):
+		with open(self.__trap_file, "w") as write_file:
+			json.dump(self.__trap_occupancy, write_file)
+
+	def __load_trap_occupancies(self):
+		with open(self.__trap_file, "r") as read_file:
+			self.__trap_occupancy = json.load(read_file)
+
+	def get_occupied_nodes(self):
+		return self.__trap_occupancy['occupied']
+
+	def get_non_occupied_nodes(self):
+		return self.__trap_occupancy['non_occupied']
+
+	def get_num_occupied_nodes(self):
+		return len(self.__trap_occupancy['occupied'])
+
 
 class HikerMapManager(CoveragePointsMapManager):
 
-	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
-			super(HikerMapManager, self).__init__(mapworld, fps, velocity, num_rays, visibility_angle, offset, inference_map)
-			
-			self.__htrav_graph = nx.Graph()
-			self.__strat_node2adj_cov_nodes = [set() for i in range(self._num_strategic_points)]
-			self.__hiker_components = []
+	__metaclass__ = ABCMeta
 
-			self.__create_htrav_graph()
-			self.__associate_strats2adjacent_covs()
-			self.__create_hiker_components()
+	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
+			# We find mapname in this manner since we have tet to initialize the 
+			# parent map manager classes
+			map_name = mapworld.get_map_name().split('.')[0]
+			self.__htrav_graph_file = map_name + '_.htrav_graph'
+			self.__htrav_map_file = map_name + '_.htrav_map'
+
+			redo = not (os.path.isfile(self.__htrav_graph_file) and os.path.isfile(self.__htrav_map_file))
+
+			super(HikerMapManager, self).__init__(mapworld, fps, velocity, num_rays, visibility_angle, offset, inference_map, redo)
+			self._components = []
+
+			if redo:
+				print('Hiker cached data NOT FOUND, reconstructing')
+				self._htrav_graph = nx.Graph()
+				self.__strat_node2adj_cov_nodes = [set() for i in range(self._num_strategic_points)]
+				
+				self.__create_htrav_graph()
+				self.__associate_strats2adjacent_covs()
+
+				self.__store_hiker_state()
+			else:
+				self.__load_hiker_state()
+			self._create_components()
 
 	def __create_htrav_graph(self):
 		for strat_node in range(self._num_strategic_points):
-			self.__htrav_graph.add_node(strat_node)
+			self._htrav_graph.add_node(strat_node)
 			strat_pt = self._strategic_points[strat_node]
-			adj_strat_nodes = self.get_closest_strategic_point(strat_pt, 5, False)
+			adj_strat_nodes = self.get_closest_strategic_point(strat_pt, 4)
+			adj_strat_nodes = [x for x in adj_strat_nodes if x != strat_node]
+			print('Node:{} Adj Nodes:{}'.format(strat_node, adj_strat_nodes))
 			for adj_strat_node in adj_strat_nodes:
-				self.__htrav_graph.add_edge(strat_node, adj_strat_node)
+				self._htrav_graph.add_edge(strat_node, adj_strat_node)
 
 	def __associate_strats2adjacent_covs(self):
-		for strat_node in self.__htrav_graph:
-			for adj_st_node in self.__htrav_graph.neighbors(strat_node):
+		for strat_node in self._htrav_graph:
+			for adj_st_node in self._htrav_graph.neighbors(strat_node):
 				# clique id = coverage point id
 				for adj_cov_id in self.get_strategic_point_clique_ids(adj_st_node):
 					self.__strat_node2adj_cov_nodes[strat_node].add(adj_cov_id)
 
-	def __create_hiker_components(self):
-		for strat_node_set in nx.connected_components(self.__htrav_graph):
-			# print('Connected component:{}'.format(strat_node_set))
-			hiker_component = HikerGraphComponent(strat_node_set, self)
-			self.__hiker_components.append(hiker_component)
+	def get_trans_coverage_nodes(self, strat_node):
+		return self.__strat_node2adj_cov_nodes[strat_node]
+
+	def __store_hiker_state(self):
+		f = open(self.__htrav_map_file, 'wb')
+		pickle.dump(self.__strat_node2adj_cov_nodes, f, pickle.HIGHEST_PROTOCOL)
+		f.close()
+		
+		nx.write_gpickle(self._htrav_graph, self.__htrav_graph_file)
+
+	def __load_hiker_state(self):
+		f = open(self.__htrav_map_file, 'rb')
+		self.__strat_node2adj_cov_nodes = pickle.load(f)
+		f.close()
+
+		self._htrav_graph = nx.read_gpickle(self.__htrav_graph_file)
+
+	@abstractmethod
+	def _create_components(self):
+		pass
+
+	@abstractmethod
+	def get_min_reqd_seekers(self):
+		pass
+
+	def get_component(self, component_id):
+		return self._components[component_id]
+
+	def get_num_components(self):
+		return len(self._components)
+
+
+class WaveMapManager(HikerMapManager):
+
+	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
+			super(WaveMapManager, self).__init__(mapworld, fps, velocity, num_rays, visibility_angle, offset, inference_map)
+			
+	def _create_components(self):
+		for idx, strat_node_set in enumerate(nx.connected_components(self._htrav_graph)):
+			print('Connected component:{}'.format(strat_node_set))
+			wave_component = WaveGraphComponent(self, idx, strat_node_set)
+			self._components.append(wave_component)
 
 	def get_min_reqd_seekers(self):
 		'''
 		Minimum number of seekers required for the strategy to work
 		'''
-		return min([comp.get_min_seekers() for comp in self.__hiker_components])
+		return max([comp.get_min_seekers() for comp in self._components])
 
-	def get_trans_coverage_nodes(self, strat_node):
-		return self.__strat_node2adj_cov_nodes[strat_node]
+class TrapMapManager(HikerMapManager):
 
-	def get_hiker_component(self, component_id):
-		return self.__hiker_components[component_id]
+	def __init__(self, mapworld, fps, velocity, num_rays, visibility_angle, offset = 10, inference_map=True):
+			super(TrapMapManager, self).__init__(mapworld, fps, velocity, num_rays, visibility_angle, offset, inference_map)
 
-	def get_num_hiker_components(self):
-		return len(self.__hiker_components)
+	def _create_components(self):
+		for idx, strat_node_set in enumerate(nx.connected_components(self._htrav_graph)):
+			print('Connected component:{}'.format(strat_node_set))
+			trap_component = TrapGraphComponent(self, idx, strat_node_set)
+			self._components.append(trap_component)
+
+	def get_min_reqd_seekers(self):
+		'''
+		Minimum number of seekers required for the strategy to work
+		'''
+		return max([comp.get_num_occupied_nodes() for comp in self._components]) + 1
