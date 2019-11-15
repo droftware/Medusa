@@ -404,8 +404,9 @@ class Simulator(object):
 				self.__hiders_active[graphics_idx] = False 
 				self.__hider_team.set_member_inactive(rank, ai_idx)
 				self.__set_mover_inactive(agent.AgentType.Hider, graphics_idx)
-				# print('Hider caught !!')
 				self.__num_caught += 1
+				print('Hider caught !!, total:{}'.format(self.__num_caught))
+
 
 				# Updating the statistics
 				self.__stats.update_hider_caught_time(graphics_idx, self.__steps)

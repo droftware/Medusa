@@ -320,7 +320,7 @@ class StrategicPointsMapManager(BasicMapManager):
 			
 
 		self._num_strategic_points = len(self._strategic_points)
-		# print('Number of strategic points:', self._num_strategic_points)
+		print('* Number of strategic points:{}'.format(self._num_strategic_points))
 
 		# TO DO: Merge strategic points if they are very close to each other and
 		# there is no obstacle between them
@@ -470,6 +470,7 @@ class CoveragePointsMapManager(StrategicPointsMapManager):
 			self.__store_coverage_points_index()
 			self.__store_coverage_contours()
 		
+		print('* Number of coverage points:{}'.format(len(self._coverage_points)))
 		# print('Coverage points:', self._coverage_points)
 		# print('Coverage contours:', self._coverage_contours)
 
@@ -1208,8 +1209,9 @@ class TrapGraphComponent(HikerGraphComponent):
 
 			self.__find_trap_occupancies()
 			self.__store_trap_occupancies()
-		print('Occupied Nodes:{}'.format(self.__trap_occupancy['occupied']))
-		print('Non Occupied Nodes:{}'.format(self.__trap_occupancy['non_occupied']))
+
+		print('* Occupied - Number:{}, Nodes{}, '.format(len(self.__trap_occupancy['occupied']), self.__trap_occupancy['occupied']))
+		print('* Non Occupied - Number:{}, Nodes:{}'.format(len(self.__trap_occupancy['non_occupied']), self.__trap_occupancy['non_occupied']))
 
 
 	def __get_adjacent_vector(self, coverage_nodes, cov_node):
